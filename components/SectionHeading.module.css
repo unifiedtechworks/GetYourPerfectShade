@@ -1,0 +1,18 @@
+.heading {
+  max-width: 760px;
+  margin: 0 0 30px;
+}
+
+.heading h2 {
+  margin: 0 0 14px;
+  color: var(--color-navy);
+  font-family: var(--font-heading);
+  font-size: clamp(2rem, 5vw, 3.45rem);
+  line-height: 1.08;
+}
+
+.heading p {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 1.04rem;
+}

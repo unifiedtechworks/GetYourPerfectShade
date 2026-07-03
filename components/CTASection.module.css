@@ -1,0 +1,50 @@
+.cta {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 86% 18%, rgba(244, 223, 220, 0.22), transparent 28%),
+    linear-gradient(120deg, rgba(19, 35, 63, 0.96), rgba(32, 52, 85, 0.94)),
+    linear-gradient(90deg, transparent 0 58%, rgba(185, 111, 100, 0.24) 58% 100%);
+  color: var(--color-white);
+  padding: 86px 0;
+}
+
+.cta::after {
+  content: "";
+  position: absolute;
+  right: -8%;
+  bottom: -42%;
+  width: 58%;
+  height: 72%;
+  border-radius: 50% 0 0 0;
+  background: rgba(244, 223, 220, 0.14);
+}
+
+.inner {
+  display: flex;
+  position: relative;
+  z-index: 1;
+  align-items: center;
+  justify-content: space-between;
+  gap: 36px;
+}
+
+.inner h2 {
+  max-width: 760px;
+  margin: 0 0 12px;
+  font-family: var(--font-heading);
+  font-size: clamp(2rem, 5vw, 3.8rem);
+  line-height: 1.05;
+}
+
+.inner p {
+  max-width: 640px;
+  color: rgba(255, 255, 255, 0.84);
+}
+
+@media (max-width: 780px) {
+  .inner {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

@@ -1,0 +1,113 @@
+.card {
+  overflow: hidden;
+  border: 1px solid rgba(234, 222, 214, 0.95);
+  border-radius: var(--radius-lg);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(251, 245, 234, 0.96)),
+    var(--color-cream);
+  box-shadow: var(--shadow-card);
+  transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease;
+}
+
+.card:hover {
+  border-color: rgba(185, 111, 100, 0.34);
+  box-shadow: 0 24px 58px rgba(19, 35, 63, 0.14);
+  transform: translateY(-5px);
+}
+
+.body {
+  position: relative;
+  padding: 28px 26px 22px;
+}
+
+.icon {
+  display: grid;
+  width: 64px;
+  height: 64px;
+  place-items: center;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 68% 20%, rgba(255, 255, 255, 0.82), transparent 34%),
+    var(--color-blush);
+  color: var(--color-navy);
+  font-family: var(--font-heading);
+  font-size: 1.2rem;
+  font-weight: 800;
+  box-shadow: inset 0 0 0 1px rgba(185, 111, 100, 0.22), 0 12px 24px rgba(19, 35, 63, 0.08);
+}
+
+.eyebrow {
+  margin: 18px 0 6px;
+  color: var(--color-terracotta);
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.body h3 {
+  margin: 0 0 10px;
+  color: var(--color-navy);
+  font-family: var(--font-heading);
+  font-size: 1.55rem;
+}
+
+.body p {
+  margin: 0 0 16px;
+  color: var(--color-muted);
+}
+
+.body ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 20px;
+  padding: 0;
+  list-style: none;
+}
+
+.body li {
+  border-radius: 999px;
+  border: 1px solid rgba(185, 111, 100, 0.14);
+  background: rgba(244, 223, 220, 0.78);
+  color: var(--color-navy);
+  font-size: 0.86rem;
+  font-weight: 700;
+  padding: 5px 10px;
+}
+
+.body a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-terracotta);
+  font-weight: 800;
+}
+
+.body a::after {
+  content: ">";
+  transition: transform 180ms ease;
+}
+
+.card:hover .body a::after {
+  transform: translateX(3px);
+}
+
+.preview {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  margin: 0 16px 16px;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background: var(--color-blush);
+}
+
+.image {
+  object-fit: cover;
+  object-position: center;
+  transition: transform 260ms ease;
+}
+
+.card:hover .image {
+  transform: scale(1.03);
+}

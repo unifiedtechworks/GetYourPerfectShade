@@ -1,0 +1,52 @@
+.card {
+  overflow: hidden;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-lg);
+  background: var(--color-white);
+  box-shadow: var(--shadow-card);
+  transition: transform 220ms ease, box-shadow 220ms ease;
+}
+
+.card:hover {
+  box-shadow: 0 24px 58px rgba(19, 35, 63, 0.14);
+  transform: translateY(-5px);
+}
+
+.imageWrap {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  border-bottom: 1px solid var(--color-line);
+  background: var(--color-blush);
+  overflow: hidden;
+}
+
+.image {
+  object-fit: cover;
+  object-position: center;
+  transition: transform 260ms ease;
+}
+
+.card:hover .image {
+  transform: scale(1.03);
+}
+
+.body {
+  padding: 22px;
+}
+
+.card h3 {
+  margin: 0 0 8px;
+  color: var(--color-navy);
+  font-family: var(--font-heading);
+  font-size: 1.45rem;
+}
+
+.card p {
+  margin: 0 0 16px;
+  color: var(--color-muted);
+}
+
+.card a {
+  color: var(--color-terracotta);
+  font-weight: 800;
+}

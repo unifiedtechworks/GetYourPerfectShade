@@ -1,0 +1,147 @@
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  border-bottom: 1px solid var(--color-line);
+  background: rgba(251, 245, 234, 0.98);
+  box-shadow: 0 8px 22px rgba(19, 35, 63, 0.05);
+  backdrop-filter: blur(12px);
+}
+
+.inner {
+  display: flex;
+  min-height: 74px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 22px;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  color: var(--color-navy);
+  transition: transform 180ms ease;
+}
+
+.brand:hover {
+  transform: translateY(-1px);
+}
+
+.brand strong,
+.brand small {
+  display: block;
+}
+
+.brand strong {
+  line-height: 1.15;
+}
+
+.brand small {
+  color: var(--color-muted);
+  font-size: 0.78rem;
+}
+
+.mark {
+  display: grid;
+  width: 46px;
+  height: 46px;
+  place-items: center;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 70% 20%, rgba(244, 223, 220, 0.28), transparent 35%),
+    var(--color-navy);
+  color: var(--color-cream);
+  font-family: var(--font-heading);
+  font-weight: 700;
+}
+
+.nav {
+  display: flex;
+  gap: 8px;
+  color: var(--color-navy-soft);
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.nav a {
+  border-radius: 999px;
+  padding: 8px 12px;
+  transition: background 180ms ease, color 180ms ease, transform 180ms ease;
+}
+
+.nav a:hover,
+.active {
+  background: rgba(244, 223, 220, 0.58);
+  color: var(--color-navy);
+  transform: translateY(-1px);
+}
+
+.phone {
+  border-radius: 999px;
+  border: 1px solid rgba(185, 111, 100, 0.26);
+  background: var(--color-white);
+  color: var(--color-navy);
+  font-weight: 800;
+  padding: 10px 16px;
+  box-shadow: 0 10px 24px rgba(19, 35, 63, 0.09);
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.phone:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 30px rgba(19, 35, 63, 0.12);
+}
+
+@media (max-width: 760px) {
+  .inner {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px 12px;
+    padding: 10px 0 12px;
+  }
+
+  .nav {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-content: space-between;
+    gap: 4px;
+    overflow-x: auto;
+    border-top: 1px solid rgba(234, 222, 214, 0.74);
+    padding-top: 8px;
+    padding-bottom: 0;
+  }
+
+  .nav a {
+    padding: 7px 9px;
+    white-space: nowrap;
+  }
+
+  .phone {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 460px) {
+  .brand {
+    gap: 9px;
+  }
+
+  .brand small {
+    display: none;
+  }
+
+  .mark {
+    width: 40px;
+    height: 40px;
+  }
+
+  .phone {
+    padding: 8px 11px;
+    white-space: nowrap;
+  }
+}

@@ -1,0 +1,200 @@
+.hero {
+  position: relative;
+  background:
+    radial-gradient(circle at 82% 11%, rgba(244, 223, 220, 0.34), transparent 30%),
+    radial-gradient(circle at 12% 18%, rgba(217, 170, 164, 0.2), transparent 34%),
+    linear-gradient(132deg, #0e1d35 0%, var(--color-navy) 48%, #263a5e 82%, #7d504f 145%);
+  color: var(--color-white);
+  isolation: isolate;
+}
+
+.hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(90deg, rgba(8, 18, 34, 0.72) 0%, rgba(8, 18, 34, 0.38) 47%, rgba(8, 18, 34, 0.12) 100%),
+    linear-gradient(180deg, rgba(19, 35, 63, 0.08), rgba(19, 35, 63, 0.22));
+}
+
+.hero::after {
+  content: "";
+  position: absolute;
+  right: -12%;
+  bottom: -22%;
+  z-index: -1;
+  width: 70%;
+  height: 52%;
+  border-radius: 50% 0 0 0;
+  background: rgba(244, 223, 220, 0.24);
+}
+
+.inner {
+  display: grid;
+  min-height: 620px;
+  grid-template-columns: minmax(0, 1.04fr) minmax(320px, 0.82fr);
+  gap: clamp(32px, 6vw, 72px);
+  align-items: center;
+  padding: 68px 0 84px;
+}
+
+.copy {
+  max-width: 700px;
+  border-left: 1px solid rgba(244, 223, 220, 0.42);
+  border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
+  background: linear-gradient(90deg, rgba(8, 18, 34, 0.42), rgba(8, 18, 34, 0.12) 68%, transparent);
+  padding: 28px 0 30px clamp(22px, 4vw, 38px);
+  animation: heroCopyIn 760ms ease-out both;
+}
+
+.copy :global(.eyebrow) {
+  color: #f0c8c2;
+  text-shadow: 0 1px 18px rgba(0, 0, 0, 0.26);
+}
+
+.copy h1 {
+  margin: 0 0 20px;
+  color: #fffaf0;
+  font-family: var(--font-heading);
+  font-size: clamp(3.05rem, 6vw, 4.85rem);
+  line-height: 0.98;
+  letter-spacing: 0;
+  max-width: 15.5ch;
+  text-wrap: balance;
+  text-shadow:
+    0 2px 2px rgba(3, 8, 18, 0.52),
+    0 14px 34px rgba(3, 8, 18, 0.66),
+    0 0 34px rgba(255, 250, 240, 0.16);
+}
+
+.copy p {
+  max-width: 590px;
+  color: rgba(255, 255, 255, 0.94);
+  font-size: 1.12rem;
+  text-shadow: 0 1px 18px rgba(0, 0, 0, 0.28);
+}
+
+.copy :global(.buttonRow) {
+  margin-top: 28px;
+}
+
+.visual {
+  min-height: 420px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: var(--radius-lg);
+  background: rgba(251, 245, 234, 0.12);
+  box-shadow: 0 34px 94px rgba(0, 0, 0, 0.28);
+  overflow: hidden;
+  position: relative;
+  transform-origin: center bottom;
+  animation: heroVisualIn 900ms 140ms ease-out both, heroVisualDrift 14s 1.2s ease-in-out infinite alternate;
+}
+
+.visual::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(19, 35, 63, 0.08), rgba(19, 35, 63, 0.18));
+  pointer-events: none;
+}
+
+.heroImage {
+  object-fit: cover;
+  object-position: center;
+}
+
+@keyframes heroCopyIn {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes heroVisualIn {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes heroVisualDrift {
+  from {
+    transform: scale(1);
+  }
+
+  to {
+    transform: scale(1.018);
+  }
+}
+
+@media (max-width: 860px) {
+  .inner {
+    grid-template-columns: 1fr;
+    min-height: auto;
+    padding: 60px 0 70px;
+  }
+
+  .copy {
+    max-width: 640px;
+  }
+
+  .copy h1 {
+    max-width: 13ch;
+  }
+
+  .visual {
+    min-height: 300px;
+    max-width: 520px;
+    width: 100%;
+  }
+
+}
+
+@media (max-width: 560px) {
+  .inner {
+    padding: 44px 0 56px;
+  }
+
+  .copy {
+    border-left: 0;
+    background: transparent;
+    padding: 0;
+  }
+
+  .copy h1 {
+    font-size: clamp(3rem, 16vw, 4.25rem);
+    max-width: 10ch;
+  }
+
+  .copy p {
+    font-size: 1rem;
+  }
+
+  .visual {
+    min-height: 250px;
+    border-radius: var(--radius-md);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .copy,
+  .visual {
+    animation: none;
+  }
+
+  .copy,
+  .visual {
+    transform: none;
+  }
+}
