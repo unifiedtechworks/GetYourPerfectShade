@@ -9,6 +9,7 @@ export function Footer() {
         <div>
           <p className={styles.brand}>{businessInfo.brandPhrase}</p>
           <p>{businessInfo.tagline}</p>
+          <p className={styles.serviceArea}>{businessInfo.areaServed}</p>
           <p className={styles.credentials}>
             {businessInfo.ccb} | {businessInfo.waReg}
           </p>

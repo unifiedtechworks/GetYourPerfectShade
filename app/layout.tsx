@@ -12,7 +12,7 @@ export const metadata: Metadata = {
     template: "%s | Perfect Shade"
   },
   description:
-    "Perfect Shade provides custom window coverings, window films, and exterior shade solutions for homes and businesses in Hermiston and Eastern Oregon.",
+    "Perfect Shade provides custom window coverings, window films, and exterior shade solutions for homes and businesses in Hermiston, Boardman, Umatilla, Heppner, and nearby communities.",
   openGraph: {
     title: "Perfect Shade — Window Coverings & Solutions",
     description: "Beautiful by design. Made for your space.",

@@ -5,7 +5,7 @@ import { businessInfo, trustItems } from "@/data/business";
 export const metadata: Metadata = {
   title: "About",
   description:
-    "Learn about Perfect Shade, a Hermiston-area window coverings business serving residential and commercial clients."
+    "Learn about Perfect Shade, a local window coverings business serving Hermiston, Boardman, Umatilla, Heppner, and surrounding communities."
 };
 
 export default function AboutPage() {
@@ -17,9 +17,9 @@ export default function AboutPage() {
             <p className="eyebrow">About Perfect Shade</p>
             <h1>Thoughtful window covering solutions for local homes and businesses.</h1>
             <p>
-              Perfect Shade serves residential and commercial customers in Hermiston, Umatilla
-              County, Morrow County, and the surrounding Eastern Oregon region with practical,
-              polished shade solutions.
+              Perfect Shade serves residential and commercial customers in Hermiston, Boardman,
+              Umatilla, Heppner, and surrounding communities in Umatilla and Morrow County with
+              practical, polished shade solutions.
             </p>
             <p>
               The work starts with listening: how the room feels during the day, where privacy
@@ -29,7 +29,7 @@ export default function AboutPage() {
             </p>
             <ul className="featureList">
               <li>Residential and commercial window coverings, films, and exterior solutions.</li>
-              <li>Local knowledge for Hermiston-area light, heat, privacy, and durability needs.</li>
+              <li>Local knowledge for Umatilla and Morrow County light, heat, privacy, and durability needs.</li>
               <li>Warm service before, during, and after installation.</li>
             </ul>
           </div>

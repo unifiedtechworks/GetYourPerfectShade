@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { CTASection } from "@/components/CTASection";
+import { DecorativeLeaf } from "@/components/DecorativeLeaf";
 import { GalleryCard } from "@/components/GalleryCard";
 import { Hero } from "@/components/Hero";
 import { ProcessSteps } from "@/components/ProcessSteps";
@@ -37,6 +38,10 @@ export default function HomePage() {
       </section>
 
       <section className="section" aria-labelledby="why-heading">
+        <DecorativeLeaf
+          className="decorLeaf decorLeafWhy"
+          src="/images/perfect-shade/decor/leaf-horizontal-branch.png"
+        />
         <div className="container twoColumn">
           <div>
             <p className="eyebrow">Why Perfect Shade</p>
@@ -47,8 +52,8 @@ export default function HomePage() {
               fit, and a finished look that belongs in your space.
             </p>
             <p>
-              Serving Hermiston, Umatilla County, Morrow County, and nearby Eastern Oregon and
-              Washington communities with residential and commercial shade solutions.
+              Serving Hermiston, Boardman, Umatilla, Heppner, and surrounding communities in
+              Umatilla and Morrow County with residential and commercial shade solutions.
             </p>
             <ul className="featureList">
               <li>Interior and exterior solutions for homes, offices, storefronts, and patios.</li>
@@ -67,6 +72,10 @@ export default function HomePage() {
       <ProcessSteps />
 
       <section className="section sectionAlt sectionShell" aria-labelledby="gallery-heading">
+        <DecorativeLeaf
+          className="decorLeaf decorLeafGallery"
+          src="/images/perfect-shade/decor/leaf-tall-arching.png"
+        />
         <div className="container">
           <SectionHeading
             eyebrow="Gallery"

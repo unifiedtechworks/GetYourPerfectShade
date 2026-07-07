@@ -11,7 +11,7 @@ export function CTASection() {
           <h2 id="cta-heading">Bring the right shade, softness, and privacy into your space.</h2>
           <p>
             Contact Perfect Shade for residential or commercial window covering solutions in
-            Hermiston and the surrounding region.
+            Hermiston, Boardman, Umatilla, Heppner, and surrounding communities.
           </p>
         </div>
         <div className="buttonRow">

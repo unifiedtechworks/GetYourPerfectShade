@@ -10,19 +10,21 @@ export const businessInfo = {
   url: "https://getyourperfectshade.com",
   ccb: "OR CCB #250146",
   waReg: "WA REG. #PERFESL768QW",
-  chamber: "Proud Hermiston Chamber Member",
+  chamber: "Local chamber member",
+  countyService: "Serving Umatilla & Morrow County",
   local: "Locally owned and operated",
   residentialCommercial: "Residential & Commercial",
   areaServed:
-    "Hermiston, Umatilla County, Morrow County, surrounding Eastern Oregon, and nearby Washington areas",
+    "Hermiston, Boardman, Umatilla, Heppner, and surrounding communities in Umatilla and Morrow County",
   addressLocality: "Hermiston",
   addressRegion: "OR"
 };
 
 export const trustItems = [
   businessInfo.chamber,
+  businessInfo.countyService,
+  businessInfo.residentialCommercial,
   businessInfo.ccb,
   businessInfo.waReg,
-  businessInfo.residentialCommercial,
   businessInfo.local
 ];

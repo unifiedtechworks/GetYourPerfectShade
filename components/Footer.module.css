@@ -23,6 +23,11 @@
   font-weight: 700;
 }
 
+.serviceArea {
+  max-width: 520px;
+  color: rgba(251, 245, 234, 0.78);
+}
+
 .footer h2 {
   margin: 0 0 12px;
   font-size: 0.88rem;

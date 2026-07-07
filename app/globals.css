@@ -98,6 +98,40 @@ h1 {
   overflow: clip;
 }
 
+.decorLeaf {
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.decorLeafWhy {
+  right: max(18px, calc((100vw - 1120px) / 2 - 84px));
+  bottom: 18px;
+  width: 360px;
+  height: 240px;
+  opacity: 0.2;
+  transform: rotate(-5deg);
+}
+
+.decorLeafGallery {
+  left: max(20px, calc((100vw - 1120px) / 2 - 28px));
+  bottom: 28px;
+  width: 210px;
+  height: 315px;
+  opacity: 0.22;
+  transform: rotate(-14deg) scaleX(-1);
+}
+
+.decorLeafWhy,
+.decorLeafGallery {
+  pointer-events: none;
+}
+
+.section > .container {
+  position: relative;
+  z-index: 1;
+}
+
 .eyebrow {
   margin: 0 0 10px;
   color: var(--color-terracotta);
@@ -306,6 +340,22 @@ a:focus-visible {
   .twoColumn,
   .credentialGrid {
     grid-template-columns: 1fr;
+  }
+
+  .decorLeafWhy {
+    right: 16px;
+    bottom: 20px;
+    width: 220px;
+    height: 150px;
+    opacity: 0.13;
+  }
+
+  .decorLeafGallery {
+    left: 34px;
+    bottom: 26px;
+    width: 128px;
+    height: 190px;
+    opacity: 0.14;
   }
 }
 

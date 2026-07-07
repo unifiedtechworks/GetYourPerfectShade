@@ -1,6 +1,6 @@
 # Perfect Shade Website
 
-Initial Phase 1 scaffold for `getyourperfectshade.com`, a modern Next.js website for Perfect Shade, a local window coverings business serving Hermiston, Umatilla County, Morrow County, surrounding Eastern Oregon, and nearby Washington areas.
+Initial Phase 1 scaffold for `getyourperfectshade.com`, a modern Next.js website for Perfect Shade, a local window coverings business serving Hermiston, Boardman, Umatilla, Heppner, and surrounding communities in Umatilla and Morrow County.
 
 ## Tech Stack
 

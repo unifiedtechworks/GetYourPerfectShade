@@ -3,6 +3,7 @@
   background:
     radial-gradient(circle at 82% 11%, rgba(244, 223, 220, 0.34), transparent 30%),
     radial-gradient(circle at 12% 18%, rgba(217, 170, 164, 0.2), transparent 34%),
+    linear-gradient(155deg, transparent 0 48%, rgba(185, 111, 100, 0.34) 48% 58%, rgba(244, 223, 220, 0.2) 58% 66%, transparent 66%),
     linear-gradient(132deg, #0e1d35 0%, var(--color-navy) 48%, #263a5e 82%, #7d504f 145%);
   color: var(--color-white);
   isolation: isolate;
@@ -21,22 +22,56 @@
 .hero::after {
   content: "";
   position: absolute;
-  right: -12%;
-  bottom: -22%;
+  right: -10%;
+  bottom: -30%;
   z-index: -1;
-  width: 70%;
-  height: 52%;
+  width: 82%;
+  height: 64%;
   border-radius: 50% 0 0 0;
-  background: rgba(244, 223, 220, 0.24);
+  background:
+    radial-gradient(ellipse at 44% 0%, rgba(251, 245, 234, 0.18), transparent 62%),
+    rgba(244, 223, 220, 0.2);
 }
 
 .inner {
   display: grid;
+  position: relative;
   min-height: 620px;
   grid-template-columns: minmax(0, 1.04fr) minmax(320px, 0.82fr);
   gap: clamp(32px, 6vw, 72px);
   align-items: center;
   padding: 68px 0 84px;
+}
+
+.copy,
+.visual {
+  position: relative;
+  z-index: 1;
+}
+
+.heroLeafTall,
+.heroLeafCluster {
+  position: absolute;
+  z-index: 2;
+  opacity: 0.34;
+  filter: drop-shadow(0 16px 34px rgba(3, 8, 18, 0.22));
+}
+
+.heroLeafTall {
+  top: 10px;
+  right: -48px;
+  width: 260px;
+  height: 390px;
+  transform: rotate(3deg);
+}
+
+.heroLeafCluster {
+  right: min(31%, 350px);
+  bottom: 44px;
+  width: 190px;
+  height: 190px;
+  opacity: 0.28;
+  transform: rotate(-8deg);
 }
 
 .copy {
@@ -159,6 +194,23 @@
     width: 100%;
   }
 
+  .heroLeafTall {
+    top: 24px;
+    right: -20px;
+    width: 170px;
+    height: 260px;
+    opacity: 0.24;
+  }
+
+  .heroLeafCluster {
+    top: 42px;
+    right: 26px;
+    bottom: auto;
+    width: 120px;
+    height: 120px;
+    opacity: 0.22;
+  }
+
 }
 
 @media (max-width: 560px) {
@@ -184,6 +236,18 @@
   .visual {
     min-height: 250px;
     border-radius: var(--radius-md);
+  }
+
+  .heroLeafTall {
+    display: none;
+  }
+
+  .heroLeafCluster {
+    top: -4px;
+    right: 8px;
+    width: 96px;
+    height: 96px;
+    opacity: 0.18;
   }
 }
 

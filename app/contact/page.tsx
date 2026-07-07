@@ -5,7 +5,7 @@ import styles from "./contact.module.css";
 export const metadata: Metadata = {
   title: "Contact",
   description:
-    "Contact Perfect Shade for custom window coverings, window films, and exterior shade solutions in Hermiston and surrounding areas."
+    "Contact Perfect Shade for custom window coverings, window films, and exterior shade solutions in Hermiston, Boardman, Umatilla, Heppner, and surrounding communities."
 };
 
 export default function ContactPage() {

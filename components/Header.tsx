@@ -19,7 +19,13 @@ export function Header() {
     <header className={styles.header}>
       <div className={`container ${styles.inner}`}>
         <Link className={styles.brand} href="/" aria-label="Perfect Shade home">
-          <span className={styles.mark}>PS</span>
+          <span className={styles.mark} aria-hidden="true">
+            <span className={styles.blindIcon}>
+              <span />
+              <span />
+              <span />
+            </span>
+          </span>
           <span>
             <strong>{businessInfo.name}</strong>
             <small>Window Coverings & Solutions</small>

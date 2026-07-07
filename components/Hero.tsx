@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { DecorativeLeaf } from "@/components/DecorativeLeaf";
 import { businessInfo } from "@/data/business";
 import { services } from "@/data/services";
 import styles from "./Hero.module.css";
@@ -10,12 +11,20 @@ export function Hero() {
   return (
     <section className={styles.hero}>
       <div className={`container ${styles.inner}`}>
+        <DecorativeLeaf
+          className={styles.heroLeafTall}
+          src="/images/perfect-shade/decor/leaf-tall-vertical.png"
+        />
+        <DecorativeLeaf
+          className={styles.heroLeafCluster}
+          src="/images/perfect-shade/decor/leaf-cluster-line.png"
+        />
         <div className={styles.copy}>
           <p className="eyebrow">{businessInfo.brandPhrase}</p>
           <h1>{businessInfo.tagline}</h1>
           <p>
             Custom shades, blinds, draperies, window films, and exterior shade solutions
-            for Hermiston-area homes and businesses.
+            for homes and businesses in Umatilla and Morrow County.
           </p>
           <div className="buttonRow">
             <Link className="button buttonPrimary" href="/contact">
