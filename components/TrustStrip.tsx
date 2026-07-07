@@ -6,10 +6,7 @@ export function TrustStrip() {
     <section className={styles.strip} aria-label="Perfect Shade trust details">
       <div className={`container ${styles.inner}`}>
         {trustItems.map((item) => (
-          <span key={item}>
-            <span className={styles.dot} aria-hidden="true" />
-            {item}
-          </span>
+          <span key={item}>{item}</span>
         ))}
       </div>
     </section>
