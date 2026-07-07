@@ -5,7 +5,7 @@ import { services } from "@/data/services";
 export const metadata: Metadata = {
   title: "Window Films Gallery",
   description:
-    "Placeholder gallery for residential and commercial window films that reduce heat, protect interiors, and enhance privacy."
+    "Learn about residential and commercial window films that help reduce heat, soften glare, protect interiors, and improve privacy."
 };
 
 export default function WindowFilmsGalleryPage() {

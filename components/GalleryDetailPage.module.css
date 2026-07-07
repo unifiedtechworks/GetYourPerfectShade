@@ -77,7 +77,7 @@
   gap: 22px;
 }
 
-.placeholder {
+.galleryItem {
   border: 1px solid var(--color-line);
   border-radius: var(--radius-lg);
   background: var(--color-white);
@@ -86,24 +86,88 @@
   transition: transform 220ms ease, box-shadow 220ms ease;
 }
 
-.placeholder:hover {
+.galleryItem:hover {
   box-shadow: 0 24px 58px rgba(19, 35, 63, 0.14);
   transform: translateY(-4px);
 }
 
-.placeholder:hover .image {
+.galleryItem:hover .image {
   transform: scale(1.03);
 }
 
-.placeholder h2 {
+.galleryItem h2 {
   margin: 16px 0 6px;
   color: var(--color-navy);
   font-size: 1.08rem;
 }
 
-.placeholder p {
+.galleryItem p {
   margin: 0;
   color: var(--color-muted);
+}
+
+.details,
+.cta {
+  margin-top: 42px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: var(--shadow-card);
+}
+
+.details {
+  padding: 30px;
+}
+
+.details h2,
+.cta h2 {
+  margin: 0;
+  color: var(--color-navy);
+  font-family: var(--font-heading);
+  font-size: clamp(1.8rem, 4vw, 2.7rem);
+  line-height: 1.08;
+}
+
+.detailGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-top: 24px;
+}
+
+.detailGrid article {
+  border: 1px solid rgba(185, 111, 100, 0.16);
+  border-radius: var(--radius-md);
+  background: rgba(251, 245, 234, 0.76);
+  padding: 18px;
+}
+
+.detailGrid h3 {
+  margin: 0 0 8px;
+  color: var(--color-navy);
+  font-size: 1rem;
+}
+
+.detailGrid p,
+.cta p {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+.cta {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+  justify-content: space-between;
+  background:
+    radial-gradient(circle at 90% 10%, rgba(244, 223, 220, 0.42), transparent 32%),
+    var(--color-white);
+  padding: 30px;
+}
+
+.cta p {
+  max-width: 640px;
+  margin-top: 10px;
 }
 
 @media (max-width: 860px) {
@@ -111,7 +175,12 @@
     grid-template-columns: 1fr;
   }
 
-  .grid {
+  .grid,
+  .detailGrid {
     grid-template-columns: 1fr;
+  }
+
+  .cta {
+    display: grid;
   }
 }

@@ -80,8 +80,8 @@ export default function HomePage() {
           <SectionHeading
             eyebrow="Gallery"
             id="gallery-heading"
-            title="A first look at future project galleries."
-            intro="Placeholder areas are ready for real client photos, product detail shots, and before-and-after project images."
+            title="Explore window covering solutions by category."
+            intro="See how Perfect Shade organizes interior coverings, window films, and exterior shade solutions around comfort, privacy, light control, and the finished look of your space."
           />
           <div className="grid3">
             {galleryCategories.map((category) => (

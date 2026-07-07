@@ -284,7 +284,7 @@ a:focus-visible {
   box-shadow: 0 12px 28px rgba(19, 35, 63, 0.07);
 }
 
-.placeholderImage {
+.decorativeImageShell {
   aspect-ratio: 4 / 3;
   min-height: 0;
   border: 1px solid rgba(19, 35, 63, 0.1);
@@ -297,7 +297,7 @@ a:focus-visible {
   overflow: hidden;
 }
 
-.placeholderImage::after {
+.decorativeImageShell::after {
   content: "";
   position: absolute;
   left: 18%;
@@ -308,7 +308,7 @@ a:focus-visible {
   background: rgba(185, 111, 100, 0.28);
 }
 
-.placeholderImage::before {
+.decorativeImageShell::before {
   content: "";
   position: absolute;
   inset: 18% 22% 22%;

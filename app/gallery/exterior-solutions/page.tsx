@@ -5,7 +5,7 @@ import { services } from "@/data/services";
 export const metadata: Metadata = {
   title: "Exterior Window Coverings Gallery",
   description:
-    "Placeholder gallery for exterior shades, screens, awnings, comfort, and UV protection solutions."
+    "Explore exterior shades, screens, and awnings that add comfort, UV protection, and outdoor appeal for homes and businesses."
 };
 
 export default function ExteriorSolutionsGalleryPage() {

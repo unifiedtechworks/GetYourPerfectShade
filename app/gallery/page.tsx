@@ -4,9 +4,9 @@ import { SectionHeading } from "@/components/SectionHeading";
 import { galleryCategories } from "@/data/services";
 
 export const metadata: Metadata = {
-  title: "Gallery",
+  title: "Window Covering Solutions Gallery",
   description:
-    "Browse Perfect Shade gallery categories for window coverings, window films, and exterior shade solutions."
+    "Explore custom window coverings in Hermiston, residential and commercial window films, and exterior shade solutions for Umatilla and Morrow County."
 };
 
 export default function GalleryPage() {
@@ -16,8 +16,8 @@ export default function GalleryPage() {
         <SectionHeading
           eyebrow="Gallery"
           id="gallery-heading"
-          title="Project galleries organized by solution."
-          intro="This scaffold is ready for client photos, product imagery, and before-and-after examples as the site grows."
+          title="Explore Window Covering Solutions for Every Space"
+          intro="Browse Perfect Shade's main product categories, from custom interior shades and draperies to commercial window films and exterior shade solutions. Each option is selected to help improve comfort, privacy, light control, and the finished look of your home or business. Serving Hermiston, Boardman, Umatilla, Heppner, and surrounding communities in Umatilla and Morrow County."
         />
         <div className="grid3">
           {galleryCategories.map((category) => (
