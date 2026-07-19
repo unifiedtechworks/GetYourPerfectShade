@@ -28,7 +28,7 @@ export default function AboutPage() {
               on comfort, function, and a clean finished look.
             </p>
             <ul className="featureList">
-              <li>Residential and commercial window coverings, films, and exterior solutions.</li>
+              <li>Residential and commercial window coverings, motorized shades, and exterior shade solutions.</li>
               <li>Local knowledge for Umatilla and Morrow County light, heat, privacy, and durability needs.</li>
               <li>Warm service before, during, and after installation.</li>
             </ul>

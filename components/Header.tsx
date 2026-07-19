@@ -7,7 +7,7 @@ import styles from "./Header.module.css";
 
 const navItems = [
   { href: "/", label: "Home" },
-  { href: "/gallery", label: "Gallery" },
+  { href: "/gallery", label: "Products Offered" },
   { href: "/about", label: "About" },
   { href: "/contact", label: "Contact" }
 ];

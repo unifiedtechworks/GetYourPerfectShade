@@ -5,7 +5,7 @@ import styles from "./contact.module.css";
 export const metadata: Metadata = {
   title: "Contact",
   description:
-    "Contact Perfect Shade for custom window coverings, window films, and exterior shade solutions in Hermiston, Boardman, Umatilla, Heppner, and surrounding communities."
+    "Contact Perfect Shade for custom window coverings, motorized shades, exterior shades, solar screens, and awnings in Hermiston, Boardman, Umatilla, Heppner, and surrounding communities."
 };
 
 export default function ContactPage() {
@@ -16,8 +16,8 @@ export default function ContactPage() {
           <p className="eyebrow">Contact</p>
           <h1>Request a consultation for your space.</h1>
           <p>
-            Reach out for residential or commercial window coverings, window films, exterior
-            shades, screens, awnings, and motorized solutions. Phone is the fastest way to start.
+            Reach out for residential or commercial window coverings, exterior shades, solar
+            screens, awnings, and motorized solutions. Phone is the fastest way to start.
           </p>
           <div className={styles.contactLinks}>
             <a href={businessInfo.phoneHref}>{businessInfo.phone}</a>

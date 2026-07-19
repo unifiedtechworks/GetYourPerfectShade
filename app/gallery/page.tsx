@@ -1,27 +1,27 @@
 import type { Metadata } from "next";
-import { GalleryCard } from "@/components/GalleryCard";
+import { ProductCard } from "@/components/ProductCard";
 import { SectionHeading } from "@/components/SectionHeading";
-import { galleryCategories } from "@/data/services";
+import { productOfferings } from "@/data/services";
 
 export const metadata: Metadata = {
-  title: "Window Covering Solutions Gallery",
+  title: "Products Offered",
   description:
-    "Explore custom window coverings in Hermiston, residential and commercial window films, and exterior shade solutions for Umatilla and Morrow County."
+    "Explore products offered by Perfect Shade, including roller shades, cellular shades, roman shades, blinds, draperies, motorized shades, exterior shades, solar screens, and awnings in Hermiston, Boardman, Umatilla, Heppner, Umatilla County, and Morrow County."
 };
 
-export default function GalleryPage() {
+export default function ProductsOfferedPage() {
   return (
     <main className="section">
       <div className="container">
         <SectionHeading
-          eyebrow="Gallery"
-          id="gallery-heading"
-          title="Explore Window Covering Solutions for Every Space"
-          intro="Browse Perfect Shade's main product categories, from custom interior shades and draperies to commercial window films and exterior shade solutions. Each option is selected to help improve comfort, privacy, light control, and the finished look of your home or business. Serving Hermiston, Boardman, Umatilla, Heppner, and surrounding communities in Umatilla and Morrow County."
+          eyebrow="Products Offered"
+          id="products-heading"
+          title="Products Offered for Light, Privacy, Comfort, and Design"
+          intro="Explore custom product options selected for light control, privacy, comfort, and design. Perfect Shade helps homeowners and businesses compare styles, materials, and features without overwhelming the process. Serving Hermiston, Boardman, Umatilla, Heppner, and surrounding communities in Umatilla and Morrow County."
         />
         <div className="grid3">
-          {galleryCategories.map((category) => (
-            <GalleryCard key={category.slug} category={category} />
+          {productOfferings.map((category) => (
+            <ProductCard key={category.title} category={category} />
           ))}
         </div>
       </div>

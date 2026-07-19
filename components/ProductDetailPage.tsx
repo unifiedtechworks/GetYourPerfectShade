@@ -1,19 +1,19 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { Service } from "@/data/services";
-import styles from "./GalleryDetailPage.module.css";
+import styles from "./ProductDetailPage.module.css";
 
-export function GalleryDetailPage({ service }: { service: Service }) {
+export function ProductDetailPage({ service }: { service: Service }) {
   return (
     <main className="section">
       <div className="container">
         <Link className={styles.backLink} href="/gallery">
-          Back to gallery
+          Back to products offered
         </Link>
         <div className={styles.header}>
           <div>
-            <p className="eyebrow">Gallery</p>
-            <h1>{service.title}</h1>
+            <p className="eyebrow">Products Offered</p>
+            <h1>{service.productTitle}</h1>
             <p>{service.detailIntro}</p>
             <ul>
               {service.items.map((item) => (
@@ -32,12 +32,12 @@ export function GalleryDetailPage({ service }: { service: Service }) {
           </div>
         </div>
         <div className={styles.grid}>
-          {service.galleryCards.map((card, index) => (
-            <article key={card.title} className={styles.galleryItem}>
+          {service.productCards.map((card) => (
+            <article key={card.title} className={styles.productItem}>
               <div className={styles.projectImage}>
                 <Image
-                  src={service.image.src}
-                  alt={`${service.image.alt} example ${index + 1}`}
+                  src={card.image.src}
+                  alt={card.image.alt}
                   fill
                   sizes="(max-width: 860px) 100vw, 33vw"
                   className={styles.image}
@@ -62,10 +62,10 @@ export function GalleryDetailPage({ service }: { service: Service }) {
             ))}
           </div>
         </section>
-        <section className={styles.cta} aria-labelledby="gallery-cta-heading">
+        <section className={styles.cta} aria-labelledby="products-cta-heading">
           <div>
             <p className="eyebrow">Need guidance?</p>
-            <h2 id="gallery-cta-heading">Not sure which option is right for your space?</h2>
+            <h2 id="products-cta-heading">Not sure which option is right for your space?</h2>
             <p>
               Perfect Shade can help you compare products, finishes, and features during
               your consultation.

@@ -1,19 +1,19 @@
 import type { Metadata } from "next";
 import { CTASection } from "@/components/CTASection";
 import { DecorativeLeaf } from "@/components/DecorativeLeaf";
-import { GalleryCard } from "@/components/GalleryCard";
 import { Hero } from "@/components/Hero";
 import { ProcessSteps } from "@/components/ProcessSteps";
+import { ProductCard } from "@/components/ProductCard";
 import { SectionHeading } from "@/components/SectionHeading";
 import { ServiceCard } from "@/components/ServiceCard";
 import { TrustStrip } from "@/components/TrustStrip";
 import { trustItems } from "@/data/business";
-import { galleryCategories, services } from "@/data/services";
+import { productOfferings, services } from "@/data/services";
 
 export const metadata: Metadata = {
   title: "Custom Window Coverings in Hermiston, Oregon",
   description:
-    "Custom shades, blinds, draperies, window films, screens, awnings, and exterior shade solutions for residential and commercial spaces."
+    "Custom roller shades, cellular shades, roman shades, blinds, draperies, motorized shades, exterior shades, solar screens, and awnings for residential and commercial spaces."
 };
 
 export default function HomePage() {
@@ -57,7 +57,7 @@ export default function HomePage() {
             </p>
             <ul className="featureList">
               <li>Interior and exterior solutions for homes, offices, storefronts, and patios.</li>
-              <li>Guidance across shades, blinds, draperies, films, screens, awnings, and motorization.</li>
+              <li>Guidance across roller shades, cellular shades, roman shades, blinds, draperies, screens, awnings, and motorization.</li>
               <li>Installation support that keeps comfort, function, and long-term use in mind.</li>
             </ul>
           </div>
@@ -71,21 +71,21 @@ export default function HomePage() {
 
       <ProcessSteps />
 
-      <section className="section sectionAlt sectionShell" aria-labelledby="gallery-heading">
+      <section className="section sectionAlt sectionShell" aria-labelledby="products-heading">
         <DecorativeLeaf
-          className="decorLeaf decorLeafGallery"
+          className="decorLeaf decorLeafProducts"
           src="/images/perfect-shade/decor/leaf-tall-arching.png"
         />
         <div className="container">
           <SectionHeading
-            eyebrow="Gallery"
-            id="gallery-heading"
-            title="Explore window covering solutions by category."
-            intro="See how Perfect Shade organizes interior coverings, window films, and exterior shade solutions around comfort, privacy, light control, and the finished look of your space."
+            eyebrow="Products Offered"
+            id="products-heading"
+            title="Explore custom product options for every space."
+            intro="Perfect Shade helps homeowners and businesses compare styles, materials, and features without overwhelming the process. From soft interior treatments to exterior shade solutions, each recommendation is matched to the way your space is used."
           />
           <div className="grid3">
-            {galleryCategories.map((category) => (
-              <GalleryCard key={category.slug} category={category} />
+            {productOfferings.slice(0, 6).map((category) => (
+              <ProductCard key={category.title} category={category} />
             ))}
           </div>
         </div>

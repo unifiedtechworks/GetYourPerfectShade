@@ -2,11 +2,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { DecorativeLeaf } from "@/components/DecorativeLeaf";
 import { businessInfo } from "@/data/business";
-import { services } from "@/data/services";
 import styles from "./Hero.module.css";
 
 export function Hero() {
-  const heroImage = services[0].image;
+  const heroImage = {
+    src: "/images/perfect-shade/window-coverings.jpg",
+    alt: "Elegant living room with custom drapery and light-filtering shade"
+  };
 
   return (
     <section className={styles.hero}>
@@ -20,18 +22,30 @@ export function Hero() {
           src="/images/perfect-shade/decor/leaf-cluster-line.png"
         />
         <div className={styles.copy}>
-          <p className="eyebrow">{businessInfo.brandPhrase}</p>
+          <div className={styles.brandLockup} aria-label={businessInfo.name}>
+            <span className={styles.brandMark} aria-hidden="true">
+              <span />
+              <span />
+              <span />
+            </span>
+            <span>
+              <strong>{businessInfo.name}</strong>
+              <small>Window Coverings & Solutions</small>
+            </span>
+          </div>
+          <p className="eyebrow">Custom window coverings for beautiful spaces</p>
           <h1>{businessInfo.tagline}</h1>
           <p>
-            Custom shades, blinds, draperies, window films, and exterior shade solutions
-            for homes and businesses in Umatilla and Morrow County.
+            Custom roller shades, cellular shades, roman shades, blinds, draperies,
+            motorized options, and exterior shade solutions for homes and businesses
+            in Umatilla and Morrow County.
           </p>
           <div className="buttonRow">
             <Link className="button buttonPrimary" href="/contact">
               Request a Consultation
             </Link>
             <Link className="button buttonSecondary" href="/gallery">
-              View Gallery
+              Products Offered
             </Link>
           </div>
         </div>

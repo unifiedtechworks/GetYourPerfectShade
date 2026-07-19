@@ -1,8 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
-import styles from "./GalleryCard.module.css";
+import styles from "./ProductCard.module.css";
 
-type GalleryCategory = {
+type ProductCategory = {
   title: string;
   href: string;
   description: string;
@@ -12,7 +12,7 @@ type GalleryCategory = {
   };
 };
 
-export function GalleryCard({ category }: { category: GalleryCategory }) {
+export function ProductCard({ category }: { category: ProductCategory }) {
   return (
     <article className={styles.card}>
       <div className={styles.imageWrap}>
@@ -27,7 +27,7 @@ export function GalleryCard({ category }: { category: GalleryCategory }) {
       <div className={styles.body}>
         <h3>{category.title}</h3>
         <p>{category.description}</p>
-        <Link href={category.href}>View gallery</Link>
+        <Link href={category.href}>Explore options</Link>
       </div>
     </article>
   );

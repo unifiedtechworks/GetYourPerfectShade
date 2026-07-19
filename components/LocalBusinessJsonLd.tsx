@@ -9,7 +9,7 @@ export function LocalBusinessJsonLd() {
     telephone: businessInfo.phone,
     email: businessInfo.email,
     description:
-      "Custom window coverings, window films, and exterior shade solutions for residential and commercial projects.",
+      "Custom window coverings, motorized shades, exterior shades, solar screens, and awnings for residential and commercial projects.",
     address: {
       "@type": "PostalAddress",
       addressLocality: businessInfo.addressLocality,

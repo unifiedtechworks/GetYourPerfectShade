@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
-import { GalleryDetailPage } from "@/components/GalleryDetailPage";
+import { ProductDetailPage } from "@/components/ProductDetailPage";
 import { services } from "@/data/services";
 
 export const metadata: Metadata = {
-  title: "Window Coverings Gallery",
+  title: "Window Covering Products",
   description:
-    "Explore custom window coverings in Hermiston, including shades, blinds, draperies, and motorized options for Umatilla and Morrow County homes and businesses."
+    "Explore custom window covering products in Hermiston, including roller shades, cellular shades, roman shades, blinds, draperies, and motorized shades for homes and businesses in Umatilla and Morrow County."
 };
 
-export default function WindowCoveringsGalleryPage() {
-  return <GalleryDetailPage service={services[0]} />;
+export default function WindowCoveringProductsPage() {
+  return <ProductDetailPage service={services[0]} />;
 }

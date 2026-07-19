@@ -5,7 +5,6 @@ const routes = [
   "",
   "/gallery",
   "/gallery/window-coverings",
-  "/gallery/window-films",
   "/gallery/exterior-solutions",
   "/about",
   "/contact"

@@ -1,5 +1,6 @@
 export type Service = {
   title: string;
+  productTitle: string;
   slug: string;
   href: string;
   summary: string;
@@ -15,229 +16,294 @@ export type Service = {
     title: string;
     description: string;
   }[];
-  galleryCards: {
+  productCards: {
     title: string;
     description: string;
+    image: {
+      src: string;
+      alt: string;
+    };
   }[];
+};
+
+type ProductOffering = {
+  title: string;
+  href: string;
+  description: string;
+  image: Service["image"];
+};
+
+const productImages = {
+  rollerShades: {
+    src: "/images/perfect-shade/products/roller-shades.jpg",
+    alt: "Living room with clean roller shades filtering natural light"
+  },
+  cellularHoneycombShades: {
+    src: "/images/perfect-shade/products/cellular-honeycomb-shades.jpg",
+    alt: "Bedroom with cellular honeycomb shades adding privacy and soft light"
+  },
+  romanShades: {
+    src: "/images/perfect-shade/products/roman-shades.jpg",
+    alt: "Bedroom with tailored roman shades and soft drapery panels"
+  },
+  blinds: {
+    src: "/images/perfect-shade/products/blinds.jpg",
+    alt: "Living room with white blinds for adjustable light control"
+  },
+  draperies: {
+    src: "/images/perfect-shade/products/draperies.jpg",
+    alt: "Elegant living room with full-height custom draperies"
+  },
+  motorizedWindowCoverings: {
+    src: "/images/perfect-shade/products/motorized-window-coverings.jpg",
+    alt: "Living room with motorized roller shades across large windows"
+  },
+  exteriorShades: {
+    src: "/images/perfect-shade/products/exterior-shades.jpg",
+    alt: "Covered patio with exterior shades for sun control and comfort"
+  },
+  solarScreens: {
+    src: "/images/perfect-shade/products/solar-screens.jpg",
+    alt: "Outdoor patio with solar screens reducing harsh sunlight"
+  },
+  awnings: {
+    src: "/images/perfect-shade/products/awnings.jpg",
+    alt: "Patio seating area shaded by a retractable awning"
+  },
+  commercialWindowCoveringSolutions: {
+    src: "/images/perfect-shade/products/commercial-window-covering-solutions.jpg",
+    alt: "Conference room with commercial roller shades on large windows"
+  }
 };
 
 export const services: Service[] = [
   {
     title: "Window Coverings",
+    productTitle: "Window Covering Products",
     slug: "window-coverings",
     href: "/gallery/window-coverings",
     summary:
-      "Custom shades, blinds, draperies, and motorized options designed for privacy, light control, and everyday comfort.",
+      "Custom roller shades, cellular shades, roman shades, blinds, draperies, and motorized options for privacy, light control, and everyday comfort.",
     detailIntro:
-      "Interior window coverings should do more than finish a room. The right shades, blinds, or draperies can soften natural light, improve privacy, reduce glare, and bring the entire space together. Perfect Shade helps homeowners and businesses choose window treatments that match the way each room is used, from everyday comfort to a polished finished look.",
+      "Interior window coverings should do more than finish a room. The right shades, blinds, or draperies can soften natural light, improve privacy, support comfort, and bring the entire space together. Perfect Shade helps homeowners and businesses compare styles, materials, and features without overwhelming the process.",
     eyebrow: "Interior comfort",
     icon: "WC",
-    image: {
-      src: "/images/perfect-shade/window-coverings.jpg",
-      alt: "Elegant living room with custom drapery and light-filtering shade"
-    },
-    items: ["Shades", "Blinds", "Draperies", "Motorization"],
+    image: productImages.rollerShades,
+    items: ["Roller Shades", "Cellular Shades", "Roman Shades", "Blinds", "Draperies", "Motorization"],
     highlights: [
       {
-        title: "Shades",
+        title: "Roller Shades",
         description:
-          "A refined option for soft light control, privacy, insulation, and a clean finished look."
+          "Clean, versatile shades for everyday light control, privacy, and a simple finished look."
+      },
+      {
+        title: "Cellular / Honeycomb Shades",
+        description:
+          "Energy-conscious shades designed to soften light, add privacy, and help rooms feel more comfortable."
+      },
+      {
+        title: "Roman Shades",
+        description:
+          "Soft fabric shades that bring warmth, texture, and a tailored design finish to the room."
+      },
+      {
+        title: "Motorized Window Coverings",
+        description:
+          "Convenient shade control for hard-to-reach windows, daily routines, and modern comfort."
+      }
+    ],
+    productCards: [
+      {
+        title: "Roller Shades",
+        description:
+          "Clean shade options for everyday privacy, filtered light, and a streamlined finished look.",
+        image: productImages.rollerShades
+      },
+      {
+        title: "Cellular / Honeycomb Shades",
+        description:
+          "Soft, energy-conscious products that help rooms feel more comfortable while maintaining privacy.",
+        image: productImages.cellularHoneycombShades
+      },
+      {
+        title: "Roman Shades",
+        description:
+          "Tailored fabric shades that add texture, warmth, and a polished design detail.",
+        image: productImages.romanShades
       },
       {
         title: "Blinds",
         description:
-          "Adjustable slats make it easy to manage sunlight, views, and privacy throughout the day."
+          "Classic adjustable coverings for flexible privacy, light control, and practical daily use.",
+        image: productImages.blinds
       },
       {
         title: "Draperies",
         description:
-          "Custom fabric treatments add warmth, texture, softness, and a more complete room design."
+          "Custom fabric treatments that add softness, height, color, and a finished designer feel.",
+        image: productImages.draperies
       },
       {
-        title: "Motorization",
+        title: "Motorized Window Coverings",
         description:
-          "Motorized options add convenience for large windows, hard-to-reach areas, and everyday comfort."
-      }
-    ],
-    galleryCards: [
-      {
-        title: "Soft Light for Living Spaces",
-        description:
-          "Layered shades and draperies can filter daylight while keeping a room warm, welcoming, and private."
-      },
-      {
-        title: "Everyday Privacy",
-        description:
-          "Blinds and shades help bedrooms, offices, and street-facing rooms feel more comfortable day and night."
-      },
-      {
-        title: "Finished Room Design",
-        description:
-          "Fabric, color, texture, and hardware choices can bring windows into the overall design of the space."
-      },
-      {
-        title: "Large Window Solutions",
-        description:
-          "Measured products help wide or tall windows feel intentional while managing glare and heat."
-      },
-      {
-        title: "Convenient Motorized Options",
-        description:
-          "Motorized coverings make daily light control easier for busy homes, offices, and hard-to-reach windows."
-      },
-      {
-        title: "Professional Fit",
-        description:
-          "Careful measurement and installation help each treatment operate smoothly and look properly finished."
-      }
-    ]
-  },
-  {
-    title: "Window Films",
-    slug: "window-films",
-    href: "/gallery/window-films",
-    summary:
-      "Residential and commercial films that help reduce heat, soften glare, protect interiors, and improve privacy.",
-    detailIntro:
-      "Window film is a clean, practical way to improve comfort without changing the look of your space. It can help reduce heat, soften glare, add privacy, and protect flooring, furniture, merchandise, and interior finishes from daily sun exposure. Perfect Shade works with both homes and commercial spaces that need practical performance from their glass.",
-    eyebrow: "Performance glass",
-    icon: "WF",
-    image: {
-      src: "/images/perfect-shade/window-films.jpg",
-      alt: "Modern office with large windows suitable for heat and glare reducing window film"
-    },
-    items: ["Residential & Commercial", "Reduce Heat", "Protect Interiors", "Enhance Privacy", "Reduce Glare"],
-    highlights: [
-      {
-        title: "Residential & Commercial",
-        description:
-          "Film solutions can support comfort in homes, offices, storefronts, and other glass-heavy spaces."
-      },
-      {
-        title: "Reduce Heat",
-        description:
-          "The right film can help limit solar heat gain and make sunny rooms more comfortable."
-      },
-      {
-        title: "Protect Interiors",
-        description:
-          "Window film helps reduce daily sun exposure on flooring, furniture, merchandise, and finishes."
-      },
-      {
-        title: "Enhance Privacy",
-        description:
-          "Privacy-focused films can soften views into a space while keeping a clean, professional appearance."
-      }
-    ],
-    galleryCards: [
-      {
-        title: "Comfort for Sunny Rooms",
-        description:
-          "Window film helps manage heat and glare where direct sun makes a room harder to enjoy."
-      },
-      {
-        title: "Commercial Glass Performance",
-        description:
-          "Office and storefront films can support comfort, privacy, and a more usable work environment."
-      },
-      {
-        title: "Glare Control",
-        description:
-          "Film can soften harsh light on screens, work surfaces, seating areas, and customer-facing spaces."
-      },
-      {
-        title: "Interior Protection",
-        description:
-          "A practical layer of protection helps reduce the effect of daily sun exposure on interior finishes."
-      },
-      {
-        title: "Privacy Options",
-        description:
-          "Selected films can add discretion for offices, meeting rooms, bathrooms, or street-facing windows."
-      },
-      {
-        title: "Clean Appearance",
-        description:
-          "Window film improves performance while preserving a simple, uncluttered look at the glass."
+          "Convenient controls that make daily shade adjustments easier for homes and commercial spaces.",
+        image: productImages.motorizedWindowCoverings
       }
     ]
   },
   {
     title: "Exterior Window Coverings",
+    productTitle: "Exterior Shade Solutions",
     slug: "exterior-solutions",
     href: "/gallery/exterior-solutions",
     summary:
-      "Exterior shades, screens, and awnings that add comfort, UV protection, and polished outdoor appeal.",
+      "Exterior shades, solar screens, and awnings that add comfort, UV protection, and polished outdoor appeal.",
     detailIntro:
-      "Exterior window coverings help make outdoor and sun-facing spaces more comfortable while adding a finished look to the property. From exterior shades and screens to awnings, Perfect Shade offers solutions that help manage sunlight, improve comfort, and support the way you use your home or business.",
+      "Exterior window coverings help make outdoor and sun-facing spaces more comfortable while adding a finished look to the property. From exterior shades and solar screens to awnings, Perfect Shade offers solutions that help manage sunlight, improve comfort, and support the way you use your home or business.",
     eyebrow: "Outdoor shade",
     icon: "EX",
-    image: {
-      src: "/images/perfect-shade/exterior-solutions.jpg",
-      alt: "Outdoor patio with retractable awning and exterior solar shade solution"
-    },
-    items: ["Shades", "Screens", "Awnings", "Comfort", "UV Protection", "Outdoor Appeal"],
+    image: productImages.exteriorShades,
+    items: ["Exterior Shades", "Solar Screens", "Awnings", "Comfort", "UV Protection", "Outdoor Appeal"],
     highlights: [
       {
         title: "Exterior Shades",
         description:
-          "Exterior shades help manage sun exposure before it reaches the glass or outdoor living area."
+          "Outdoor shade solutions that help manage sun exposure and improve comfort around patios and exterior-facing spaces."
       },
       {
-        title: "Screens",
+        title: "Solar Screens",
         description:
-          "Screens can add comfort, privacy, and filtered light for patios, windows, and exterior-facing spaces."
+          "Exterior screen options that help reduce harsh sunlight while preserving a clean exterior look."
       },
       {
         title: "Awnings",
         description:
-          "Awnings create shade, improve outdoor usability, and add a polished architectural detail."
+          "Shade structures that add comfort, curb appeal, and usable outdoor space."
       },
       {
-        title: "UV Protection",
+        title: "Commercial Window Covering Solutions",
         description:
-          "Exterior solutions help reduce harsh sun exposure while supporting comfort and curb appeal."
+          "Professional solutions for offices, storefronts, meeting rooms, and commercial spaces that need privacy, durability, and polished presentation."
       }
     ],
-    galleryCards: [
+    productCards: [
+      {
+        title: "Exterior Shades",
+        description:
+          "Outdoor shade products for patios, windows, and sun-facing areas that need better comfort.",
+        image: productImages.exteriorShades
+      },
+      {
+        title: "Solar Screens",
+        description:
+          "Exterior screen options that soften harsh light while keeping the property looking clean.",
+        image: productImages.solarScreens
+      },
+      {
+        title: "Awnings",
+        description:
+          "Shade structures for patios, entries, storefronts, and outdoor gathering areas.",
+        image: productImages.awnings
+      },
       {
         title: "Patio Comfort",
         description:
-          "Exterior shade helps patios and seating areas feel more usable during bright, warm parts of the day."
+          "Exterior solutions that help seating and gathering areas feel more usable during bright parts of the day.",
+        image: productImages.exteriorShades
       },
       {
         title: "Sun-Facing Windows",
         description:
-          "Exterior coverings help manage sunlight before it reaches windows, rooms, and work areas."
+          "Products selected to manage sunlight before it reaches interior rooms or work areas.",
+        image: productImages.solarScreens
       },
       {
-        title: "Screens for Filtered Light",
+        title: "Commercial Exterior Shade",
         description:
-          "Exterior screens can soften light, add privacy, and support comfort without fully closing off a space."
-      },
-      {
-        title: "Awnings with Presence",
-        description:
-          "Awnings add shade and a finished look for patios, entries, storefronts, and outdoor gathering areas."
-      },
-      {
-        title: "Outdoor Appeal",
-        description:
-          "The right exterior solution should look intentional from the street and useful from the inside."
-      },
-      {
-        title: "Practical Sun Management",
-        description:
-          "Exterior shades, screens, and awnings can help reduce glare, heat, and direct UV exposure."
+          "Professional options for businesses that want comfort, curb appeal, and a polished presentation.",
+        image: productImages.commercialWindowCoveringSolutions
       }
     ]
   }
 ];
 
-export const galleryCategories = services.map((service) => ({
-  title: service.title,
+export const productCategories = services.map((service) => ({
+  title: service.productTitle,
   slug: service.slug,
   href: service.href,
   description: service.summary,
   image: service.image
 }));
+
+export const productOfferings: ProductOffering[] = [
+  {
+    title: "Roller Shades",
+    href: "/gallery/window-coverings",
+    description:
+      "Clean, versatile shades for everyday light control, privacy, and a simple finished look.",
+    image: productImages.rollerShades
+  },
+  {
+    title: "Cellular / Honeycomb Shades",
+    href: "/gallery/window-coverings",
+    description:
+      "Energy-conscious shades designed to soften light, add privacy, and help rooms feel more comfortable.",
+    image: productImages.cellularHoneycombShades
+  },
+  {
+    title: "Roman Shades",
+    href: "/gallery/window-coverings",
+    description:
+      "Soft fabric shades that bring warmth, texture, and a tailored design finish to the room.",
+    image: productImages.romanShades
+  },
+  {
+    title: "Blinds",
+    href: "/gallery/window-coverings",
+    description:
+      "Classic adjustable window coverings for flexible privacy, light control, and practical everyday use.",
+    image: productImages.blinds
+  },
+  {
+    title: "Draperies",
+    href: "/gallery/window-coverings",
+    description:
+      "Custom fabric treatments that add softness, height, color, and a finished designer feel.",
+    image: productImages.draperies
+  },
+  {
+    title: "Motorized Window Coverings",
+    href: "/gallery/window-coverings",
+    description:
+      "Convenient shade control for hard-to-reach windows, daily routines, and modern comfort.",
+    image: productImages.motorizedWindowCoverings
+  },
+  {
+    title: "Exterior Shades",
+    href: "/gallery/exterior-solutions",
+    description:
+      "Outdoor shade solutions that help manage sun exposure and improve comfort around patios and exterior-facing spaces.",
+    image: productImages.exteriorShades
+  },
+  {
+    title: "Solar Screens",
+    href: "/gallery/exterior-solutions",
+    description:
+      "Exterior screen options that help reduce harsh sunlight while preserving a clean exterior look.",
+    image: productImages.solarScreens
+  },
+  {
+    title: "Awnings",
+    href: "/gallery/exterior-solutions",
+    description:
+      "Shade structures that add comfort, curb appeal, and usable outdoor space.",
+    image: productImages.awnings
+  },
+  {
+    title: "Commercial Window Covering Solutions",
+    href: "/gallery/window-coverings",
+    description:
+      "Professional solutions for offices, storefronts, meeting rooms, and commercial spaces that need privacy, durability, and polished presentation.",
+    image: productImages.commercialWindowCoveringSolutions
+  }
+];
