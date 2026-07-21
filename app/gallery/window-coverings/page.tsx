@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { ProductDetailPage } from "@/components/ProductDetailPage";
 import { services } from "@/data/services";
 
@@ -9,5 +10,9 @@ export const metadata: Metadata = {
 };
 
 export default function WindowCoveringProductsPage() {
-  return <ProductDetailPage service={services[0]} />;
+  return (
+    <Suspense fallback={null}>
+      <ProductDetailPage service={services[0]} />
+    </Suspense>
+  );
 }

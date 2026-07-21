@@ -47,8 +47,7 @@
   padding: 6px 12px;
 }
 
-.featureImage,
-.projectImage {
+.featureImage {
   position: relative;
   overflow: hidden;
   border-radius: var(--radius-lg);
@@ -60,53 +59,18 @@
   box-shadow: var(--shadow-card);
 }
 
-.projectImage {
-  aspect-ratio: 4 / 3;
-  border-radius: var(--radius-md);
-}
-
 .image {
   object-fit: cover;
   object-position: center;
   transition: transform 260ms ease;
 }
 
-.grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 22px;
-}
-
-.productItem {
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-lg);
-  background: var(--color-white);
-  padding: 14px;
-  box-shadow: var(--shadow-card);
-  transition: transform 220ms ease, box-shadow 220ms ease;
-}
-
-.productItem:hover {
-  box-shadow: 0 24px 58px rgba(19, 35, 63, 0.14);
-  transform: translateY(-4px);
-}
-
-.productItem:hover .image {
+.featureImage:hover .image {
   transform: scale(1.03);
 }
 
-.productItem h2 {
-  margin: 16px 0 6px;
-  color: var(--color-navy);
-  font-size: 1.08rem;
-}
-
-.productItem p {
-  margin: 0;
-  color: var(--color-muted);
-}
-
 .details,
+.goodFor,
 .cta {
   margin-top: 42px;
   border: 1px solid var(--color-line);
@@ -120,6 +84,7 @@
 }
 
 .details h2,
+.goodFor h2,
 .cta h2 {
   margin: 0;
   color: var(--color-navy);
@@ -128,30 +93,62 @@
   line-height: 1.08;
 }
 
-.detailGrid {
+.benefitList {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 14px;
+  gap: 12px;
   margin-top: 24px;
 }
 
-.detailGrid article {
+.benefitList article {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  align-items: start;
   border: 1px solid rgba(185, 111, 100, 0.16);
   border-radius: var(--radius-md);
   background: rgba(251, 245, 234, 0.76);
   padding: 18px;
 }
 
-.detailGrid h3 {
-  margin: 0 0 8px;
-  color: var(--color-navy);
-  font-size: 1rem;
+.benefitList span {
+  width: 10px;
+  height: 10px;
+  margin-top: 0.45rem;
+  border-radius: 999px;
+  background: var(--color-terracotta);
+  box-shadow: 0 0 0 5px rgba(244, 223, 220, 0.82);
 }
 
-.detailGrid p,
+.benefitList p,
+.goodFor p,
 .cta p {
   margin: 0;
   color: var(--color-muted);
+}
+
+.goodFor {
+  padding: 28px 30px;
+  background:
+    radial-gradient(circle at 12% 12%, rgba(244, 223, 220, 0.46), transparent 34%),
+    rgba(255, 255, 255, 0.78);
+}
+
+.goodFor ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 22px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.goodFor li {
+  border: 1px solid rgba(185, 111, 100, 0.16);
+  border-radius: 999px;
+  background: rgba(244, 223, 220, 0.72);
+  color: var(--color-navy);
+  font-weight: 800;
+  padding: 7px 13px;
 }
 
 .cta {
@@ -172,11 +169,6 @@
 
 @media (max-width: 860px) {
   .header {
-    grid-template-columns: 1fr;
-  }
-
-  .grid,
-  .detailGrid {
     grid-template-columns: 1fr;
   }
 
