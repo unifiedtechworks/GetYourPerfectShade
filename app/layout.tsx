@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { Footer } from "@/components/Footer";
-import { Header } from "@/components/Header";
 import { LocalBusinessJsonLd } from "@/components/LocalBusinessJsonLd";
+import { SiteChrome } from "@/components/SiteChrome";
 import { businessInfo } from "@/data/business";
 
 export const metadata: Metadata = {
@@ -32,9 +31,7 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <LocalBusinessJsonLd />
-        <Header />
-        {children}
-        <Footer />
+        <SiteChrome>{children}</SiteChrome>
       </body>
     </html>
   );

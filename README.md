@@ -18,6 +18,8 @@ Install dependencies:
 pnpm install
 ```
 
+pnpm and `pnpm-lock.yaml` are the canonical package-manager workflow for this repository.
+
 Run the development server:
 
 ```bash
@@ -25,6 +27,9 @@ pnpm dev
 ```
 
 Open `http://localhost:3000`.
+
+The protected staff application also requires Supabase environment variables and the account
+schema. See [`docs/local-development.md`](docs/local-development.md).
 
 ## Build
 
@@ -46,7 +51,12 @@ This project uses standard Next.js scripts and should be suitable for AWS Amplif
 - Install command: `pnpm install`
 - Output/framework preset: Next.js
 
-Confirm the Node.js version selected in Amplify supports the installed Next.js version.
+Configure AWS Amplify to use Node.js 22.12 or newer, as required by the authentication and
+test dependencies.
+
+Set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, and
+`NEXT_PUBLIC_SITE_URL` per Amplify environment. Architecture and authorization decisions are
+documented in [`docs/account-architecture.md`](docs/account-architecture.md).
 
 ## Updating Business Info
 
