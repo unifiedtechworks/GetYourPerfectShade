@@ -5,6 +5,7 @@ import styles from "./ProductCard.module.css";
 type ProductCategory = {
   title: string;
   href: string;
+  environment: string;
   description: string;
   image: {
     src: string;
@@ -14,8 +15,9 @@ type ProductCategory = {
 
 export function ProductCard({ category }: { category: ProductCategory }) {
   return (
-    <article className={styles.card}>
+    <Link className={styles.card} href={category.href} aria-label={`Explore ${category.title}`}>
       <div className={styles.imageWrap}>
+        <span className={styles.environment}>{category.environment}</span>
         <Image
           src={category.image.src}
           alt={category.image.alt}
@@ -27,8 +29,8 @@ export function ProductCard({ category }: { category: ProductCategory }) {
       <div className={styles.body}>
         <h3>{category.title}</h3>
         <p>{category.description}</p>
-        <Link href={category.href}>Explore options</Link>
+        <span className={styles.cardAction}>Explore options</span>
       </div>
-    </article>
+    </Link>
   );
 }

@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import type { Service } from "@/data/services";
+import { productOfferings, type Service } from "@/data/services";
 import styles from "./ProductDetailPage.module.css";
 
 export function ProductDetailPage({ service }: { service: Service }) {
@@ -11,6 +11,11 @@ export function ProductDetailPage({ service }: { service: Service }) {
   const selectedSlug = searchParams.get("product");
   const product =
     service.productCards.find((card) => card.slug === selectedSlug) ?? service.productCards[0];
+  const selectedProductIndex = productOfferings.findIndex((item) => item.slug === product.slug);
+  const productIndex = selectedProductIndex >= 0 ? selectedProductIndex : 0;
+  const previousProduct =
+    productOfferings[(productIndex - 1 + productOfferings.length) % productOfferings.length];
+  const nextProduct = productOfferings[(productIndex + 1) % productOfferings.length];
 
   return (
     <main className="section">
@@ -18,6 +23,22 @@ export function ProductDetailPage({ service }: { service: Service }) {
         <Link className={styles.backLink} href="/gallery">
           Back to Products Offered
         </Link>
+        <nav className={styles.productNav} aria-label="Product navigation">
+          <Link className={styles.productNavLink} href={previousProduct.href}>
+            <span>
+              <span aria-hidden="true">{"<-"}</span>
+              Previous Product
+            </span>
+            <strong>{previousProduct.title}</strong>
+          </Link>
+          <Link className={styles.productNavLink} href={nextProduct.href}>
+            <span>
+              Next Product
+              <span aria-hidden="true">{"->"}</span>
+            </span>
+            <strong>{nextProduct.title}</strong>
+          </Link>
+        </nav>
         <div className={styles.header}>
           <div>
             <p className="eyebrow">Products Offered</p>
@@ -31,9 +52,35 @@ export function ProductDetailPage({ service }: { service: Service }) {
               fill
               sizes="(max-width: 860px) 100vw, 42vw"
               className={styles.image}
+              style={{ objectPosition: product.image.objectPosition ?? "center" }}
             />
           </div>
         </div>
+        {product.supportingImages.length > 0 ? (
+          <section className={styles.supportingGallery} aria-label={`${product.title} supporting images`}>
+            <div className={styles.supportingHeader}>
+              <p className="eyebrow">Additional views</p>
+              <h2>More ways to use this product.</h2>
+            </div>
+            <div className={styles.supportingGrid}>
+              {product.supportingImages.map((image) => (
+                <figure key={`${image.label}-${image.alt}`} className={styles.supportingImage}>
+                  <div>
+                    <Image
+                      src={image.src}
+                      alt={image.alt}
+                      fill
+                      sizes="(max-width: 700px) 100vw, 33vw"
+                      className={styles.image}
+                      style={{ objectPosition: image.objectPosition ?? "center" }}
+                    />
+                  </div>
+                  {image.label ? <figcaption>{image.label}</figcaption> : null}
+                </figure>
+              ))}
+            </div>
+          </section>
+        ) : null}
         <section className={styles.details} aria-labelledby="details-heading">
           <div>
             <p className="eyebrow">{service.eyebrow}</p>

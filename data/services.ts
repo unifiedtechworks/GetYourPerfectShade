@@ -1,3 +1,10 @@
+export type ProductImage = {
+  src: string;
+  alt: string;
+  label?: string;
+  objectPosition?: string;
+};
+
 export type Service = {
   title: string;
   productTitle: string;
@@ -7,10 +14,7 @@ export type Service = {
   detailIntro: string;
   eyebrow: string;
   icon: string;
-  image: {
-    src: string;
-    alt: string;
-  };
+  image: ProductImage;
   items: string[];
   highlights: {
     title: string;
@@ -20,10 +24,8 @@ export type Service = {
     slug: string;
     title: string;
     description: string;
-    image: {
-      src: string;
-      alt: string;
-    };
+    image: ProductImage;
+    supportingImages: ProductImage[];
     benefits: string[];
     goodFor: string[];
   }[];
@@ -33,6 +35,7 @@ type ProductOffering = {
   slug: string;
   title: string;
   href: string;
+  environment: string;
   description: string;
   image: Service["image"];
 };
@@ -77,6 +80,59 @@ const productImages = {
   commercialWindowCoveringSolutions: {
     src: "/images/perfect-shade/products/commercial-window-covering-solutions.jpg",
     alt: "Conference room with commercial roller shades on large windows"
+  }
+};
+
+const supportingProductImages = {
+  rollerShades: {
+    src: "/images/perfect-shade/products/supporting/roller-shades-support-kitchen-nook.jpg",
+    alt: "Roller shades in a bright kitchen and breakfast nook",
+    label: "Kitchen nook"
+  },
+  cellularHoneycombShades: {
+    src: "/images/perfect-shade/products/supporting/cellular-honeycomb-shades-support-closeup.jpg",
+    alt: "Close-up of cellular honeycomb shades filtering soft bedroom light",
+    label: "Close-up detail"
+  },
+  romanShades: {
+    src: "/images/perfect-shade/products/supporting/roman-shades-support-dining-nook.jpg",
+    alt: "Roman shades in a warm dining nook",
+    label: "Dining nook"
+  },
+  blinds: {
+    src: "/images/perfect-shade/products/supporting/blinds-support-kitchen.jpg",
+    alt: "Horizontal blinds in a bright kitchen with adjustable light control",
+    label: "Kitchen light control"
+  },
+  draperies: {
+    src: "/images/perfect-shade/products/supporting/draperies-support-bedroom.jpg",
+    alt: "Layered draperies in a soft elegant bedroom",
+    label: "Bedroom layers"
+  },
+  motorizedWindowCoverings: {
+    src: "/images/perfect-shade/products/supporting/motorized-window-coverings-support-tall-windows.jpg",
+    alt: "Motorized shades on tall living room windows",
+    label: "Tall windows"
+  },
+  exteriorShades: {
+    src: "/images/perfect-shade/products/supporting/exterior-shades-support-patio-dining.jpg",
+    alt: "Exterior shades on a covered patio dining area",
+    label: "Patio dining"
+  },
+  solarScreens: {
+    src: "/images/perfect-shade/products/supporting/solar-screens-support-home-exterior.jpg",
+    alt: "Solar screens on sun-facing home windows",
+    label: "Home exterior"
+  },
+  awnings: {
+    src: "/images/perfect-shade/products/supporting/awnings-support-coastal-patio.jpg",
+    alt: "Retractable awning over a bright outdoor patio",
+    label: "Outdoor patio"
+  },
+  commercialWindowCoveringSolutions: {
+    src: "/images/perfect-shade/products/supporting/commercial-window-coverings-support-executive-office.jpg",
+    alt: "Commercial office with window coverings for light control",
+    label: "Executive office"
   }
 };
 
@@ -131,6 +187,7 @@ export const services: Service[] = [
         description:
           "Clean shade options for everyday privacy, filtered light, and a streamlined finished look.",
         image: productImages.rollerShades,
+        supportingImages: [supportingProductImages.rollerShades],
         benefits: [
           "Simple, modern profile that works in bedrooms, living areas, offices, and commercial spaces.",
           "Helpful light filtering and privacy options without visually crowding the room.",
@@ -144,6 +201,7 @@ export const services: Service[] = [
         description:
           "Soft, energy-conscious products that help rooms feel more comfortable while maintaining privacy.",
         image: productImages.cellularHoneycombShades,
+        supportingImages: [supportingProductImages.cellularHoneycombShades],
         benefits: [
           "Cellular construction helps add a soft insulating layer at the window.",
           "A warm, quiet look for bedrooms, living spaces, offices, and street-facing rooms.",
@@ -157,6 +215,7 @@ export const services: Service[] = [
         description:
           "Tailored fabric shades that add texture, warmth, and a polished design detail.",
         image: productImages.romanShades,
+        supportingImages: [supportingProductImages.romanShades],
         benefits: [
           "Adds fabric softness with a more tailored profile than full drapery panels.",
           "Works well when the window covering should be part of the room design.",
@@ -170,6 +229,7 @@ export const services: Service[] = [
         description:
           "Classic adjustable coverings for flexible privacy, light control, and practical daily use.",
         image: productImages.blinds,
+        supportingImages: [supportingProductImages.blinds],
         benefits: [
           "Adjustable slats make it easy to shift between privacy, daylight, and view.",
           "A familiar, practical option for busy rooms and everyday routines.",
@@ -183,6 +243,7 @@ export const services: Service[] = [
         description:
           "Custom fabric treatments that add softness, height, color, and a finished designer feel.",
         image: productImages.draperies,
+        supportingImages: [supportingProductImages.draperies],
         benefits: [
           "Brings softness, color, texture, and a more finished feel to the room.",
           "Can be layered with shades or blinds for comfort, privacy, and style.",
@@ -196,6 +257,7 @@ export const services: Service[] = [
         description:
           "Convenient controls that make daily shade adjustments easier for homes and commercial spaces.",
         image: productImages.motorizedWindowCoverings,
+        supportingImages: [supportingProductImages.motorizedWindowCoverings],
         benefits: [
           "Makes daily shade adjustments easier for large or hard-to-reach windows.",
           "Supports consistent light control for routines, comfort, and privacy.",
@@ -209,6 +271,7 @@ export const services: Service[] = [
         description:
           "Professional solutions for offices, storefronts, meeting rooms, and commercial spaces that need privacy, durability, and polished presentation.",
         image: productImages.commercialWindowCoveringSolutions,
+        supportingImages: [supportingProductImages.commercialWindowCoveringSolutions],
         benefits: [
           "Supports a polished, consistent look for offices, meeting rooms, and customer-facing areas.",
           "Helps manage privacy, glare, and light control in spaces used throughout the workday.",
@@ -260,6 +323,7 @@ export const services: Service[] = [
         description:
           "Outdoor shade products for patios, windows, and sun-facing areas that need better comfort.",
         image: productImages.exteriorShades,
+        supportingImages: [supportingProductImages.exteriorShades],
         benefits: [
           "Helps manage sunlight before it reaches patios, porches, and sun-facing glass.",
           "Adds comfort while keeping outdoor spaces more usable during bright parts of the day.",
@@ -273,6 +337,7 @@ export const services: Service[] = [
         description:
           "Exterior screen options that soften harsh light while keeping the property looking clean.",
         image: productImages.solarScreens,
+        supportingImages: [supportingProductImages.solarScreens],
         benefits: [
           "Softens harsh sunlight while preserving a clean exterior appearance.",
           "Helps reduce glare and bright exposure around outdoor seating or window areas.",
@@ -286,6 +351,7 @@ export const services: Service[] = [
         description:
           "Shade structures for patios, entries, storefronts, and outdoor gathering areas.",
         image: productImages.awnings,
+        supportingImages: [supportingProductImages.awnings],
         benefits: [
           "Creates a defined shade zone for patios, entries, and gathering areas.",
           "Adds curb appeal and a more finished architectural presence.",
@@ -299,6 +365,7 @@ export const services: Service[] = [
         description:
           "Exterior solutions that help seating and gathering areas feel more usable during bright parts of the day.",
         image: productImages.exteriorShades,
+        supportingImages: [supportingProductImages.exteriorShades],
         benefits: [
           "Helps outdoor seating areas feel more comfortable during sunny hours.",
           "Supports shade planning for patios, covered spaces, and gathering areas.",
@@ -312,6 +379,7 @@ export const services: Service[] = [
         description:
           "Products selected to manage sunlight before it reaches interior rooms or work areas.",
         image: productImages.solarScreens,
+        supportingImages: [supportingProductImages.solarScreens],
         benefits: [
           "Helps manage sunlight before it reaches interior rooms or work areas.",
           "Useful for windows that contribute to heat, glare, or uncomfortable brightness.",
@@ -325,6 +393,7 @@ export const services: Service[] = [
         description:
           "Professional options for businesses that want comfort, curb appeal, and a polished presentation.",
         image: productImages.commercialWindowCoveringSolutions,
+        supportingImages: [supportingProductImages.commercialWindowCoveringSolutions],
         benefits: [
           "Supports a polished exterior or customer-facing presentation.",
           "Helps manage comfort for offices, storefronts, patios, and commercial spaces.",
@@ -349,6 +418,7 @@ export const productOfferings: ProductOffering[] = [
     slug: "roller-shades",
     title: "Roller Shades",
     href: "/gallery/window-coverings?product=roller-shades",
+    environment: "Modern living room",
     description:
       "Clean, versatile shades for everyday light control, privacy, and a simple finished look.",
     image: productImages.rollerShades
@@ -357,6 +427,7 @@ export const productOfferings: ProductOffering[] = [
     slug: "cellular-honeycomb-shades",
     title: "Cellular / Honeycomb Shades",
     href: "/gallery/window-coverings?product=cellular-honeycomb-shades",
+    environment: "Bedroom comfort",
     description:
       "Energy-conscious shades designed to soften light, add privacy, and help rooms feel more comfortable.",
     image: productImages.cellularHoneycombShades
@@ -365,6 +436,7 @@ export const productOfferings: ProductOffering[] = [
     slug: "roman-shades",
     title: "Roman Shades",
     href: "/gallery/window-coverings?product=roman-shades",
+    environment: "Tailored bedroom",
     description:
       "Soft fabric shades that bring warmth, texture, and a tailored design finish to the room.",
     image: productImages.romanShades
@@ -373,6 +445,7 @@ export const productOfferings: ProductOffering[] = [
     slug: "blinds",
     title: "Blinds",
     href: "/gallery/window-coverings?product=blinds",
+    environment: "Family room light",
     description:
       "Classic adjustable window coverings for flexible privacy, light control, and practical everyday use.",
     image: productImages.blinds
@@ -381,6 +454,7 @@ export const productOfferings: ProductOffering[] = [
     slug: "draperies",
     title: "Draperies",
     href: "/gallery/window-coverings?product=draperies",
+    environment: "Elegant living space",
     description:
       "Custom fabric treatments that add softness, height, color, and a finished designer feel.",
     image: productImages.draperies
@@ -389,6 +463,7 @@ export const productOfferings: ProductOffering[] = [
     slug: "motorized-window-coverings",
     title: "Motorized Window Coverings",
     href: "/gallery/window-coverings?product=motorized-window-coverings",
+    environment: "Contemporary large windows",
     description:
       "Convenient shade control for hard-to-reach windows, daily routines, and modern comfort.",
     image: productImages.motorizedWindowCoverings
@@ -397,6 +472,7 @@ export const productOfferings: ProductOffering[] = [
     slug: "exterior-shades",
     title: "Exterior Shades",
     href: "/gallery/exterior-solutions?product=exterior-shades",
+    environment: "Covered patio",
     description:
       "Outdoor shade solutions that help manage sun exposure and improve comfort around patios and exterior-facing spaces.",
     image: productImages.exteriorShades
@@ -405,6 +481,7 @@ export const productOfferings: ProductOffering[] = [
     slug: "solar-screens",
     title: "Solar Screens",
     href: "/gallery/exterior-solutions?product=solar-screens",
+    environment: "Sunny exterior windows",
     description:
       "Exterior screen options that help reduce harsh sunlight while preserving a clean exterior look.",
     image: productImages.solarScreens
@@ -413,6 +490,7 @@ export const productOfferings: ProductOffering[] = [
     slug: "awnings",
     title: "Awnings",
     href: "/gallery/exterior-solutions?product=awnings",
+    environment: "Patio or deck shade",
     description:
       "Shade structures that add comfort, curb appeal, and usable outdoor space.",
     image: productImages.awnings
@@ -421,6 +499,7 @@ export const productOfferings: ProductOffering[] = [
     slug: "commercial-window-covering-solutions",
     title: "Commercial Window Covering Solutions",
     href: "/gallery/window-coverings?product=commercial-window-covering-solutions",
+    environment: "Commercial interior",
     description:
       "Professional solutions for offices, storefronts, meeting rooms, and commercial spaces that need privacy, durability, and polished presentation.",
     image: productImages.commercialWindowCoveringSolutions
