@@ -1,5 +1,16 @@
 # Estimate Builder Handoff
 
+## Phase 1 implementation
+
+Phase 1 design and parity decisions are recorded in
+[`docs/estimate-phase-1.md`](./estimate-phase-1.md). The Phase 1 migration adds the
+organization-scoped customer, project, estimate, and ordered child-record foundation. The
+protected application adds a minimal estimate list and atomic draft-creation flow.
+
+Later phases must continue to treat the desktop application as the behavioral authority and must
+resolve the ambiguities listed in the Phase 1 document before enabling issued estimates or
+document generation.
+
 The account foundation is ready for estimate-domain design once the prerequisites below are met.
 The current pass deliberately contains no customer, project, estimate, pricing, document, or
 billing implementation.

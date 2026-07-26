@@ -17,6 +17,7 @@ export default async function ApplicationLayout({ children }: { children: React.
         </div>
         <nav className={styles.nav} aria-label="Application navigation">
           <Link href="/app">Dashboard</Link>
+          <Link href="/app/estimates">Estimates</Link>
           <Link href="/app/account">Account settings</Link>
         </nav>
         <form action={signOut}><button className={styles.signOut} type="submit">Sign out</button></form>

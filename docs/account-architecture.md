@@ -54,27 +54,26 @@ must never be trusted without RLS validation.
 
 ## Data model
 
-Implemented:
+Account foundation:
 
 - `profiles`: one row per Supabase Auth user.
 - `organizations`: company/workspace ownership boundary.
 - `organization_memberships`: user-to-organization role and status.
 
-Future:
+Estimate Phase 1:
 
 ```text
 organization
   └─ customer
        └─ project
             └─ estimate
-                 └─ estimate revision / line / document records
+                 └─ scope, pricing, terms, addenda, future revisions/documents
 ```
 
-Each future table needs `organization_id`, `created_by`, `updated_by`, `created_at`, and
-`updated_at`. Foreign keys should ensure parent/child records belong to the same organization,
-using composite keys or database triggers where appropriate. Estimates should be immutable once
-issued, with revisions or status transitions preserving history. These details should be settled
-before editor implementation.
+Estimates now have ordered scope, base/alternate pricing, additional-term, and addenda records.
+These operational tables contain `organization_id`, authorship, and timestamp fields. Composite
+foreign keys keep parent and child rows in the same organization. Revision and issued-estimate
+immutability remain future decisions documented in `docs/estimate-phase-1.md`.
 
 ## Environment strategy
 

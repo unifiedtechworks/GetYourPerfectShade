@@ -8,8 +8,9 @@
 
 ## Configure Supabase
 
-1. Run `supabase/migrations/202607260001_account_foundation.sql` in the Supabase SQL editor or
-   through the Supabase CLI.
+1. Apply the migrations in filename order through the Supabase SQL editor or CLI:
+   - `supabase/migrations/202607260001_account_foundation.sql`
+   - `supabase/migrations/202607260002_estimate_phase_1.sql`
 2. In Authentication settings, disable new-user public sign-ups.
 3. Add `http://localhost:3000/auth/callback` to allowed redirect URLs.
 4. Create and bootstrap the first owner as documented in `docs/account-architecture.md`.

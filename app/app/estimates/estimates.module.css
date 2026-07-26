@@ -1,0 +1,182 @@
+.headingRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.intro {
+  max-width: 46rem;
+  color: #647068;
+}
+
+.primaryButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: 0.7rem 1rem;
+  border: 0;
+  border-radius: 0.45rem;
+  background: #315a45;
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.primaryButton:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.success,
+.error {
+  max-width: 52rem;
+  margin: 1.25rem 0;
+  padding: 0.9rem 1rem;
+  border-left: 0.25rem solid;
+}
+
+.success {
+  border-color: #3e7b58;
+  background: #edf8f0;
+}
+
+.error {
+  border-color: #a24d40;
+  background: #fff0ed;
+}
+
+.empty {
+  max-width: 46rem;
+  margin-top: 2rem;
+  padding: 2rem;
+  border: 1px solid #dddcd5;
+  border-radius: 0.75rem;
+  background: #fff;
+}
+
+.empty h2 {
+  margin-top: 0;
+}
+
+.tableWrap {
+  margin-top: 2rem;
+  overflow-x: auto;
+  border: 1px solid #dddcd5;
+  border-radius: 0.75rem;
+  background: #fff;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  padding: 0.9rem 1rem;
+  border-bottom: 1px solid #e7e5df;
+  text-align: left;
+  vertical-align: top;
+}
+
+.table th {
+  color: #526159;
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.secondary {
+  display: block;
+  margin-top: 0.2rem;
+  color: #647068;
+  font-size: 0.85rem;
+}
+
+.status {
+  text-transform: capitalize;
+}
+
+.backLink {
+  display: inline-block;
+  margin-bottom: 1rem;
+  color: #315a45;
+}
+
+.form {
+  display: grid;
+  gap: 1.25rem;
+  max-width: 52rem;
+}
+
+.fieldset {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  padding: 1.25rem;
+  border: 1px solid #d9d8d1;
+  border-radius: 0.75rem;
+  background: #fff;
+}
+
+.fieldset legend {
+  padding: 0 0.35rem;
+  font-weight: 800;
+}
+
+.fieldset label {
+  display: grid;
+  align-content: start;
+  gap: 0.35rem;
+  font-weight: 700;
+}
+
+.fieldset input,
+.fieldset select,
+.fieldset textarea {
+  width: 100%;
+  min-height: 2.7rem;
+  padding: 0.65rem 0.7rem;
+  border: 1px solid #aeb7b1;
+  border-radius: 0.4rem;
+  background: #fff;
+  color: #23342b;
+  font: inherit;
+  font-weight: 400;
+}
+
+.fieldset textarea {
+  min-height: 5.5rem;
+  resize: vertical;
+}
+
+.fieldset input:focus,
+.fieldset select:focus,
+.fieldset textarea:focus {
+  outline: 0.2rem solid rgb(49 90 69 / 22%);
+  border-color: #315a45;
+}
+
+.help {
+  margin: 0;
+  color: #647068;
+}
+
+@media (max-width: 700px) {
+  .headingRow {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .fieldset {
+    grid-template-columns: 1fr;
+  }
+}

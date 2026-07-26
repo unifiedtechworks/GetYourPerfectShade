@@ -7,10 +7,20 @@ export async function requireAccount() {
   if (!user) redirect("/sign-in");
   const { data: membership } = await supabase
     .from("organization_memberships")
-    .select("role, organizations(id, name)")
+    .select("organization_id, role, organizations(id, name)")
     .eq("user_id", user.id)
     .eq("status", "active")
     .limit(1)
     .maybeSingle();
   return { supabase, user, membership };
+}
+
+export async function requireOrganizationAccount() {
+  const account = await requireAccount();
+  if (!account.membership) redirect("/app");
+  return {
+    ...account,
+    membership: account.membership,
+    organizationId: account.membership.organization_id,
+  };
 }
