@@ -249,14 +249,16 @@ approved by the owner.
 | --- | ---: | ---: | ---: |
 | Read organization operational data | Yes | Yes | Yes |
 | Create/update customers, projects, draft estimates | Yes | Yes | Yes |
-| Delete/archive operational records | Yes | Yes | No |
+| Soft-delete/archive eligible operational records | Yes | Yes | No |
+| Invoke owner-controlled hard-deletion process | Restricted | No | No |
 | Manage memberships | Yes | Yes, except owner-only actions | No |
 | Grant/revoke `owner` | Yes | No | No |
 | Change organization identity | No | No | No |
 | Edit issued estimate in place | No | No | No |
 
-Owner approval is still required for final retention versus deletion policy. Until approved,
-prefer archival; hard delete endpoints should be absent.
+The approved policy is soft deletion for customers, projects, and estimates. Hard deletion is
+absent from normal application endpoints and restricted to a documented owner-controlled
+administrative process. Issued estimates and audit history are preserved.
 
 ### Request authorization sequence
 
@@ -451,30 +453,33 @@ retries require it, SQS/Step Functions. It is not part of Phase 1 or this archit
 
 ### Accounts and environments
 
-Preferred account isolation:
+Begin in the existing Unified Techworks AWS account. Perfect Shade is isolated through dedicated
+CDK stacks, resource names, IAM roles, Cognito resources, Aurora resources, S3 buckets, secrets,
+tags, budgets, and environment configuration. Development and production never share runtime
+resources, credentials, secrets, databases, user pools, buckets, or configuration.
 
-- **Nonproduction AWS account:** development, shared preview, and staging stacks.
-- **Production AWS account:** production stacks and production data only.
-- Optional future tooling/security account when organizational maturity warrants it.
+All environment identifiers and CDK stack interfaces must remain account-parameterized. This
+preserves a future move to separate nonproduction and production AWS accounts without changing
+application APIs, authentication claims, tenant rules, database schemas, or storage keys.
 
 Durable environments:
 
 | Environment | Purpose | Data | Database posture |
 | --- | --- | --- | --- |
 | Development | Local and integration development | Synthetic only | Separate cluster/database; auto-pause to zero when supported |
-| Preview | Amplify branch previews | Synthetic, resettable | Shared dedicated preview backend; never production |
+| Preview | Amplify branch previews | Synthetic, resettable | Shared isolated development backend with preview-specific configuration; never production |
 | Staging | Release candidate verification | Synthetic/sanitized | Production-like separate stack; auto-pause if latency is acceptable |
-| Production | Live business operation | Production only | Separate account, pool, API, cluster, bucket, keys, and backups |
+| Production | Live business operation | Production only | Separate stacks, pool, API, cluster, bucket, keys, secrets, configuration, and backups |
 
-Do not create a full Aurora cluster per pull request. Preview branches share a dedicated preview
-backend with resettable synthetic data. Preview tests must use unique organization/test IDs and
-clean up their own records. If concurrent previews later cause interference, add per-preview
-schemas or short-lived stacks through an explicit cleanup automation.
+Do not create a permanent Aurora cluster per pull request. Preview branches initially use the
+shared isolated development backend with preview-specific configuration, synthetic data, unique
+organization/test IDs, and cleanup of their own records. Preview deployments never receive
+production secrets or customer data. If concurrency later causes interference, adopt a bounded
+ephemeral isolation mechanism with automatic cleanup rather than permanent preview databases.
 
 ### Region
 
-Default to `us-west-2` because the business owner is West Coast-based and the required services
-are broadly available there. Before provisioning, Chat 5 must verify:
+Use the owner-approved `us-west-2` region. Before provisioning, Chat 5 must verify:
 
 - Aurora PostgreSQL engine version supports Serverless v2, Data API, and the desired auto-pause
   setting in `us-west-2`.
@@ -592,7 +597,7 @@ attempts, and denied privileged operations.
 | Supabase service-role concept | No application equivalent; IAM workload roles and separate migration DB role |
 | Supabase migrations | Forward-only Aurora SQL migrations plus CDK infrastructure definitions |
 | Supabase dashboard bootstrap | Cognito `AdminCreateUser` plus controlled organization/membership bootstrap command/runbook |
-| Supabase project environments | Separate AWS accounts/stacks/resources by environment |
+| Supabase project environments | Dedicated AWS stacks/resources/configuration by environment in the existing account, with an account-portable future path |
 | Supabase storage (not yet used) | Private versioned S3 |
 
 ### File classification
@@ -735,18 +740,15 @@ integration defect requires a change.
 
 ## 15. Integration order
 
-1. Owner reviews this ADR. Work may proceed only where the decision records below say the
-   unresolved choice is non-blocking.
+1. Owner-approved architecture decisions in Section 17 are the implementation baseline.
 2. Chat 5 defines environment-parameterized CDK constructs, outputs, IAM boundaries, and the
    migration runner without deploying resources.
-3. After Decisions 4 and 5 are approved, Chat 2 implements Cognito session/account conversion
-   against typed configuration contracts.
-4. After Decisions 5, 6, and 7 are approved, Chat 3 implements the Aurora schema, Lambda API,
-   and estimate API client against the infrastructure contracts.
+3. Chat 2 implements Cognito session/account conversion against typed configuration contracts.
+4. Chat 3 implements the Aurora schema, Lambda API, and estimate API client against the
+   infrastructure contracts.
 5. Chat 4 integrates shared dependencies, configuration, proxy/layout wiring, and documentation.
-6. After Decisions 1, 2, and 3 are approved, and with separate explicit authorization, Chat 5
-   deploys development infrastructure only. Decision 8 is additionally required before preview
-   deployment; Decisions 6 and 9 are additionally required before production deployment.
+6. With separate explicit authorization, Chat 5 deploys the approved development infrastructure
+   in the existing Unified Techworks AWS account. This document does not authorize provisioning.
 7. Chat 4 bootstraps synthetic development identities/organizations and performs live tests:
    authentication, failed membership, same-tenant access, cross-tenant denial, role escalation,
    delete restrictions, atomic rollback, money boundaries, and application routes.
@@ -782,156 +784,108 @@ Before Supabase code removal:
 - Protected routes redirect safely; public routes and prerendering remain unchanged.
 - `pnpm test`, `pnpm lint`, `pnpm build`, and `git diff --check` pass.
 
-## 17. Owner Decisions Before Provisioning
+## 17. Approved Owner Decisions
 
 AWS is required for both backend and hosting infrastructure. These decisions select how the
-approved AWS architecture is configured; none reopens the choice of a non-AWS backend. The
-recommended defaults are safe implementation assumptions, but a chat must not provision the
-affected environment until the owner approves the applicable decision.
+approved AWS architecture is configured; none reopens the choice of a non-AWS backend. All nine
+decisions below are approved. They no longer block Chat 2 or Chat 3 implementation, and they
+provide Chat 5 with the architectural inputs for a later, separately authorized development
+deployment. This document does not authorize resource provisioning or production deployment.
 
-“Application conversion” below means implementation by Chat 2 or Chat 3. “Provisioning” means
-resource creation by Chat 5. A production-only blocker does not prevent an explicitly authorized
-development deployment.
+### Approved Decision 1: Primary AWS Region
 
-### Decision 1: Primary AWS Region and data residency
+- Use `us-west-2` for Cognito, API Gateway, Lambda, Aurora, Secrets Manager, and regional S3
+  resources.
+- Continue global Amplify Hosting/CDN behavior and accept service-managed edge resources in
+  required AWS regions.
+- Keep region values configuration-driven so a future regional change does not redesign the
+  application.
 
-- **Recommended default:** `us-west-2` for Cognito, API Gateway, Lambda, Aurora, Secrets Manager,
-  and regional S3 resources. Continue global Amplify Hosting/CDN behavior and accept
-  service-managed edge resources in required AWS regions.
-- **Alternative:** Choose another single AWS region that satisfies a documented customer,
-  contractual, latency, or residency requirement.
-- **Consequences:** `us-west-2` is closest to the West Coast business and is the architecture's
-  tested target. Another region changes service/engine availability checks, latency, prices,
-  ARNs, deployment configuration, and disaster-recovery planning, but not the application data
-  model.
-- **Blocks:** Chat 5 development and production provisioning. It does not block Chat 2 or Chat 3
-  code conversion if region is supplied through configuration.
+### Approved Decision 2: AWS account and environment isolation
 
-### Decision 2: AWS account isolation
+- Begin in the existing Unified Techworks AWS account.
+- Isolate Perfect Shade through dedicated CDK stacks, resource names, IAM roles, Cognito
+  resources, Aurora resources, S3 buckets, secrets, tags, budgets, and configuration.
+- Development and production use separate resources and configuration. No production secret or
+  data is shared with development or preview deployments.
+- Keep stacks account-parameterized and document the future path to move environments into
+  separate AWS accounts without changing application contracts or the data model.
 
-- **Recommended default:** One nonproduction AWS account for development, preview, and staging;
-  one separate production AWS account for production resources and data.
-- **Alternative:** A single AWS account with environment-separated stacks, IAM roles, KMS keys,
-  secrets, databases, pools, APIs, and buckets.
-- **Consequences:** Separate accounts provide a stronger production blast-radius and billing
-  boundary but require AWS Organizations/account administration and cross-account deployment
-  roles. One account is simpler initially but increases the consequence of IAM, cleanup, and
-  deployment mistakes.
-- **Blocks:** Chat 5 production provisioning and the final deployment-pipeline design. Chat 5 may
-  define environment-parameterized CDK code, and Chats 2 and 3 may convert application code,
-  before this is approved. Development provisioning requires at least an explicitly designated
-  nonproduction account.
+### Approved Decision 3: Budget and Aurora posture
 
-### Decision 3: AWS budget and Aurora operating posture
+- Start development with the smallest practical Aurora PostgreSQL Serverless v2 configuration
+  supported by the selected engine and Data API combination.
+- Use conservative minimum/maximum scaling, an AWS Budget, cost-anomaly monitoring, and alerts.
+- Development may omit deletion protection and may use auto-pause when supported and acceptable.
+- Production must use deletion protection, automated backups, and point-in-time recovery.
+- Production resources are not provisioned in the development phase. Exact monetary alert
+  thresholds are deployment configuration, not an unresolved architecture decision.
 
-- **Recommended default:** Before deployment, Chat 5 produces a current AWS Pricing Calculator
-  estimate; the owner approves a development budget and alert threshold. Development and staging
-  use Aurora auto-pause to zero when the selected engine supports it; production starts with a
-  nonzero minimum capacity to avoid interactive resume latency.
-- **Alternatives:** Keep nonproduction Aurora warm for predictable latency at higher cost; allow
-  production auto-pause for lower idle cost with first-request latency; or defer all provisioning
-  until a lower budget ceiling is designed.
-- **Consequences:** Auto-pause reduces idle database compute charges but can delay the first
-  request. A warm production minimum improves responsiveness but creates continuous Aurora
-  capacity cost. Deferral has no cloud cost but prevents live validation.
-- **Blocks:** Chat 5 development provisioning until a development ceiling is approved, and
-  production provisioning until the production posture is approved. It does not block Chats 2
-  or 3 from implementing provider-neutral contracts and tests.
+### Approved Decision 4: Staff authentication
 
-### Decision 4: Staff authentication policy and email identity
+- Internal staff accounts only; Cognito public signup is disabled.
+- Administrators provision users.
+- Use email/password authentication with verified email and password recovery.
+- MFA is deferred, but Cognito and the application flow must preserve a future path to add it.
+- Use a verified Perfect Shade or Unified Techworks Amazon SES sender identity for invitations
+  and recovery.
 
-- **Recommended default:** Administrator-created staff users only; minimum 12-character
-  passwords; verified-email recovery; public signup disabled; optional TOTP MFA supported in the
-  design but deferred at launch; an owner-controlled domain identity in Amazon SES for production
-  invitations and recovery.
-- **Alternatives:** Require TOTP MFA at launch; allow optional per-user TOTP at launch; use
-  Cognito's development email sender temporarily in nonproduction; or configure a different
-  owner-approved SES identity and message wording.
-- **Consequences:** Required MFA provides stronger account protection but adds enrollment,
-  recovery, support, and UI states. Deferred MFA makes the first conversion smaller but leaves
-  password compromise as the primary authentication risk. Cognito's default sender is suitable
-  only for limited development; production SES requires domain/email verification and approved
-  templates.
-- **Blocks:** Chat 2's final authentication flow and tests, plus Chat 5 Cognito/SES production
-  provisioning. Chat 2 may build the base password flow using the recommended default, but it
-  must not claim final parity until MFA launch behavior is approved. This does not block Chat 3.
+### Approved Decision 5: Membership permissions
 
-### Decision 5: Membership administration matrix
+- Owner has full organizational and membership control, including restricted destructive
+  administrative actions.
+- Admin may manage staff and business records but cannot remove, demote, replace, or otherwise
+  take control from the owner.
+- Staff may create and edit customers, projects, and draft estimates but has no membership
+  administration or organization-level destructive permissions.
+- Prevent privilege escalation independently at the API and PostgreSQL layers. The last active
+  owner cannot be removed without an explicit owner-controlled transfer process.
 
-- **Recommended default:** Owners can grant/revoke any organization role and transfer ownership;
-  admins can manage staff but cannot create, promote, demote, disable, or delete owners; staff
-  cannot manage memberships; the last active owner cannot be removed.
-- **Alternatives:** Restrict all membership management to owners, or allow admins to manage other
-  admins while retaining owner-only ownership changes.
-- **Consequences:** Owner-only administration is simplest and least permissive but creates an
-  availability bottleneck. Limited admin delegation supports daily operations without allowing
-  ownership escalation. Broader admin delegation reduces owner workload but increases privilege
-  and recovery risk.
-- **Blocks:** Chat 2 account/authorization conversion and the membership portion of Chat 3's API
-  authorization tests. It does not block Chat 5 from defining Cognito and generic API resources,
-  because organization roles remain in Aurora rather than Cognito groups.
+### Approved Decision 6: Deletion and retention
 
-### Decision 6: Operational deletion and retention policy
+- Use soft deletion for customers, projects, and estimates.
+- Preserve issued estimates and append-only audit history.
+- Hard deletion is unavailable to normal workflows and restricted to a documented,
+  owner-controlled administrative process.
+- No staff workflow may hard-delete an issued estimate.
+- Exact production retention durations are operational policy values to document before
+  production launch; they do not block application conversion or development provisioning.
 
-- **Recommended default:** No hard-delete API in the initial release; archive customers,
-  projects, and draft estimates; never delete issued estimate revisions in place. Use 35 days of
-  production Aurora point-in-time backup retention, 90 days of production application logs, and
-  seven years for issued document versions and business audit events, subject to legal/accounting
-  confirmation. Use shorter documented nonproduction retention and synthetic data only.
-- **Alternatives:** Permit owner/admin hard deletion of eligible unissued records; choose shorter
-  or longer backup, log, document, and audit retention; enable S3 Object Lock after legal review.
-- **Consequences:** Archive-first behavior is safer and reversible but retains data and storage
-  cost. Hard deletion reduces retained data but increases accidental-loss and audit risk. Longer
-  retention improves recovery/audit history at higher storage and privacy cost. Object Lock adds
-  strong write-once protection but is intentionally difficult to reverse.
-- **Blocks:** Chat 3's final delete/archive endpoints, database policies, and retention tests.
-  It blocks Chat 5 production backup, log-retention, S3 lifecycle, and Object Lock configuration.
-  It does not prevent development provisioning with short, explicitly nonproduction defaults.
+### Approved Decision 7: Issued-estimate behavior
 
-### Decision 7: Issued-estimate immutability and revisions
+- Draft estimates remain editable.
+- Issued estimates and their child records are immutable.
+- A change to an issued estimate creates a new linked draft revision with an incremented revision
+  number.
+- Preserve every prior issued revision for audit and historical reference.
 
-- **Recommended default:** Issued estimates and their child rows are immutable. Corrections create
-  a new draft revision linked by `source_estimate_id` with an incremented revision number.
-  Voiding is an audited status transition, not deletion. Accepted estimates receive the same
-  immutability.
-- **Alternatives:** Allow narrowly controlled metadata corrections after issuance with an audit
-  event, or allow full post-issuance edits.
-- **Consequences:** Immutable revisions preserve what the customer received and provide the
-  strongest audit history, with additional revision workflow and storage. Metadata-only changes
-  reduce clerical friction but require a precise mutable-field list. Full edits are simplest for
-  operators but can destroy historical accuracy and are not recommended.
-- **Blocks:** Chat 3's final Aurora triggers, revision API, and issuance-related tests. It does
-  not block Chat 2 or Chat 5's foundational development provisioning.
+### Approved Decision 8: Preview environments
 
-### Decision 8: Preview-environment isolation
+- Preview deployments do not automatically create permanent Aurora databases.
+- Initially use the shared isolated development backend with preview-specific configuration,
+  synthetic/resettable data, unique test identifiers, and cleanup discipline.
+- Preview environments never receive production secrets or customer data.
 
-- **Recommended default:** Amplify branch previews share one dedicated nonproduction preview
-  backend containing synthetic, resettable data. Each test run uses unique organization and run
-  identifiers and cleans up its records.
-- **Alternatives:** Provision a backend stack per preview branch, or point previews at the shared
-  development backend.
-- **Consequences:** A dedicated shared preview backend balances cost and isolation but needs
-  cleanup discipline. Per-branch stacks provide the strongest isolation at substantially higher
-  Aurora cost and lifecycle complexity. Sharing development is cheapest but creates test
-  interference and makes debugging less reliable.
-- **Blocks:** Chat 5 preview provisioning and preview CI/CD wiring only. It does not block Chat 2,
-  Chat 3, development provisioning, or production provisioning.
+### Approved Decision 9: Production recovery
 
-### Decision 9: Production recovery objectives
+- Use Aurora automated backups and point-in-time recovery, S3 versioning, CDK-managed
+  infrastructure, production deletion protection, and documented/tested restore procedures.
+- Initial recovery target: restore service within 24 hours.
+- Document how to tighten the target later through more frequent restore exercises, stricter
+  operational objectives, replicas, cross-region copies, or other approved resilience measures.
 
-- **Recommended default:** Initial recovery point objective (RPO) of 15 minutes and recovery time
-  objective (RTO) of four hours, with Aurora automated backups/PITR, protected production
-  deletion, final snapshots, S3 versioning, infrastructure-as-code recreation, and scheduled
-  restore exercises.
-- **Alternatives:** Adopt stricter objectives with additional replicas, cross-region copies, and
-  more frequent exercises; or accept longer recovery objectives with simpler single-region
-  recovery.
-- **Consequences:** Stricter objectives increase recurring cost, operational testing, and
-  failover complexity. The recommended objectives are a pragmatic small-business starting point
-  but still require a written restore runbook and successful exercises. Longer objectives reduce
-  cost but extend potential business interruption.
-- **Blocks:** Chat 5 production backup/disaster-recovery provisioning and production launch. It
-  does not block application conversion or development provisioning.
+### Implementation gates after approval
+
+- **Chat 2:** No unresolved owner decision blocks Cognito and account conversion.
+- **Chat 3:** No unresolved owner decision blocks estimate persistence/API conversion.
+- **Chat 5:** No architecture decision remains unresolved for development infrastructure design.
+  Actual development provisioning still requires a separate explicit authorization, valid access
+  to the existing Unified Techworks AWS account, a verified SES identity or approved development
+  sender path, and concrete budget-alert values. These are execution prerequisites, not unresolved
+  architecture choices.
+- **Production:** Not authorized. Retention durations, production budget thresholds, operational
+  runbooks, and launch approval must be finalized before a production deployment, but they do not
+  block development implementation.
 
 ## 18. Technical risks
 
