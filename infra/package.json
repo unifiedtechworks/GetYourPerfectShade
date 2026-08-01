@@ -1,0 +1,22 @@
+{
+  "name": "@perfect-shade/aws-infrastructure",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc --noEmit",
+    "test": "vitest run",
+    "synth": "cdk synth",
+    "diff": "cdk diff"
+  },
+  "dependencies": {
+    "aws-cdk-lib": "2.263.0",
+    "constructs": "10.8.0"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.1",
+    "aws-cdk": "2.1134.0",
+    "ts-node": "10.9.2",
+    "typescript": "5.9.3",
+    "vitest": "4.1.10"
+  }
+}
