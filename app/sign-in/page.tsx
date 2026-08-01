@@ -2,12 +2,14 @@ import Link from "next/link";
 import { signIn } from "./actions";
 import styles from "../auth.module.css";
 
-type Props = { searchParams: Promise<{ error?: string; next?: string }> };
+type Props = { searchParams: Promise<{ error?: string; next?: string; reset?: string }> };
 
 export default async function SignInPage({ searchParams }: Props) {
-  const { error, next } = await searchParams;
+  const { error, next, reset } = await searchParams;
   const message = error === "configuration"
     ? "Authentication has not been configured for this environment."
+    : error === "challenge"
+      ? "This account requires an authentication step that is not enabled yet. Contact an administrator."
     : error
       ? "The email or password was not accepted."
       : null;
@@ -18,6 +20,7 @@ export default async function SignInPage({ searchParams }: Props) {
         <Link className={styles.brand} href="/">Perfect Shade</Link>
         <h1>Staff sign in</h1>
         <p>Access estimates and company workspaces.</p>
+        {reset === "complete" && <p className={styles.message}>Your password was reset. Sign in with the new password.</p>}
         {message && <p className={styles.message} role="alert">{message}</p>}
         <form className={styles.form} action={signIn}>
           <input type="hidden" name="next" value={next ?? "/app"} />

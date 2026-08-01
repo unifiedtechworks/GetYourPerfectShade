@@ -4,43 +4,68 @@
 
 - Node.js 22.12 or newer
 - pnpm
-- A Supabase project for development
+- Chat 5's deployed development Cognito User Pool and API outputs for live integration testing
 
-## Configure Supabase
+The application builds and its unit tests run before AWS resources exist. Protected routes fail
+closed until Cognito configuration is present. No live AWS validation is implied by mock tests.
 
-1. Apply the migrations in filename order through the Supabase SQL editor or CLI:
-   - `supabase/migrations/202607260001_account_foundation.sql`
-   - `supabase/migrations/202607260002_estimate_phase_1.sql`
-2. In Authentication settings, disable new-user public sign-ups.
-3. Add `http://localhost:3000/auth/callback` to allowed redirect URLs.
-4. Create and bootstrap the first owner as documented in `docs/account-architecture.md`.
+## Environment contract
 
-Copy `.env.example` to `.env.local` and set:
+Copy `.env.example` to `.env.local` and populate Chat 5's non-secret development outputs:
 
 ```dotenv
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
+NEXT_PUBLIC_AWS_REGION=us-west-2
+NEXT_PUBLIC_COGNITO_USER_POOL_ID=us-west-2_example
+NEXT_PUBLIC_COGNITO_USER_POOL_CLIENT_ID=example
+NEXT_PUBLIC_API_BASE_URL=https://example.execute-api.us-west-2.amazonaws.com
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ```
 
-The publishable key may be labeled an `anon` key in older Supabase projects. Do not put the
-Supabase service-role key in the application or AWS Amplify.
+- Region, pool ID, client ID, API URL, and site URL are non-secret identifiers.
+- The Cognito app client must have no client secret and must allow `USER_PASSWORD_AUTH` and
+  `REFRESH_TOKEN_AUTH`.
+- Public sign-up must be disabled. Administrators create and verify staff email identities.
+- Never add AWS access keys, Cognito tokens, passwords, reset codes, database credentials,
+  secret ARNs, or private account identifiers to environment files or source control.
+- AWS workloads use IAM roles; local infrastructure operators use approved short-lived AWS
+  credentials. The web application itself does not need AWS credentials for these public Cognito
+  flows.
 
-## Run and verify
+`NEXT_PUBLIC_API_BASE_URL` may be omitted before the API exists. A valid Cognito user can then
+display identity information, but no organization membership is assumed and organization-bound
+routes remain unavailable.
+
+## Local verification
 
 ```bash
 pnpm install
 pnpm test
 pnpm lint
+pnpm build
 pnpm dev
 ```
 
-Verify that an anonymous request to `/app` redirects to `/sign-in`, a staff user can sign in,
-password recovery reaches `/reset-password`, and sign-out returns to `/sign-in`.
+Without AWS resources, verify `/app` redirects to `/sign-in?error=configuration` and public
+routes remain available. With the development stack deployed, additionally verify:
+
+1. Unknown credentials receive the generic sign-in error.
+2. An administrator-created user sets a permanent password.
+3. A verified staff user signs in and sees identity/account data.
+4. Forgot password sends a code without disclosing whether other usernames exist.
+5. A valid code resets the password.
+6. Sign-out clears cookies and attempts Cognito global sign-out.
+7. Expired access tokens refresh only in server-controlled code.
+8. Disabled users and missing memberships fail closed.
 
 ## AWS Amplify
 
-Set all three variables in each Amplify environment. `NEXT_PUBLIC_SITE_URL` must match that
-environment's canonical origin, without a trailing slash. Add its `/auth/callback` URL to
-Supabase's redirect allow-list. Keep production and non-production Supabase projects separate
-before real customer data is stored.
+Set the five environment values per Amplify branch/environment. Development and production must
+use separate Cognito and API resources. Production is not authorized by this application change.
+Use an approved SES sender before production invitations or password recovery.
+
+## Temporary estimate compatibility
+
+The baseline estimate actions still use `lib/supabase/server.ts`. Those estimate-owned paths and
+the Supabase packages/migrations are retained for Chat 3 and Chat 4; they are not used by account
+authentication. Do not treat a Cognito session as authorization for the legacy Supabase database.
+Integrated estimate persistence remains blocked until Chat 3 supplies the AWS API replacement.

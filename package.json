@@ -13,8 +13,10 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@aws-sdk/client-cognito-identity-provider": "^3.1101.0",
     "@supabase/ssr": "^0.12.3",
     "@supabase/supabase-js": "^2.110.8",
+    "jose": "^6.2.6",
     "next": "latest",
     "react": "latest",
     "react-dom": "latest"

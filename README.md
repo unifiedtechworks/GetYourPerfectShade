@@ -28,8 +28,8 @@ pnpm dev
 
 Open `http://localhost:3000`.
 
-The protected staff application also requires Supabase environment variables and the account
-schema. See [`docs/local-development.md`](docs/local-development.md).
+The protected staff application uses Amazon Cognito and the AWS account API. See
+[`docs/local-development.md`](docs/local-development.md).
 
 ## Build
 
@@ -54,9 +54,10 @@ This project uses standard Next.js scripts and should be suitable for AWS Amplif
 Configure AWS Amplify to use Node.js 22.12 or newer, as required by the authentication and
 test dependencies.
 
-Set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, and
-`NEXT_PUBLIC_SITE_URL` per Amplify environment. Architecture and authorization decisions are
-documented in [`docs/account-architecture.md`](docs/account-architecture.md).
+Set the AWS region, Cognito User Pool/client, API base URL, and site URL described in
+[`docs/local-development.md`](docs/local-development.md) per Amplify environment. Architecture
+and authorization decisions are documented in
+[`docs/account-architecture.md`](docs/account-architecture.md).
 
 ## Updating Business Info
 

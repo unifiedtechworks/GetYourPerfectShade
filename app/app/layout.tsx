@@ -7,13 +7,12 @@ export const dynamic = "force-dynamic";
 
 export default async function ApplicationLayout({ children }: { children: React.ReactNode }) {
   const { membership } = await requireAccount();
-  const organization = membership?.organizations as unknown as { name?: string } | null;
   return (
     <div className={styles.shell}>
       <aside className={styles.sidebar}>
         <div>
           <Link className={styles.brand} href="/app">Perfect Shade</Link>
-          <p className={styles.org}>{organization?.name ?? "Account setup required"}</p>
+          <p className={styles.org}>{membership?.organizationName ?? "Account setup required"}</p>
         </div>
         <nav className={styles.nav} aria-label="Application navigation">
           <Link href="/app">Dashboard</Link>
