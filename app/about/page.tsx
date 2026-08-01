@@ -2,15 +2,25 @@ import type { Metadata } from "next";
 import { CTASection } from "@/components/CTASection";
 import { businessInfo, trustItems } from "@/data/business";
 
+const description =
+  "Learn about Perfect Shade, a local window coverings business serving Hermiston, Boardman, Umatilla, Heppner, and surrounding communities.";
+
 export const metadata: Metadata = {
   title: "About",
-  description:
-    "Learn about Perfect Shade, a local window coverings business serving Hermiston, Boardman, Umatilla, Heppner, and surrounding communities."
+  description,
+  alternates: {
+    canonical: "/about"
+  },
+  openGraph: {
+    title: "About Perfect Shade",
+    description,
+    url: "/about"
+  }
 };
 
 export default function AboutPage() {
   return (
-    <main>
+    <main id="main-content">
       <section className="section sectionShell">
         <div className="container twoColumn">
           <div className="pageIntro">

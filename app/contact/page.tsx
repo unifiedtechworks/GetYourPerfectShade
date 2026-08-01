@@ -2,15 +2,25 @@ import type { Metadata } from "next";
 import { businessInfo } from "@/data/business";
 import styles from "./contact.module.css";
 
+const description =
+  "Contact Perfect Shade for custom window coverings, motorized shades, exterior shades, solar screens, and awnings in Hermiston, Boardman, Umatilla, Heppner, and surrounding communities.";
+
 export const metadata: Metadata = {
   title: "Contact",
-  description:
-    "Contact Perfect Shade for custom window coverings, motorized shades, exterior shades, solar screens, and awnings in Hermiston, Boardman, Umatilla, Heppner, and surrounding communities."
+  description,
+  alternates: {
+    canonical: "/contact"
+  },
+  openGraph: {
+    title: "Contact Perfect Shade",
+    description,
+    url: "/contact"
+  }
 };
 
 export default function ContactPage() {
   return (
-    <main className="section sectionShell">
+    <main id="main-content" className="section sectionShell">
       <div className="container twoColumn">
         <div className="pageIntro">
           <p className="eyebrow">Contact</p>

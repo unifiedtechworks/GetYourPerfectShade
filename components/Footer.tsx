@@ -19,12 +19,12 @@ export function Footer() {
           <a href={businessInfo.phoneHref}>{businessInfo.phone}</a>
           <a href={businessInfo.emailHref}>{businessInfo.email}</a>
         </div>
-        <div>
+        <nav aria-label="Footer navigation">
           <h2>Explore</h2>
           <Link href="/gallery">Products Offered</Link>
           <Link href="/about">About</Link>
           <Link href="/contact">Contact</Link>
-        </div>
+        </nav>
       </div>
     </footer>
   );

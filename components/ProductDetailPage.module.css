@@ -1,5 +1,11 @@
+.page {
+  padding-top: 54px;
+}
+
 .backLink {
   display: inline-flex;
+  gap: 8px;
+  align-items: center;
   border-radius: 999px;
   background: rgba(244, 223, 220, 0.74);
   margin-bottom: 24px;
@@ -58,6 +64,7 @@
   font-size: clamp(1.25rem, 2vw, 1.65rem);
   font-weight: 700;
   line-height: 1.08;
+  text-wrap: balance;
 }
 
 .header {
@@ -74,6 +81,12 @@
   font-family: var(--font-heading);
   font-size: clamp(2.5rem, 7vw, 5rem);
   line-height: 1;
+}
+
+.header h1:focus {
+  outline: 3px solid rgba(185, 111, 100, 0.42);
+  outline-offset: 6px;
+  border-radius: 4px;
 }
 
 .header p {
@@ -272,19 +285,6 @@
     grid-template-columns: 1fr;
   }
 
-  .productNav {
-    grid-template-columns: 1fr;
-  }
-
-  .productNavLink,
-  .productNavLink:last-child {
-    text-align: left;
-  }
-
-  .productNavLink:last-child span {
-    justify-content: flex-start;
-  }
-
   .supportingGallery {
     margin-top: -14px;
   }
@@ -295,5 +295,60 @@
 
   .cta {
     display: grid;
+  }
+}
+
+@media (max-width: 560px) {
+  .page {
+    padding-top: 34px;
+  }
+
+  .backLink {
+    min-height: 44px;
+    margin-bottom: 18px;
+  }
+
+  .productNav {
+    gap: 10px;
+    margin-bottom: 26px;
+  }
+
+  .productNavLink {
+    min-height: 52px;
+    align-content: center;
+    padding: 12px;
+  }
+
+  .productNavLink > span {
+    gap: 5px;
+    justify-content: flex-start;
+    font-size: 0.7rem;
+    letter-spacing: 0.05em;
+  }
+
+  .productNavLink:last-child > span {
+    justify-content: flex-end;
+  }
+
+  .productNavLink strong {
+    display: none;
+  }
+
+  .header {
+    gap: 24px;
+    margin-bottom: 32px;
+  }
+
+  .header h1 {
+    font-size: clamp(2.6rem, 14vw, 3.8rem);
+    text-wrap: balance;
+  }
+
+  .details,
+  .goodFor,
+  .cta {
+    margin-top: 30px;
+    border-radius: var(--radius-md);
+    padding: 22px;
   }
 }

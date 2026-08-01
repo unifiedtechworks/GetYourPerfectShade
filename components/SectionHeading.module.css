@@ -3,12 +3,15 @@
   margin: 0 0 30px;
 }
 
+.heading h1,
 .heading h2 {
   margin: 0 0 14px;
   color: var(--color-navy);
   font-family: var(--font-heading);
   font-size: clamp(2rem, 5vw, 3.45rem);
+  font-weight: 600;
   line-height: 1.08;
+  text-wrap: balance;
 }
 
 .heading p {

@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { useEffect, useRef } from "react";
 import { productOfferings, type Service } from "@/data/services";
 import styles from "./ProductDetailPage.module.css";
 
@@ -16,22 +17,42 @@ export function ProductDetailPage({ service }: { service: Service }) {
   const previousProduct =
     productOfferings[(productIndex - 1 + productOfferings.length) % productOfferings.length];
   const nextProduct = productOfferings[(productIndex + 1) % productOfferings.length];
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const previousSlugRef = useRef(product.slug);
+
+  useEffect(() => {
+    if (previousSlugRef.current === product.slug) return;
+
+    previousSlugRef.current = product.slug;
+    headingRef.current?.focus();
+  }, [product.slug]);
 
   return (
-    <main className="section">
+    <main id="main-content" className={`section ${styles.page}`}>
       <div className="container">
         <Link className={styles.backLink} href="/gallery">
+          <span aria-hidden="true">{"<-"}</span>
           Back to Products Offered
         </Link>
         <nav className={styles.productNav} aria-label="Product navigation">
-          <Link className={styles.productNavLink} href={previousProduct.href}>
+          <Link
+            className={styles.productNavLink}
+            href={previousProduct.href}
+            aria-label={`Previous product: ${previousProduct.title}`}
+            rel="prev"
+          >
             <span>
               <span aria-hidden="true">{"<-"}</span>
               Previous Product
             </span>
             <strong>{previousProduct.title}</strong>
           </Link>
-          <Link className={styles.productNavLink} href={nextProduct.href}>
+          <Link
+            className={styles.productNavLink}
+            href={nextProduct.href}
+            aria-label={`Next product: ${nextProduct.title}`}
+            rel="next"
+          >
             <span>
               Next Product
               <span aria-hidden="true">{"->"}</span>
@@ -42,7 +63,7 @@ export function ProductDetailPage({ service }: { service: Service }) {
         <div className={styles.header}>
           <div>
             <p className="eyebrow">Products Offered</p>
-            <h1>{product.title}</h1>
+            <h1 ref={headingRef} tabIndex={-1}>{product.title}</h1>
             <p>{product.description}</p>
           </div>
           <div className={styles.featureImage}>
@@ -50,17 +71,19 @@ export function ProductDetailPage({ service }: { service: Service }) {
               src={product.image.src}
               alt={product.image.alt}
               fill
-              sizes="(max-width: 860px) 100vw, 42vw"
+              loading="eager"
+              fetchPriority="high"
+              sizes="(max-width: 860px) calc(100vw - 32px), (max-width: 1200px) 42vw, 480px"
               className={styles.image}
               style={{ objectPosition: product.image.objectPosition ?? "center" }}
             />
           </div>
         </div>
         {product.supportingImages.length > 0 ? (
-          <section className={styles.supportingGallery} aria-label={`${product.title} supporting images`}>
+          <section className={styles.supportingGallery} aria-labelledby="supporting-images-heading">
             <div className={styles.supportingHeader}>
               <p className="eyebrow">Additional views</p>
-              <h2>More ways to use this product.</h2>
+              <h2 id="supporting-images-heading">More ways to use this product.</h2>
             </div>
             <div className={styles.supportingGrid}>
               {product.supportingImages.map((image) => (
@@ -70,7 +93,8 @@ export function ProductDetailPage({ service }: { service: Service }) {
                       src={image.src}
                       alt={image.alt}
                       fill
-                      sizes="(max-width: 700px) 100vw, 33vw"
+                      loading="lazy"
+                      sizes="(max-width: 700px) calc(100vw - 32px), (max-width: 1200px) 31vw, 360px"
                       className={styles.image}
                       style={{ objectPosition: image.objectPosition ?? "center" }}
                     />

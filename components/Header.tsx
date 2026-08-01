@@ -17,6 +17,9 @@ export function Header() {
 
   return (
     <header className={styles.header}>
+      <a className={styles.skipLink} href="#main-content">
+        Skip to main content
+      </a>
       <div className={`container ${styles.inner}`}>
         <Link className={styles.brand} href="/" aria-label="Perfect Shade home">
           <span className={styles.mark} aria-hidden="true">
@@ -32,16 +35,23 @@ export function Header() {
           </span>
         </Link>
         <nav className={styles.nav} aria-label="Primary navigation">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={pathname === item.href ? styles.active : undefined}
-              aria-current={pathname === item.href ? "page" : undefined}
-            >
-              {item.label}
-            </Link>
-          ))}
+          {navItems.map((item) => {
+            const active =
+              item.href === "/"
+                ? pathname === "/"
+                : pathname === item.href || pathname.startsWith(`${item.href}/`);
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={active ? styles.active : undefined}
+                aria-current={active ? "page" : undefined}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
         <a className={styles.phone} href={businessInfo.phoneHref}>
           {businessInfo.phone}

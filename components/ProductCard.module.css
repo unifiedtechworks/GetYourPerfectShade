@@ -53,11 +53,14 @@
   padding: 22px;
 }
 
-.card h3 {
+.title {
   margin: 0 0 8px;
   color: var(--color-navy);
   font-family: var(--font-heading);
-  font-size: 1.45rem;
+  font-size: clamp(1.45rem, 2.2vw, 1.7rem);
+  font-weight: 600;
+  line-height: 1.08;
+  text-wrap: balance;
 }
 
 .card p {

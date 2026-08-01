@@ -10,15 +10,25 @@ import { TrustStrip } from "@/components/TrustStrip";
 import { trustItems } from "@/data/business";
 import { productOfferings, services } from "@/data/services";
 
+const description =
+  "Custom roller shades, cellular shades, roman shades, blinds, draperies, motorized shades, exterior shades, solar screens, and awnings for homes and businesses in Hermiston and surrounding Umatilla and Morrow County communities.";
+
 export const metadata: Metadata = {
   title: "Custom Window Coverings in Hermiston, Oregon",
-  description:
-    "Custom roller shades, cellular shades, roman shades, blinds, draperies, motorized shades, exterior shades, solar screens, and awnings for residential and commercial spaces."
+  description,
+  alternates: {
+    canonical: "/"
+  },
+  openGraph: {
+    title: "Custom Window Coverings in Hermiston, Oregon | Perfect Shade",
+    description,
+    url: "/"
+  }
 };
 
 export default function HomePage() {
   return (
-    <main>
+    <main id="main-content">
       <Hero />
       <TrustStrip />
 
