@@ -1,7 +1,9 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
 import { redirect } from "next/navigation";
-import { requireOrganizationAccount } from "@/lib/auth/account";
+import { createEstimateApiClient } from "@/lib/aws/api/estimate-client";
+import { requireEstimateApiIdentity } from "@/lib/aws/api/estimate-identity";
 import {
   calculateEstimateTotals,
   compareDecimal,
@@ -69,28 +71,31 @@ export async function createEstimate(
   }
 
   const totals = calculateEstimateTotals([pricingAmountMinor], depositPercent);
-  const { supabase, organizationId } = await requireOrganizationAccount();
-  const { data, error } = await supabase.rpc("create_estimate_draft", {
-    target_organization_id: organizationId,
-    customer_name: fields.customerName,
-    project_name: fields.projectName,
-    project_location: fields.projectLocation,
-    prepared_for: fields.preparedFor,
-    contact_information: fields.contactInformation,
-    document_type: fields.documentType,
-    estimate_number: fields.estimateNumber,
-    pricing_description: fields.pricingDescription,
-    pricing_amount_minor: totals.totalMinor.toString(),
-    deposit_percent: decimalToString(depositPercent),
-  });
-
-  if (error || typeof data !== "string") {
+  const { accessToken } = await requireEstimateApiIdentity();
+  let estimateId: string;
+  try {
+    const result = await createEstimateApiClient({ accessToken }).createDraft(
+      {
+        customerName: fields.customerName,
+        projectName: fields.projectName,
+        projectLocation: fields.projectLocation,
+        preparedFor: fields.preparedFor,
+        contactInformation: fields.contactInformation,
+        documentType: fields.documentType as "Bid Proposal" | "Estimate",
+        estimateNumber: fields.estimateNumber,
+        pricingDescription: fields.pricingDescription,
+        pricingAmountMinor: totals.totalMinor.toString(),
+        depositPercent: decimalToString(depositPercent),
+      },
+      randomUUID(),
+    );
+    estimateId = result.data.estimateId;
+  } catch {
     return {
-      message:
-        "The draft could not be created. Confirm the Phase 1 migration is applied and try again.",
+      message: "The draft could not be created. Please try again.",
       fields,
     };
   }
 
-  redirect(`/app/estimates?created=${encodeURIComponent(data)}`);
+  redirect(`/app/estimates?created=${encodeURIComponent(estimateId)}`);
 }

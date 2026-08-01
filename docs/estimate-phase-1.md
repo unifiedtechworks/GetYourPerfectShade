@@ -3,7 +3,10 @@
 ## Purpose and authority
 
 This document records the desktop-to-web parity inventory, Phase 1 domain and persistence
-decisions, calculation specification, and follow-on plan. The behavioral authority is the
+decisions, calculation specification, and follow-on plan. Phase 1 now uses the approved
+AWS API/Aurora boundary described in
+[`docs/estimate-api.md`](./estimate-api.md); the original Supabase estimate prototype is no
+longer active. The behavioral authority is the
 desktop project at `C:\Users\sethb\Web Projects\Perfect Shade Tool`. The desktop application
 remains supported and was not modified.
 
@@ -86,10 +89,10 @@ project record is edited later.
 9. Remaining balance is exact subtraction of the rounded deposit from total.
 10. Alternate amounts are summed separately and never supplied to the base-total function.
 
-The database repeats the total invariants as check constraints. The creation RPC calculates the
-deposit with PostgreSQL `round(numeric)`, whose tie behavior matches the domain function.
+The Lambda repeats the calculation and Aurora repeats the total invariants as check constraints.
+PostgreSQL `round(numeric)` has the same tie behavior as the domain function.
 
-## Persistence and ownership
+## AWS persistence and ownership
 
 `customers`, `projects`, `estimates`, and every estimate child table carry:
 
@@ -100,47 +103,49 @@ deposit with PostgreSQL `round(numeric)`, whose tie behavior matches the domain 
 - `updated_at`
 
 Composite organization foreign keys reject a child whose parent belongs to another organization.
-An update trigger prevents moving any record between organizations. Every account-scoped index
+An update trigger prevents moving records between organizations. Every account-scoped index
 begins with `organization_id`.
 
-RLS rules:
+API Gateway validates the Cognito JWT. Lambda consumes only its immutable `sub`, begins an
+explicit Data API transaction, and calls a controlled database function that resolves exactly
+one active membership and establishes transaction-local actor, organization, and role context.
+The API does not accept an organization or actor ID.
 
-- Anonymous access has no table grants and fails closed.
-- An active organization member may select, insert, and update operational rows in that
-  organization.
-- Insert policies require `created_by` and `updated_by` to equal `auth.uid()`.
-- Disabled memberships fail `is_organization_member`.
-- Deletes are limited to owners/admins. Archival columns provide the future non-destructive path.
-- The atomic create RPC is security-invoker code, checks active membership, and remains subject to
-  each table's RLS policies.
+Aurora defense in depth:
 
-The web route never accepts an organization ID from the form. It derives the organization from
-the existing authenticated account helper.
+- Every query includes an explicit resolved `organization_id` predicate.
+- Every tenant table has `ENABLE ROW LEVEL SECURITY` and `FORCE ROW LEVEL SECURITY`.
+- The Lambda runtime role is a non-owner without `BYPASSRLS`, schema creation, role creation, or
+  physical-delete grants.
+- Insert/update policies bind tenant and audit fields to transaction-local context.
+- Composite organization foreign keys reject cross-tenant links.
+- Customers, projects, and estimates use `deleted_at`/`deleted_by`; only owner/admin context
+  may change those fields.
+- Issued estimates and their scope, pricing, terms, and addenda are immutable.
+- Audit events are append-only.
 
 ## Minimal Phase 1 flow
 
-`/app/estimates` lists non-archived estimates for the active organization. `/app/estimates/new`
-requires an active membership and atomically creates:
+`/app/estimates` calls `GET /v1/estimates` and lists non-deleted estimates for the active
+organization. `/app/estimates/new` calls `POST /v1/estimates/drafts` with an idempotency key.
+The Data API transaction atomically creates:
 
 1. a customer,
 2. a project,
 3. a draft estimate snapshot, and
-4. the first base pricing line.
+4. the first base pricing line, and
+5. an append-only audit event.
 
 This is deliberately not the Phase 2 editor. It does not add dynamic rows, live totals, draft
 updates, preview, duplication, document output, or status transitions.
 
 ## Revision path
 
-Phase 1 stores status, `revision_number`, `source_estimate_id`, `issued_at`, and audit fields.
-Before issue workflow is enabled, Phase 4 must settle one of these approaches:
-
-1. immutable issued estimate snapshots plus a new estimate record for each revision, linked by
-   `source_estimate_id`; or
-2. an estimate identity plus immutable `estimate_revisions` snapshots.
-
-No issued-state mutation UI is permitted until that decision is approved and enforced in RLS or
-database triggers.
+The approved model stores status, `revision_number`, `source_estimate_id`, `issued_at`, and
+audit fields on each estimate record. Issued records and child rows are frozen by database
+triggers. A correction creates a new draft record linked to the issued source and increments the
+revision number. Phase 1 establishes this schema and enforcement only; revision/status UI remains
+Phase 4 work.
 
 ## Deliberate web differences
 
@@ -156,8 +161,7 @@ database triggers.
 
 - Whether `Architect` should remain fixed or become a selectable `Prepared For` role.
 - Customer/project duplicate detection and import reconciliation.
-- Issued-estimate immutability and the final revision representation.
-- Archival, deletion, and retention periods.
+- The exact legal retention period for issued estimates and audit events.
 - Whether sales tax should ever enter authoritative totals. Current behavior says no.
 - Whether dates remain free text or gain normalized date values plus display snapshots.
 - Whether the authorized-signer input should replace the template's fixed Sheri Brannan content.

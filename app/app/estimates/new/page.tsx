@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { requireOrganizationAccount } from "@/lib/auth/account";
+import { requireEstimateApiIdentity } from "@/lib/aws/api/estimate-identity";
 import { CreateEstimateForm } from "./CreateEstimateForm";
 import styles from "../estimates.module.css";
 
 export default async function NewEstimatePage() {
-  await requireOrganizationAccount();
+  await requireEstimateApiIdentity();
   return (
     <>
       <Link className={styles.backLink} href="/app/estimates">

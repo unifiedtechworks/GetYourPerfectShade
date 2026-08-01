@@ -1,35 +1,25 @@
 import Link from "next/link";
-import { requireOrganizationAccount } from "@/lib/auth/account";
+import { createEstimateApiClient } from "@/lib/aws/api/estimate-client";
+import type { EstimateListItem } from "@/lib/aws/api/estimate-contracts";
+import { requireEstimateApiIdentity } from "@/lib/aws/api/estimate-identity";
 import { formatCurrencyFromMinorUnits } from "@/lib/estimates/calculations";
 import styles from "./estimates.module.css";
-
-type EstimateRow = {
-  id: string;
-  document_type: string;
-  estimate_number: string;
-  project_name: string;
-  prepared_for: string;
-  status: string;
-  total_minor: string | number;
-  updated_at: string;
-};
 
 export default async function EstimatesPage({
   searchParams,
 }: {
   searchParams: Promise<{ created?: string }>;
 }) {
-  const { supabase, organizationId } = await requireOrganizationAccount();
-  const { data, error } = await supabase
-    .from("estimates")
-    .select(
-      "id, document_type, estimate_number, project_name, prepared_for, status, total_minor, updated_at",
-    )
-    .eq("organization_id", organizationId)
-    .is("archived_at", null)
-    .order("updated_at", { ascending: false });
+  const { accessToken } = await requireEstimateApiIdentity();
+  let estimates: EstimateListItem[] = [];
+  let loadFailed = false;
+  try {
+    const result = await createEstimateApiClient({ accessToken }).list();
+    estimates = [...result.data];
+  } catch {
+    loadFailed = true;
+  }
   const { created } = await searchParams;
-  const estimates = (data ?? []) as EstimateRow[];
 
   return (
     <>
@@ -51,13 +41,13 @@ export default async function EstimatesPage({
           Draft estimate created.
         </p>
       )}
-      {error && (
+      {loadFailed && (
         <p className={styles.error} role="alert">
-          Estimates could not be loaded. Confirm the Phase 1 migration is applied.
+          Estimates could not be loaded. Please try again.
         </p>
       )}
 
-      {!error && estimates.length === 0 ? (
+      {!loadFailed && estimates.length === 0 ? (
         <section className={styles.empty}>
           <h2>No estimates yet</h2>
           <p>Create the first protected draft for this organization.</p>
@@ -79,20 +69,20 @@ export default async function EstimatesPage({
               {estimates.map((estimate) => (
                 <tr key={estimate.id}>
                   <td>
-                    <strong>{estimate.project_name}</strong>
-                    {estimate.estimate_number && (
+                    <strong>{estimate.projectName}</strong>
+                    {estimate.estimateNumber && (
                       <span className={styles.secondary}>
-                        Bid #{estimate.estimate_number}
+                        Bid #{estimate.estimateNumber}
                       </span>
                     )}
                   </td>
-                  <td>{estimate.prepared_for}</td>
-                  <td>{estimate.document_type}</td>
+                  <td>{estimate.preparedFor}</td>
+                  <td>{estimate.documentType}</td>
                   <td className={styles.status}>{estimate.status}</td>
                   <td>
-                    {formatCurrencyFromMinorUnits(BigInt(estimate.total_minor))}
+                    {formatCurrencyFromMinorUnits(BigInt(estimate.totalMinor))}
                   </td>
-                  <td>{new Date(estimate.updated_at).toLocaleDateString()}</td>
+                  <td>{new Date(estimate.updatedAt).toLocaleDateString()}</td>
                 </tr>
               ))}
             </tbody>
