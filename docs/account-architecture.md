@@ -75,14 +75,7 @@ organization-required estimate routes remain inaccessible.
 
 ## Provider transition status
 
-| Supabase artifact | Status after this conversion |
-| --- | --- |
-| Sign-in, recovery, reset, sign-out, proxy, identity, account context | Replaced by Cognito/AWS API |
-| `app/auth/callback/route.ts` | Removed; Cognito recovery uses a confirmation code, not Supabase PKCE exchange |
-| `lib/supabase/middleware.ts` | No longer referenced; retained temporarily for integration/parity history |
-| `lib/supabase/server.ts` and Supabase packages | Temporarily retained only for Chat 3's estimate persistence |
-| Supabase account/estimate migrations | Temporarily retained reference artifacts pending Aurora parity and Chat 4 removal |
-
-The retained Supabase estimate bridge is not an account-authentication provider. Because Cognito
-does not create a Supabase session, that legacy persistence path is not a production-compatible
-mixed-provider design; Chat 3 must replace it with the AWS API before integrated estimate testing.
+Cognito and the AWS account API are the only active account providers. The former Supabase
+callback, middleware, server client, packages, environment variables, and migrations are removed.
+Their design history remains in Git, while the deployable account schema now begins at
+`infra/database/migrations/0001_account_foundation.sql`.

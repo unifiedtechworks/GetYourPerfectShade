@@ -1,6 +1,6 @@
 # AWS-Native Backend Architecture
 
-- Status: Proposed architecture for owner approval
+- Status: Approved architecture; source conversion integrated, live AWS validation pending
 - Scope: Account foundation and Estimate Builder Phase 1 replacement
 - Baseline: `main` at `5668da67000a8f1bbbd0cee05e9d3bb2384d0658`
 Non-goals: Provisioning resources, changing application code, deleting compatibility code, or
@@ -37,8 +37,10 @@ The central security rule is:
 > A Cognito identity proves who the caller is. An active database membership determines what
 > organization and role the caller may use. API input never grants tenant access.
 
-No Supabase resource is required or retained. Existing Supabase code and SQL remain temporary
-reference/compatibility artifacts until their AWS replacements pass integration tests.
+No Supabase resource is required or retained. The integrated Cognito, AWS API, and Aurora source
+replacement passed local parity tests, so active Supabase code, packages, environment variables,
+and deployable SQL were removed. Git history preserves the prototype for historical reference;
+live AWS parity remains a prerequisite before development use.
 
 ## 2. Architecture diagram
 
@@ -630,11 +632,8 @@ attempts, and denied privileged operations.
 | `app/app/estimates/actions.ts` | Replace | Keep validation/calculation; replace RPC call with API command and idempotency key. |
 | `lib/auth/account.ts` | Replace | Cognito session validation plus AWS account API client. |
 | `proxy.ts` | Adapt | Invoke Cognito session middleware while retaining route matcher behavior. |
-| `lib/supabase/server.ts` | Temporary compatibility code; remove after replacement | Replaced by Cognito session and API clients. |
-| `lib/supabase/middleware.ts` | Temporary compatibility code; remove after replacement | Replaced by Cognito-aware route/session middleware. |
-| `lib/supabase/middleware.test.ts` | Replace | Cognito session/route protection tests. |
-| `supabase/migrations/202607260001_account_foundation.sql` | Temporary reference; remove after replacement | Translate domain rules to Aurora migration, then delete only after parity validation. |
-| `supabase/migrations/202607260002_estimate_phase_1.sql` | Temporary reference; remove after replacement | Translate tables, checks, RLS, triggers, and atomic command, then delete after parity validation. |
+| Former `lib/supabase/**` runtime | Removed | Replaced by Cognito session and AWS API clients; history remains in Git. |
+| Former `supabase/migrations/**` | Removed | Replaced by ordered Aurora migrations under `infra/database/migrations`. |
 | `lib/estimates/migration.test.ts` | Replace | Test Aurora migrations and AWS tenant/transaction behavior. |
 | `.env.example` | Replace | Document AWS public configuration names only. |
 | `package.json` | Adapt | Add selected AWS/Cognito client dependencies and remove Supabase packages after conversion. |
@@ -646,9 +645,10 @@ attempts, and denied privileged operations.
 | `docs/estimate-phase-1.md` | Adapt | Preserve parity decisions; update persistence/provider references only. |
 | `docs/aws-backend-architecture.md` | New authoritative decision | Shared implementation contract. |
 
-No Supabase-oriented file should be deleted until the AWS implementation passes account,
-same-organization, cross-organization, role, transaction rollback, financial boundary, runtime,
-and public-route regression tests.
+Supabase-oriented runtime and migration files were removed after the integrated source passed
+account, role, transaction rollback, financial boundary, build, and public-route regression
+tests. Live same-organization/cross-organization and deployed runtime gates remain mandatory
+before development use.
 
 ## 14. Implementation phases and ownership
 
@@ -752,7 +752,8 @@ integration defect requires a change.
 7. Chat 4 bootstraps synthetic development identities/organizations and performs live tests:
    authentication, failed membership, same-tenant access, cross-tenant denial, role escalation,
    delete restrictions, atomic rollback, money boundaries, and application routes.
-8. Chat 4 removes Supabase compatibility code only after all parity gates pass.
+8. Chat 4 removes Supabase compatibility code after integrated local parity; deployed AWS parity
+   still gates development use and any production planning.
 9. Stage and review a production rollout plan separately. Production provisioning is not implied
    by development success.
 
@@ -767,7 +768,7 @@ Chats 2, 3, and 5 can work concurrently after they agree on these shared contrac
 
 ## 16. Verification gates
 
-Before Supabase code removal:
+Before deployed development use:
 
 - CDK synth and template security assertions pass.
 - SQL migrations apply cleanly to an empty development Aurora database.
@@ -900,8 +901,8 @@ deployment. This document does not authorize resource provisioning or production
 - **Migration ownership:** CDK must not become an implicit application-schema runner.
 - **Preview isolation:** shared previews need unique test tenants and reliable cleanup.
 - **Document retention:** Object Lock and legal retention must not be guessed.
-- **Provider-removal timing:** deleting Supabase code early would remove the behavioral reference
-  before AWS parity is demonstrated.
+- **Provider history:** the removed Supabase prototype remains available in Git history until
+  deployed AWS parity is demonstrated and documented.
 
 ## 19. Operational complexity and likely cost
 

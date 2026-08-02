@@ -11,7 +11,7 @@ describe("Cognito protected-route enforcement", () => {
     vi.stubEnv("NEXT_PUBLIC_COGNITO_USER_POOL_CLIENT_ID", "");
   }
 
-  it.each(["/app", "/app/account", "/app/estimates/new"])(
+  it.each(["/app", "/app/account", "/app/estimates", "/app/estimates/new"])(
     "fails closed without Cognito configuration for %s",
     async (path) => {
       withoutConfiguration();

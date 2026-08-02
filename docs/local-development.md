@@ -45,6 +45,19 @@ pnpm build
 pnpm dev
 ```
 
+Validate the infrastructure from a clean dependency install without AWS credentials:
+
+```bash
+cd infra
+npm ci
+npm run build
+npm test
+npm run synth
+```
+
+CDK bundles the stable application-owned handlers under `backend/runtime/`. Synthesis is
+lookup-free and does not deploy resources.
+
 Without AWS resources, verify `/app` redirects to `/sign-in?error=configuration` and public
 routes remain available. With the development stack deployed, additionally verify:
 
@@ -63,9 +76,14 @@ Set the five environment values per Amplify branch/environment. Development and 
 use separate Cognito and API resources. Production is not authorized by this application change.
 Use an approved SES sender before production invitations or password recovery.
 
-## Temporary estimate compatibility
+## Database migration order
 
-The baseline estimate actions still use `lib/supabase/server.ts`. Those estimate-owned paths and
-the Supabase packages/migrations are retained for Chat 3 and Chat 4; they are not used by account
-authentication. Do not treat a Cognito session as authorization for the legacy Supabase database.
-Integrated estimate persistence remains blocked until Chat 3 supplies the AWS API replacement.
+After a separately authorized development deployment creates Aurora, the controlled migration
+identity applies these files in order:
+
+1. `infra/database/migrations/0001_account_foundation.sql`
+2. `infra/database/migrations/0002_estimate_phase_1.sql`
+
+Ordinary Lambda cold starts, Amplify builds, and CDK synthesis never apply migrations. The
+application contains no active Supabase runtime, environment variable, package, or migration
+path; historical behavior remains available in Git history.

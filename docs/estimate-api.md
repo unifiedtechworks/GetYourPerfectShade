@@ -143,9 +143,10 @@ or status UI.
 ## Infrastructure integration contract
 
 `backend/estimates/index.ts` exports the handler factory and the `EstimateDatabase` contract.
-Chat 5 supplies a thin adapter that maps it to RDS Data API begin/execute/commit/rollback calls
-and configures the cluster ARN, secret ARN, database name, and runtime IAM permission. This keeps
-CDK resource wiring outside application business logic.
+`backend/shared/rds-data.ts` is the thin RDS Data API transaction adapter, and
+`backend/runtime/estimate-handler.ts` is the stable Lambda entry point bundled by CDK. The
+adapter begins a transaction and assumes the constrained `perfect_shade_app_runtime` database
+role before application SQL. CDK owns only resource wiring and does not duplicate business logic.
 
 The migration expects the account migration to provide:
 
@@ -153,6 +154,6 @@ The migration expects the account migration to provide:
 - `app.organization_memberships(organization_id uuid, user_id text, role, status)`, where
   `user_id` is the immutable Cognito `sub`.
 
-Chat 4 must reconcile those names with Chat 2 before integration. The estimate web client needs
-the server-only `ESTIMATE_API_BASE_URL`. No database secret or organization identifier is sent
-to the browser.
+Those names are supplied by `0001_account_foundation.sql`. Account and estimate clients use the
+same `NEXT_PUBLIC_API_BASE_URL` output and validated Cognito server session. No database secret,
+organization identifier, role, or actor identifier is sent by the browser.

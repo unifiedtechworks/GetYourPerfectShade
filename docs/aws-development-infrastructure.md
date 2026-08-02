@@ -27,17 +27,17 @@ The `PerfectShadeDevelopment` stack defines:
   Manager credential, a one-day development backup, 0–1 ACU scaling, and 15-minute auto-pause.
 - A private, encrypted, versioned S3 document bucket with blocked public access and development
   cleanup rules.
-- An API Gateway HTTP API with Cognito JWT authorization and protected placeholder routes for
-  the approved account and estimate contracts.
-- Two ARM64 Node.js placeholder Lambdas with JSON logging. They have Data API and secret access;
-  only the estimate placeholder has document-bucket read/upload access, with no object-delete
+- An API Gateway HTTP API with Cognito JWT authorization and protected account and estimate
+  routes wired to stable application-owned handlers.
+- Two bundled ARM64 Node.js Lambdas with JSON logging. They share the constrained RDS Data API
+  adapter; only the estimate Lambda has document-bucket read/upload access, with no object-delete
   grant.
 - One-week development log retention, Lambda/API/Aurora alarms, and an operations dashboard.
 - Optional, context-gated AWS Budget alerts. No budget or email subscription exists by default.
 - Five non-secret SSM parameters and CloudFormation outputs for application integration.
 
-The placeholder Lambdas intentionally return `501`. They establish infrastructure interfaces
-without duplicating Chat 2 authentication or Chat 3 estimate business logic.
+CDK bundles `backend/runtime/account-handler.ts` and
+`backend/runtime/estimate-handler.ts`; it does not duplicate account or estimate business logic.
 
 ## Prerequisites and provisioning gate
 
@@ -84,6 +84,7 @@ validation step.
 ## Local install and validation
 
 ```powershell
+pnpm install --frozen-lockfile
 cd infra
 npm ci
 npm run build
@@ -163,8 +164,13 @@ challenge/enrollment flows.
 
 ## Aurora migrations
 
-CDK creates the cluster but does not apply application schema. Chat 3 owns forward-only Aurora
-SQL under the agreed `infra/database/` path. A later migration runner must:
+CDK creates the cluster but does not apply application schema. Forward-only migrations are
+deterministic and must be applied in this order:
+
+1. `infra/database/migrations/0001_account_foundation.sql`
+2. `infra/database/migrations/0002_estimate_phase_1.sql`
+
+A controlled migration runner must:
 
 - Use a distinct migration role/secret, not the normal Lambda runtime role.
 - Apply migrations explicitly after the cluster is healthy.
@@ -216,18 +222,12 @@ Amplify preview deployments use the shared isolated development backend with pre
 callback/CORS configuration and synthetic test tenants. They do not create permanent Aurora
 clusters and never receive production secrets or customer data.
 
-## Supabase cleanup dependencies
+## Supabase disposition
 
-No external Supabase resources exist, so no external cleanup is required. Do not remove current
-compatibility files yet:
-
-- Chat 2 must replace `lib/supabase/**`, auth actions/callbacks, middleware tests, and related
-  Supabase authentication dependencies.
-- Chat 3 must replace Supabase estimate queries/RPC use, migration reference tests, and translate
-  the SQL domain rules into Aurora migrations.
-- Chat 4 removes `.env.example` Supabase entries, Supabase packages/lock entries, and
-  `supabase/migrations/**` only after Cognito, API, Aurora, tenant-isolation, and rollback parity
-  tests pass.
+No Supabase resources ever existed, so no external cleanup is required. The integrated source has
+no Supabase client, middleware, dependency, environment variable, or deployable migration. The
+former prototype remains available in Git history; its tenant, financial, and transaction rules
+are preserved by the AWS documentation, tests, and ordered Aurora migrations.
 
 ## Production differences
 

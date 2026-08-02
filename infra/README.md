@@ -15,9 +15,9 @@ infra/
     identity.ts                        Cognito User Pool and app client
     data.ts                            private Aurora Serverless v2 and Data API
     storage.ts                         private versioned document bucket
-    api.ts                             HTTP API, JWT authorizer, placeholder Lambdas
+    api.ts                             HTTP API, JWT authorizer, application Lambdas
     observability.ts                   logs, alarms, dashboard, optional budget
-  handlers/                            explicit 501 placeholders for Chats 2 and 3
+  ../backend/runtime/                  stable account and estimate Lambda entry points
   test/                                CDK assertion tests
 ```
 
@@ -27,6 +27,7 @@ ordering. Their public properties are the stable wiring interface for later hand
 ## Local verification
 
 ```powershell
+pnpm install --frozen-lockfile
 cd infra
 npm ci
 npm run build
@@ -34,8 +35,9 @@ npm test
 npm run synth
 ```
 
-Synthesis is lookup-free and does not require AWS credentials. It creates `infra/cdk.out/`, which
-is ignored by Git.
+Synthesis is lookup-free and does not require AWS credentials. The CDK app fixes the approved
+region but leaves the account unresolved until a separately authorized deployment selects an
+approved AWS CLI profile. Synthesis creates `infra/cdk.out/`, which is ignored by Git.
 
 ## Context contract
 
@@ -69,14 +71,13 @@ npm run synth -- --context callbackUrls=https://dev.example.com/auth/callback `
 Do not store an account ID, AWS credentials, passwords, tokens, customer data, or unapproved
 notification email in `cdk.json`.
 
-## Placeholder ownership
+## Application handler ownership
 
-- `GET /v1/account` returns `501 ACCOUNT_HANDLER_NOT_IMPLEMENTED`; Chat 2 owns its application
-  contract and implementation.
-- `GET /v1/estimates` and `POST /v1/estimates/drafts` return
-  `501 ESTIMATE_HANDLER_NOT_IMPLEMENTED`; Chat 3 owns their contracts, transactions, and SQL.
-- All three routes are protected by the Cognito JWT authorizer now so later handler swaps do not
-  change their public route or authorization wiring.
+- `GET /v1/account` bundles `backend/runtime/account-handler.ts`.
+- `GET /v1/estimates` and `POST /v1/estimates/drafts` bundle
+  `backend/runtime/estimate-handler.ts`.
+- Both entry points use the shared RDS Data API adapter. Account and estimate business logic stays
+  under `backend/`; CDK supplies environment values, IAM grants, and route integration only.
 
 See [`docs/aws-development-infrastructure.md`](../docs/aws-development-infrastructure.md) for
 bootstrap, deployment, outputs, migrations, rollback, teardown, cost, and production guidance.

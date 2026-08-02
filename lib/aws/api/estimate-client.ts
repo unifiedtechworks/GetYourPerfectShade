@@ -4,6 +4,7 @@ import type {
   EstimateApiErrorBody,
   ListEstimatesResponse,
 } from "./estimate-contracts";
+import { getCognitoConfiguration } from "../../auth/cognito/config";
 
 type Fetch = typeof fetch;
 
@@ -32,7 +33,7 @@ export type EstimateApiClient = Readonly<{
 }>;
 
 function configuredBaseUrl(): string {
-  const value = process.env.ESTIMATE_API_BASE_URL?.trim();
+  const value = getCognitoConfiguration()?.apiBaseUrl;
   if (!value) {
     throw new EstimateApiError(
       "estimate_api_not_configured",

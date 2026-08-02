@@ -1,3 +1,5 @@
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { App } from "aws-cdk-lib";
 import { Match, Template } from "aws-cdk-lib/assertions";
 import { describe, expect, it } from "vitest";
@@ -100,7 +102,7 @@ describe("PerfectShadeDevelopmentStack", { timeout: 30_000 }, () => {
     });
   });
 
-  it("protects all approved API placeholders with the Cognito JWT authorizer", () => {
+  it("protects all approved application API routes with the Cognito JWT authorizer", () => {
     const template = templateFor();
 
     template.resourceCountIs("AWS::ApiGatewayV2::Api", 1);
@@ -121,7 +123,7 @@ describe("PerfectShadeDevelopmentStack", { timeout: 30_000 }, () => {
     });
   });
 
-  it("uses placeholder Lambdas with structured logging and least-privilege service grants", () => {
+  it("uses bundled application Lambdas with structured logging and least-privilege service grants", () => {
     const template = templateFor();
 
     template.hasResourceProperties("AWS::Lambda::Function", {
@@ -132,6 +134,11 @@ describe("PerfectShadeDevelopmentStack", { timeout: 30_000 }, () => {
         ApplicationLogLevel: "INFO",
         LogFormat: "JSON",
         SystemLogLevel: "INFO",
+      },
+      Environment: {
+        Variables: Match.objectLike({
+          DATABASE_RUNTIME_ROLE: "perfect_shade_app_runtime",
+        }),
       },
     });
     template.hasResourceProperties("AWS::Lambda::Function", {
@@ -167,6 +174,20 @@ describe("PerfectShadeDevelopmentStack", { timeout: 30_000 }, () => {
     expect(estimatePolicy).toBeDefined();
     expect(JSON.stringify(estimatePolicy)).toContain("s3:PutObject");
     expect(JSON.stringify(estimatePolicy)).not.toContain("s3:DeleteObject");
+  });
+
+  it("uses stable application-owned account and estimate entry points", () => {
+    const repositoryRoot = join(__dirname, "../..");
+    expect(existsSync(join(repositoryRoot, "backend/runtime/account-handler.ts"))).toBe(true);
+    expect(existsSync(join(repositoryRoot, "backend/runtime/estimate-handler.ts"))).toBe(true);
+    expect(existsSync(join(
+      repositoryRoot,
+      "infra/handlers/account-placeholder/index.js",
+    ))).toBe(false);
+    expect(existsSync(join(
+      repositoryRoot,
+      "infra/handlers/estimate-placeholder/index.js",
+    ))).toBe(false);
   });
 
   it("does not create a budget or email subscription without explicit configuration", () => {

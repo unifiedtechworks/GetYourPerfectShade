@@ -11,7 +11,7 @@ export default async function ForgotPasswordPage({ searchParams }: Props) {
       <section className={styles.card}>
         <Link className={styles.brand} href="/">Perfect Shade</Link>
         <h1>Reset your password</h1>
-        <p>Enter your staff email. If it matches an account, we’ll send a reset link.</p>
+        <p>Enter your staff email. If it matches an account, we’ll send a recovery code.</p>
         {error && <p className={styles.message} role="alert">
           Authentication has not been configured for this environment.
         </p>}

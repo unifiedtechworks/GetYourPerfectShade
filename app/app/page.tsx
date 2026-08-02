@@ -15,8 +15,11 @@ export default async function DashboardPage() {
         </p>
       )}
       <section className={styles.panel}>
-        <h2>Workspace foundation ready</h2>
-        <p>Customers, projects, and estimates will be added in a future implementation pass.</p>
+        <h2>AWS workspace</h2>
+        <p>
+          Use Estimates to review or create Phase 1 drafts. Account settings shows the active
+          Cognito identity and Aurora membership resolved by the account API.
+        </p>
       </section>
     </>
   );

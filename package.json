@@ -14,10 +14,9 @@
   },
   "dependencies": {
     "@aws-sdk/client-cognito-identity-provider": "^3.1101.0",
-    "@supabase/ssr": "^0.12.3",
-    "@supabase/supabase-js": "^2.110.8",
+    "@aws-sdk/client-rds-data": "^3.1101.0",
     "jose": "^6.2.6",
-    "next": "latest",
+    "next": "16.2.12",
     "react": "latest",
     "react-dom": "latest"
   },
@@ -25,6 +24,7 @@
     "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
+    "esbuild": "^0.25.0",
     "typescript": "5.9.3",
     "vitest": "^4.1.10"
   }

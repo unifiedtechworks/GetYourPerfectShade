@@ -1,23 +1,16 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { cache } from "react";
+import {
+  isOrganizationRole,
+  type AccountApiResponse,
+} from "@/lib/aws/api/account-contracts";
 import { getCognitoConfiguration } from "./cognito/config";
 import { sessionFromCookies, type AuthenticatedIdentity } from "./cognito/session";
 
-export type OrganizationRole = "owner" | "admin" | "staff";
-
-export type OrganizationMembership = {
-  organizationId: string;
-  organizationName: string;
-  role: OrganizationRole;
-};
-
-export type AccountApiResponse = OrganizationMembership;
+export type OrganizationMembership = AccountApiResponse;
 
 type AccountAvailability = "available" | "api-unconfigured" | "api-unavailable" | "no-membership";
-
-function validRole(value: unknown): value is OrganizationRole {
-  return value === "owner" || value === "admin" || value === "staff";
-}
 
 function parseMembership(value: unknown): OrganizationMembership | null {
   if (typeof value !== "object" || value === null) return null;
@@ -25,7 +18,7 @@ function parseMembership(value: unknown): OrganizationMembership | null {
   if (
     typeof candidate.organizationId !== "string" || !candidate.organizationId ||
     typeof candidate.organizationName !== "string" || !candidate.organizationName ||
-    !validRole(candidate.role)
+    !isOrganizationRole(candidate.role)
   ) return null;
   return {
     organizationId: candidate.organizationId,
@@ -60,7 +53,7 @@ async function fetchMembership(accessToken: string) {
   }
 }
 
-export async function requireAccount() {
+const resolveAccount = cache(async () => {
   const session = await sessionFromCookies(await cookies());
   if (!session) redirect("/sign-in");
   const account = await fetchMembership(session.accessToken);
@@ -70,21 +63,20 @@ export async function requireAccount() {
     membership: account.membership,
     accountAvailability: account.availability satisfies AccountAvailability,
   };
+});
+
+export async function requireAccount() {
+  return resolveAccount();
 }
 
 export async function requireOrganizationAccount() {
   const account = await requireAccount();
   if (!account.membership) redirect("/app");
 
-  // Temporary estimate-only bridge. Chat 3 owns replacing Supabase estimate persistence with
-  // the AWS API. Cognito is already the active account provider; this client has no auth role.
-  const { createClient } = await import("@/lib/supabase/server");
-  const supabase = await createClient();
   return {
     ...account,
     membership: account.membership,
     organizationId: account.membership.organizationId,
-    supabase,
   };
 }
 

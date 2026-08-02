@@ -5,6 +5,7 @@ import * as authorizers from "aws-cdk-lib/aws-apigatewayv2-authorizers";
 import * as integrations from "aws-cdk-lib/aws-apigatewayv2-integrations";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as lambda from "aws-cdk-lib/aws-lambda";
+import * as lambdaNodejs from "aws-cdk-lib/aws-lambda-nodejs";
 import * as logs from "aws-cdk-lib/aws-logs";
 import type * as rds from "aws-cdk-lib/aws-rds";
 import type * as s3 from "aws-cdk-lib/aws-s3";
@@ -36,19 +37,20 @@ export class ApiConstruct extends Construct {
       DATABASE_CLUSTER_ARN: props.cluster.clusterArn,
       DATABASE_SECRET_ARN: props.cluster.secret?.secretArn ?? "",
       DATABASE_NAME: props.databaseName,
+      DATABASE_RUNTIME_ROLE: "perfect_shade_app_runtime",
       DOCUMENT_BUCKET_NAME: props.documentBucket.bucketName,
     };
 
-    this.accountFunction = this.createPlaceholderFunction(
+    this.accountFunction = this.createApplicationFunction(
       "AccountFunction",
       `${props.config.resourcePrefix}-account`,
-      "account-placeholder",
+      "backend/runtime/account-handler.ts",
       commonEnvironment,
     );
-    this.estimateFunction = this.createPlaceholderFunction(
+    this.estimateFunction = this.createApplicationFunction(
       "EstimateFunction",
       `${props.config.resourcePrefix}-estimates`,
-      "estimate-placeholder",
+      "backend/runtime/estimate-handler.ts",
       commonEnvironment,
     );
 
@@ -133,27 +135,36 @@ export class ApiConstruct extends Construct {
     this.accessLogGroup.grantWrite(new iam.ServicePrincipal("apigateway.amazonaws.com"));
   }
 
-  private createPlaceholderFunction(
+  private createApplicationFunction(
     id: string,
     functionName: string,
-    handlerDirectory: string,
+    entryPath: string,
     environment: Record<string, string>,
   ): lambda.Function {
+    const projectRoot = path.join(__dirname, "../../..");
     const logGroup = new logs.LogGroup(this, `${id}Logs`, {
       logGroupName: `/aws/lambda/${functionName}`,
       retention: logs.RetentionDays.ONE_WEEK,
       removalPolicy: RemovalPolicy.DESTROY,
     });
 
-    return new lambda.Function(this, id, {
+    return new lambdaNodejs.NodejsFunction(this, id, {
       functionName,
+      entry: path.join(projectRoot, entryPath),
+      depsLockFilePath: path.join(projectRoot, "pnpm-lock.yaml"),
+      projectRoot,
       runtime: lambda.Runtime.NODEJS_22_X,
       architecture: lambda.Architecture.ARM_64,
-      handler: "index.handler",
-      code: lambda.Code.fromAsset(path.join(__dirname, "../../handlers", handlerDirectory)),
+      handler: "handler",
       timeout: Duration.seconds(15),
       memorySize: 256,
       environment,
+      bundling: {
+        target: "node22",
+        minify: false,
+        sourceMap: true,
+        externalModules: [],
+      },
       loggingFormat: lambda.LoggingFormat.JSON,
       applicationLogLevelV2: lambda.ApplicationLogLevel.INFO,
       systemLogLevelV2: lambda.SystemLogLevel.INFO,
