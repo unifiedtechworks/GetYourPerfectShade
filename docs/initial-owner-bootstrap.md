@@ -43,12 +43,18 @@ Every value can instead come from the corresponding environment variable:
 | --- | --- | --- |
 | `--region` | `AWS_REGION` | AWS region; approved value is `us-west-2` |
 | `--user-pool-id` | `COGNITO_USER_POOL_ID` | Staff User Pool identifier |
-| `--cluster-arn` | `DATABASE_CLUSTER_ARN` | Data API Aurora cluster ARN |
-| `--secret-arn` | `DATABASE_SECRET_ARN` | Aurora admin/migration secret ARN |
-| `--database` | `DATABASE_NAME` | Aurora database name |
+| `--cluster-arn` | `AURORA_CLUSTER_ARN` | Data API Aurora cluster ARN |
+| `--secret-arn` | `AURORA_SECRET_ARN` | Aurora admin/migration secret ARN |
+| `--database` | `AURORA_DATABASE_NAME` | Aurora database name |
 | `--owner-email` | `OWNER_EMAIL` | Verified internal staff email |
 | `--organization-name` | `ORGANIZATION_NAME` | Initial organization name |
 | `--profile` | `AWS_PROFILE` | Approved local AWS profile |
+
+The canonical Aurora environment names are `AURORA_CLUSTER_ARN`, `AURORA_SECRET_ARN`, and
+`AURORA_DATABASE_NAME`, matching the migration runner. For compatibility, the bootstrap command
+also accepts `DATABASE_CLUSTER_ARN`, `DATABASE_SECRET_ARN`, and `DATABASE_NAME` when the
+corresponding canonical variable is unset. New operator configuration should use the canonical
+names. `AWS_PROFILE` is resolved by the normal AWS SDK credential provider chain.
 
 Use `pnpm bootstrap:owner -- --help` for help. Use the following first to validate input syntax
 without resolving credentials or contacting AWS:
@@ -84,6 +90,10 @@ customer-facing login remain unavailable.
 Migration `0003_initial_owner_bootstrap.sql` installs a security-definer function available only
 to the admin/migration identity. The normal application runtime role is explicitly denied access.
 The command invokes that function inside an explicit Data API transaction.
+
+If migration `0003` is absent, the command rolls back its preflight transaction and exits with
+instructions to apply `0003_initial_owner_bootstrap.sql` through the approved migration runner
+and verify `migration:status` before retrying. It does not create a Cognito user in that case.
 
 The function:
 

@@ -196,6 +196,38 @@ describe("owner bootstrap input boundary", () => {
     })).toThrowError(/email is invalid/i);
   });
 
+  it("uses the migration runner's canonical Aurora environment names", () => {
+    expect(parseBootstrapArguments([], {
+      AWS_REGION: configuration.region,
+      COGNITO_USER_POOL_ID: configuration.userPoolId,
+      AURORA_CLUSTER_ARN: configuration.clusterArn,
+      AURORA_SECRET_ARN: configuration.secretArn,
+      AURORA_DATABASE_NAME: configuration.database,
+      OWNER_EMAIL: configuration.ownerEmail,
+      ORGANIZATION_NAME: configuration.organizationName,
+    })).toMatchObject({
+      clusterArn: configuration.clusterArn,
+      secretArn: configuration.secretArn,
+      database: configuration.database,
+    });
+  });
+
+  it("retains the documented legacy Aurora environment aliases", () => {
+    expect(parseBootstrapArguments([], {
+      AWS_REGION: configuration.region,
+      COGNITO_USER_POOL_ID: configuration.userPoolId,
+      DATABASE_CLUSTER_ARN: configuration.clusterArn,
+      DATABASE_SECRET_ARN: configuration.secretArn,
+      DATABASE_NAME: configuration.database,
+      OWNER_EMAIL: configuration.ownerEmail,
+      ORGANIZATION_NAME: configuration.organizationName,
+    })).toMatchObject({
+      clusterArn: configuration.clusterArn,
+      secretArn: configuration.secretArn,
+      database: configuration.database,
+    });
+  });
+
   it("does not permit arbitrary role assignment", () => {
     expect(() => parseBootstrapArguments(["--role", "admin"], {})).toThrowError(
       /Role selection is not permitted/,
@@ -281,6 +313,40 @@ describe("AWS adapters", () => {
       requestId: "request-1",
       allowCreate: true,
     })).rejects.toMatchObject({ code: "database_failed" });
+    expect(commands.map((command) => command?.constructor?.name)).toEqual([
+      "BeginTransactionCommand",
+      "ExecuteStatementCommand",
+      "RollbackTransactionCommand",
+    ]);
+  });
+
+  it("reports an actionable error when migration 0003 is missing", async () => {
+    const commands: unknown[] = [];
+    const adapter = new AwsOwnerBootstrapDatabaseAdapter(configuration, {
+      async send(command: unknown) {
+        commands.push(command);
+        if (command?.constructor?.name === "BeginTransactionCommand") {
+          return { transactionId: "tx-1" };
+        }
+        if (command?.constructor?.name === "ExecuteStatementCommand") {
+          throw new Error(
+            "ERROR: function app_private.bootstrap_initial_owner does not exist (SQLSTATE 42883)",
+          );
+        }
+        return {};
+      },
+    });
+
+    await expect(adapter.evaluate({
+      ownerSubject: null,
+      ownerEmail: configuration.ownerEmail,
+      organizationName: configuration.organizationName,
+      requestId: "request-1",
+      allowCreate: false,
+    })).rejects.toMatchObject({
+      code: "missing_bootstrap_migration",
+      message: expect.stringContaining("0003_initial_owner_bootstrap.sql"),
+    });
     expect(commands.map((command) => command?.constructor?.name)).toEqual([
       "BeginTransactionCommand",
       "ExecuteStatementCommand",

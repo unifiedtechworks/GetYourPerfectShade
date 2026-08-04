@@ -72,6 +72,7 @@ table if necessary, then applies:
 
 1. `0001_account_foundation.sql`
 2. `0002_estimate_phase_1.sql`
+3. `0003_initial_owner_bootstrap.sql`
 
 Files are ordered deterministically by filename. A malformed `.sql` filename or duplicate
 numeric version stops every command before migration SQL runs.
@@ -133,15 +134,20 @@ credentials are excluded from console error messages.
 Every step requires the separate deployment authorization described in
 `docs/aws-development-infrastructure.md`:
 
-1. Review and deploy the approved development CDK stack.
-2. Read `AwsRegion`, `AuroraClusterArn`, `AuroraSecretArn`, and
-   `AuroraDatabaseName` from stack outputs.
-3. Confirm the selected profile/account, `us-west-2`, Aurora health, and migration identity.
+1. Deploy the approved CDK development stack under separate authorization.
+2. Record the stack outputs, including region, Cognito identifiers, API URL, Aurora identifiers,
+   and database name.
+3. Configure the approved administrative migration credentials/profile through normal AWS
+   credential resolution.
 4. Run `pnpm migration:status`.
 5. Run `pnpm migration:plan` and review the exact filenames/checksums.
-6. Run `pnpm migration:apply`.
-7. Run `pnpm migration:status` again.
-8. Execute the separately approved tenant-isolation tests and owner bootstrap.
+6. Run `pnpm migration:apply` to apply `0001`, `0002`, and `0003` in order.
+7. Run `pnpm migration:status` again and confirm no migrations remain pending.
+8. Run the owner-bootstrap `--dry-run` documented in `initial-owner-bootstrap.md`.
+9. Run the authorized owner bootstrap.
+10. Complete the Cognito permanent-password challenge for the new staff owner.
+11. Map the recorded stack outputs into the application and Amplify environment configuration.
+12. Perform live account, tenant-isolation, and estimate API validation.
 
 This implementation task performs none of those live steps.
 

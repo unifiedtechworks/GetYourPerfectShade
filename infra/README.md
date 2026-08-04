@@ -104,3 +104,5 @@ See [`docs/aws-development-infrastructure.md`](../docs/aws-development-infrastru
 bootstrap, deployment, outputs, migrations, rollback, teardown, cost, and production guidance.
 See [`docs/aurora-migration-runner.md`](../docs/aurora-migration-runner.md) for the
 `status`, `plan`, and `apply` operator commands and immutable checksum history.
+See [`docs/initial-owner-bootstrap.md`](../docs/initial-owner-bootstrap.md) for the controlled
+first-owner command, migration `0003` prerequisite, and Cognito-only partial-failure recovery.

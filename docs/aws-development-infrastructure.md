@@ -205,6 +205,12 @@ command and recovery procedure in
 [`initial-owner-bootstrap.md`](./initial-owner-bootstrap.md). CDK synthesis and deployment do not
 create Cognito users or account rows.
 
+The complete authorized development activation sequence—deployment, outputs, migration
+status/plan/apply, owner bootstrap, permanent-password completion, application configuration,
+and live validation—is numbered in
+[`aurora-migration-runner.md`](./aurora-migration-runner.md#initial-development-sequence). None of
+those live steps has been performed by repository integration or verification.
+
 ## Rollback and teardown
 
 CloudFormation rollback handles failed stack updates. For a successful but defective update,

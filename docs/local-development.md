@@ -91,4 +91,6 @@ path; historical behavior remains available in Git history.
 
 After a separately authorized deployment and migration, follow
 [`initial-owner-bootstrap.md`](./initial-owner-bootstrap.md) to create the first internal staff
-owner. Repository tests and builds never run that live command.
+owner. The complete 12-step development activation sequence is documented in
+[`aurora-migration-runner.md`](./aurora-migration-runner.md#initial-development-sequence).
+Repository tests and builds never run those live commands.

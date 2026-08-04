@@ -21,9 +21,9 @@ Usage:
 Required options (or matching environment variables):
   --region <region>                 AWS_REGION
   --user-pool-id <id>               COGNITO_USER_POOL_ID
-  --cluster-arn <arn>                DATABASE_CLUSTER_ARN
-  --secret-arn <arn>                 DATABASE_SECRET_ARN
-  --database <name>                  DATABASE_NAME
+  --cluster-arn <arn>                AURORA_CLUSTER_ARN (alias: DATABASE_CLUSTER_ARN)
+  --secret-arn <arn>                 AURORA_SECRET_ARN (alias: DATABASE_SECRET_ARN)
+  --database <name>                  AURORA_DATABASE_NAME (alias: DATABASE_NAME)
   --owner-email <email>              OWNER_EMAIL
   --organization-name <name>         ORGANIZATION_NAME
 
@@ -122,9 +122,11 @@ export function parseBootstrapArguments(
   const values: Record<string, string | undefined> = {
     region: environment.AWS_REGION,
     userPoolId: environment.COGNITO_USER_POOL_ID,
-    clusterArn: environment.DATABASE_CLUSTER_ARN,
-    secretArn: environment.DATABASE_SECRET_ARN,
-    database: environment.DATABASE_NAME,
+    clusterArn:
+      environment.AURORA_CLUSTER_ARN ?? environment.DATABASE_CLUSTER_ARN,
+    secretArn:
+      environment.AURORA_SECRET_ARN ?? environment.DATABASE_SECRET_ARN,
+    database: environment.AURORA_DATABASE_NAME ?? environment.DATABASE_NAME,
     ownerEmail: environment.OWNER_EMAIL,
     organizationName: environment.ORGANIZATION_NAME,
     profile: environment.AWS_PROFILE,
@@ -218,6 +220,16 @@ function attribute(
 }
 
 type AwsClient = Readonly<{ send(command: unknown): Promise<unknown> }>;
+
+function isMissingBootstrapMigration(error: unknown) {
+  const message =
+    error && typeof error === "object" && "message" in error &&
+      typeof error.message === "string"
+      ? error.message.toLowerCase()
+      : "";
+  return message.includes("app_private.bootstrap_initial_owner") &&
+    /does not exist|undefined_function|42883/.test(message);
+}
 
 export class AwsCognitoBootstrapAdapter implements CognitoBootstrapPort {
   private readonly client: AwsClient;
@@ -362,7 +374,7 @@ export class AwsOwnerBootstrapDatabaseAdapter implements OwnerBootstrapDatabaseP
       }));
       transactionId = undefined;
       return outcome;
-    } catch {
+    } catch (error) {
       if (transactionId) {
         try {
           await this.client.send(new RollbackTransactionCommand({
@@ -373,6 +385,13 @@ export class AwsOwnerBootstrapDatabaseAdapter implements OwnerBootstrapDatabaseP
         } catch {
           // Preserve the original failure; the Data API also expires abandoned transactions.
         }
+      }
+      if (isMissingBootstrapMigration(error)) {
+        throw new BootstrapError(
+          "missing_bootstrap_migration",
+          "Aurora owner bootstrap is unavailable. Apply migration 0003_initial_owner_bootstrap.sql with the approved migration runner, verify migration:status, then retry. No database changes were committed.",
+          3,
+        );
       }
       throw new BootstrapError(
         "database_failed",
