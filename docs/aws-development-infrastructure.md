@@ -179,6 +179,7 @@ deterministic and must be applied in this order:
 
 1. `infra/database/migrations/0001_account_foundation.sql`
 2. `infra/database/migrations/0002_estimate_phase_1.sql`
+3. `infra/database/migrations/0003_initial_owner_bootstrap.sql`
 
 A controlled RDS Data API runner is implemented under `infra/database/runner`. It uses an
 approved administrative migration identity—not the normal Lambda runtime role—and exposes:
@@ -198,6 +199,11 @@ placeholder invocation, failure recovery, and production controls.
 After apply, run tenant-isolation and rollback verification before application traffic.
 
 Do not run migrations from Lambda cold starts, the Amplify build, or CDK constructors.
+
+The initial staff owner is created only after all migrations are applied, using the controlled
+command and recovery procedure in
+[`initial-owner-bootstrap.md`](./initial-owner-bootstrap.md). CDK synthesis and deployment do not
+create Cognito users or account rows.
 
 ## Rollback and teardown
 

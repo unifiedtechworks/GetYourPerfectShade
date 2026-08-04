@@ -83,7 +83,12 @@ identity applies these files in order:
 
 1. `infra/database/migrations/0001_account_foundation.sql`
 2. `infra/database/migrations/0002_estimate_phase_1.sql`
+3. `infra/database/migrations/0003_initial_owner_bootstrap.sql`
 
 Ordinary Lambda cold starts, Amplify builds, and CDK synthesis never apply migrations. The
 application contains no active Supabase runtime, environment variable, package, or migration
 path; historical behavior remains available in Git history.
+
+After a separately authorized deployment and migration, follow
+[`initial-owner-bootstrap.md`](./initial-owner-bootstrap.md) to create the first internal staff
+owner. Repository tests and builds never run that live command.

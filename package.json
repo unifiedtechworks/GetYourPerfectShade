@@ -9,6 +9,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "bootstrap:owner": "node --experimental-strip-types backend/admin/bootstrap-owner.mts",
     "lint": "tsc --noEmit",
     "test": "vitest run",
     "migration:status": "node infra/database/runner/cli.mjs status",
