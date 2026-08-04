@@ -18,6 +18,8 @@ infra/
     api.ts                             HTTP API, JWT authorizer, application Lambdas
     observability.ts                   logs, alarms, dashboard, optional budget
   ../backend/runtime/                  stable account and estimate Lambda entry points
+  database/runner/                    controlled RDS Data API migration CLI
+  database/migrations/                forward-only PostgreSQL migrations
   test/                                CDK assertion tests
 ```
 
@@ -100,3 +102,5 @@ notification email in `cdk.json`.
 
 See [`docs/aws-development-infrastructure.md`](../docs/aws-development-infrastructure.md) for
 bootstrap, deployment, outputs, migrations, rollback, teardown, cost, and production guidance.
+See [`docs/aurora-migration-runner.md`](../docs/aurora-migration-runner.md) for the
+`status`, `plan`, and `apply` operator commands and immutable checksum history.

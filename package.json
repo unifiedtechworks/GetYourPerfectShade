@@ -10,7 +10,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "migration:status": "node infra/database/runner/cli.mjs status",
+    "migration:plan": "node infra/database/runner/cli.mjs plan",
+    "migration:apply": "node infra/database/runner/cli.mjs apply",
+    "migration:test": "vitest run infra/database/runner"
   },
   "dependencies": {
     "@aws-sdk/client-cognito-identity-provider": "^3.1101.0",

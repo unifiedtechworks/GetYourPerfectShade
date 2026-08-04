@@ -180,13 +180,22 @@ deterministic and must be applied in this order:
 1. `infra/database/migrations/0001_account_foundation.sql`
 2. `infra/database/migrations/0002_estimate_phase_1.sql`
 
-A controlled migration runner must:
+A controlled RDS Data API runner is implemented under `infra/database/runner`. It uses an
+approved administrative migration identity—not the normal Lambda runtime role—and exposes:
 
-- Use a distinct migration role/secret, not the normal Lambda runtime role.
-- Apply migrations explicitly after the cluster is healthy.
-- Record schema versions.
-- Establish the non-owner runtime database principal and forced RLS policies.
-- Run tenant-isolation and rollback tests before application traffic.
+```powershell
+pnpm migration:status
+pnpm migration:plan
+pnpm migration:apply
+```
+
+The runner applies migrations explicitly after the cluster is healthy, records immutable
+filename/version/SHA-256 history, and refuses changed applied files or invalid history. Every
+migration and its history insert share one transaction, with rollback and stop-on-first-failure
+behavior. See [`docs/aurora-migration-runner.md`](./aurora-migration-runner.md) for inputs,
+placeholder invocation, failure recovery, and production controls.
+
+After apply, run tenant-isolation and rollback verification before application traffic.
 
 Do not run migrations from Lambda cold starts, the Amplify build, or CDK constructors.
 
