@@ -84,56 +84,176 @@ const productImages = {
 };
 
 const supportingProductImages = {
-  rollerShades: {
-    src: "/images/perfect-shade/products/supporting/roller-shades-support-kitchen-nook.jpg",
-    alt: "Roller shades in a bright kitchen and breakfast nook",
-    label: "Kitchen nook"
-  },
-  cellularHoneycombShades: {
-    src: "/images/perfect-shade/products/supporting/cellular-honeycomb-shades-support-closeup.jpg",
-    alt: "Close-up of cellular honeycomb shades filtering soft bedroom light",
-    label: "Close-up detail"
-  },
-  romanShades: {
-    src: "/images/perfect-shade/products/supporting/roman-shades-support-dining-nook.jpg",
-    alt: "Roman shades in a warm dining nook",
-    label: "Dining nook"
-  },
-  blinds: {
-    src: "/images/perfect-shade/products/supporting/blinds-support-kitchen.jpg",
-    alt: "Horizontal blinds in a bright kitchen with adjustable light control",
-    label: "Kitchen light control"
-  },
-  draperies: {
-    src: "/images/perfect-shade/products/supporting/draperies-support-bedroom.jpg",
-    alt: "Layered draperies in a soft elegant bedroom",
-    label: "Bedroom layers"
-  },
-  motorizedWindowCoverings: {
-    src: "/images/perfect-shade/products/supporting/motorized-window-coverings-support-tall-windows.jpg",
-    alt: "Motorized shades on tall living room windows",
-    label: "Tall windows"
-  },
-  exteriorShades: {
-    src: "/images/perfect-shade/products/supporting/exterior-shades-support-patio-dining.jpg",
-    alt: "Exterior shades on a covered patio dining area",
-    label: "Patio dining"
-  },
-  solarScreens: {
-    src: "/images/perfect-shade/products/supporting/solar-screens-support-home-exterior.jpg",
-    alt: "Solar screens on sun-facing home windows",
-    label: "Home exterior"
-  },
-  awnings: {
-    src: "/images/perfect-shade/products/supporting/awnings-support-coastal-patio.jpg",
-    alt: "Retractable awning over a bright outdoor patio",
-    label: "Outdoor patio"
-  },
-  commercialWindowCoveringSolutions: {
-    src: "/images/perfect-shade/products/supporting/commercial-window-coverings-support-executive-office.jpg",
-    alt: "Commercial office with window coverings for light control",
-    label: "Executive office"
-  }
+  rollerShades: [
+    {
+      src: "/images/perfect-shade/products/supporting/roller-shades-support-kitchen-nook.jpg",
+      alt: "Roller shades in a bright kitchen and breakfast nook",
+      label: "Kitchen nook"
+    },
+    {
+      src: "/images/perfect-shade/products/supporting/roller-shades-support-fabric-detail.jpg",
+      alt: "Close view of a woven roller shade with wrapped cassette and straight hem bar",
+      label: "Fabric and fit"
+    },
+    {
+      src: "/images/perfect-shade/products/supporting/roller-shades-support-operating-states.jpg",
+      alt: "Three roller shades raised, partially lowered, and fully lowered in a family room",
+      label: "Operating states"
+    }
+  ],
+  cellularHoneycombShades: [
+    {
+      src: "/images/perfect-shade/products/supporting/cellular-honeycomb-shades-support-closeup.jpg",
+      alt: "Close-up of cellular honeycomb shades filtering soft bedroom light",
+      label: "Close-up detail"
+    },
+    {
+      src: "/images/perfect-shade/products/supporting/cellular-honeycomb-shades-support-nursery-top-down.jpg",
+      alt: "Top-down bottom-up cellular shades balancing daylight and privacy in a nursery",
+      label: "Top-down privacy"
+    },
+    {
+      src: "/images/perfect-shade/products/supporting/cellular-honeycomb-shades-support-cell-detail.jpg",
+      alt: "Detailed view of the layered honeycomb cells and bottom rail of a cellular shade",
+      label: "Cell construction"
+    }
+  ],
+  romanShades: [
+    {
+      src: "/images/perfect-shade/products/supporting/roman-shades-support-dining-nook.jpg",
+      alt: "Roman shades in a warm dining nook",
+      label: "Dining nook"
+    },
+    {
+      src: "/images/perfect-shade/products/supporting/roman-shades-support-linen-fold-detail.jpg",
+      alt: "Close view of tailored linen Roman shade folds, lining, and stitched edges",
+      label: "Tailored folds"
+    },
+    {
+      src: "/images/perfect-shade/products/supporting/roman-shades-support-raised-bedroom.jpg",
+      alt: "Raised Roman shades stacked neatly above three guest bedroom windows",
+      label: "Raised position"
+    }
+  ],
+  blinds: [
+    {
+      src: "/images/perfect-shade/products/supporting/blinds-support-kitchen.jpg",
+      alt: "Horizontal blinds in a bright kitchen with adjustable light control",
+      label: "Kitchen light control"
+    },
+    {
+      src: "/images/perfect-shade/products/supporting/blinds-support-home-office.jpg",
+      alt: "Light wood blinds tilted to different angles in a contemporary home office",
+      label: "Adjustable light"
+    },
+    {
+      src: "/images/perfect-shade/products/supporting/blinds-support-slat-detail.jpg",
+      alt: "Close view of horizontal blind slats, ladder tapes, and bottom rail",
+      label: "Slat detail"
+    }
+  ],
+  draperies: [
+    {
+      src: "/images/perfect-shade/products/supporting/draperies-support-bedroom.jpg",
+      alt: "Layered draperies in a soft elegant bedroom",
+      label: "Bedroom layers"
+    },
+    {
+      src: "/images/perfect-shade/products/supporting/draperies-support-pleat-detail.jpg",
+      alt: "Close view of dusty rose pinch-pleat drapery fabric on brass track hardware",
+      label: "Pleat and textile"
+    },
+    {
+      src: "/images/perfect-shade/products/supporting/draperies-support-closed-dining-room.jpg",
+      alt: "Full-height draperies closed for evening privacy in a dining room",
+      label: "Closed for privacy"
+    }
+  ],
+  motorizedWindowCoverings: [
+    {
+      src: "/images/perfect-shade/products/supporting/motorized-window-coverings-support-tall-windows.jpg",
+      alt: "Motorized shades on tall living room windows",
+      label: "Tall windows"
+    },
+    {
+      src: "/images/perfect-shade/products/supporting/motorized-window-coverings-support-synchronized-living-room.jpg",
+      alt: "Motorized roller shades at synchronized heights with an unbranded remote nearby",
+      label: "Synchronized control"
+    },
+    {
+      src: "/images/perfect-shade/products/supporting/motorized-window-coverings-support-recessed-headrail.jpg",
+      alt: "Close view of a recessed cordless motorized shade installation above a large window",
+      label: "Recessed installation"
+    }
+  ],
+  exteriorShades: [
+    {
+      src: "/images/perfect-shade/products/supporting/exterior-shades-support-patio-dining.jpg",
+      alt: "Exterior shades on a covered patio dining area",
+      label: "Patio dining"
+    },
+    {
+      src: "/images/perfect-shade/products/supporting/exterior-shades-support-residential-facade.jpg",
+      alt: "Exterior shades in raised and lowered positions across a covered residential porch",
+      label: "Raised and lowered"
+    },
+    {
+      src: "/images/perfect-shade/products/supporting/exterior-shades-support-track-detail.jpg",
+      alt: "Close view of exterior shade mesh secured in a weather-resistant side track",
+      label: "Track and mesh"
+    }
+  ],
+  solarScreens: [
+    {
+      src: "/images/perfect-shade/products/supporting/solar-screens-support-home-exterior.jpg",
+      alt: "Solar screens on sun-facing home windows",
+      label: "Home exterior"
+    },
+    {
+      src: "/images/perfect-shade/products/supporting/solar-screens-support-mesh-detail.jpg",
+      alt: "Detailed view through solar-screen mesh toward a softened sunlit landscape",
+      label: "Mesh detail"
+    },
+    {
+      src: "/images/perfect-shade/products/supporting/solar-screens-support-commercial-exterior.jpg",
+      alt: "Exterior solar screens in raised and lowered positions on commercial windows",
+      label: "Commercial exterior"
+    }
+  ],
+  awnings: [
+    {
+      src: "/images/perfect-shade/products/supporting/awnings-support-coastal-patio.jpg",
+      alt: "Retractable awning over a bright outdoor patio",
+      label: "Outdoor patio"
+    },
+    {
+      src: "/images/perfect-shade/products/supporting/awnings-support-retracted-cassette.jpg",
+      alt: "Retractable awning folded into a compact cassette above patio doors",
+      label: "Retracted position"
+    },
+    {
+      src: "/images/perfect-shade/products/supporting/awnings-support-storefront.jpg",
+      alt: "Extended navy awnings shading outdoor tables at a small-town storefront",
+      label: "Storefront shade"
+    }
+  ],
+  commercialWindowCoveringSolutions: [
+    {
+      src: "/images/perfect-shade/products/supporting/commercial-window-coverings-support-executive-office.jpg",
+      alt: "Commercial office with window coverings for light control",
+      label: "Executive office"
+    },
+    {
+      src: "/images/perfect-shade/products/supporting/commercial-window-coverings-support-conference-room.jpg",
+      alt: "Commercial roller shades managing light across a modern conference room",
+      label: "Conference room"
+    },
+    {
+      src: "/images/perfect-shade/products/supporting/commercial-window-coverings-support-lobby.jpg",
+      alt: "Translucent commercial solar shades filtering daylight in a professional lobby",
+      label: "Public lobby"
+    }
+  ]
 };
 
 export const services: Service[] = [
@@ -187,7 +307,7 @@ export const services: Service[] = [
         description:
           "Clean shade options for everyday privacy, filtered light, and a streamlined finished look.",
         image: productImages.rollerShades,
-        supportingImages: [supportingProductImages.rollerShades],
+        supportingImages: supportingProductImages.rollerShades,
         benefits: [
           "Simple, modern profile that works in bedrooms, living areas, offices, and commercial spaces.",
           "Helpful light filtering and privacy options without visually crowding the room.",
@@ -201,7 +321,7 @@ export const services: Service[] = [
         description:
           "Soft, energy-conscious products that help rooms feel more comfortable while maintaining privacy.",
         image: productImages.cellularHoneycombShades,
-        supportingImages: [supportingProductImages.cellularHoneycombShades],
+        supportingImages: supportingProductImages.cellularHoneycombShades,
         benefits: [
           "Cellular construction helps add a soft insulating layer at the window.",
           "A warm, quiet look for bedrooms, living spaces, offices, and street-facing rooms.",
@@ -215,7 +335,7 @@ export const services: Service[] = [
         description:
           "Tailored fabric shades that add texture, warmth, and a polished design detail.",
         image: productImages.romanShades,
-        supportingImages: [supportingProductImages.romanShades],
+        supportingImages: supportingProductImages.romanShades,
         benefits: [
           "Adds fabric softness with a more tailored profile than full drapery panels.",
           "Works well when the window covering should be part of the room design.",
@@ -229,7 +349,7 @@ export const services: Service[] = [
         description:
           "Classic adjustable coverings for flexible privacy, light control, and practical daily use.",
         image: productImages.blinds,
-        supportingImages: [supportingProductImages.blinds],
+        supportingImages: supportingProductImages.blinds,
         benefits: [
           "Adjustable slats make it easy to shift between privacy, daylight, and view.",
           "A familiar, practical option for busy rooms and everyday routines.",
@@ -243,7 +363,7 @@ export const services: Service[] = [
         description:
           "Custom fabric treatments that add softness, height, color, and a finished designer feel.",
         image: productImages.draperies,
-        supportingImages: [supportingProductImages.draperies],
+        supportingImages: supportingProductImages.draperies,
         benefits: [
           "Brings softness, color, texture, and a more finished feel to the room.",
           "Can be layered with shades or blinds for comfort, privacy, and style.",
@@ -257,7 +377,7 @@ export const services: Service[] = [
         description:
           "Convenient controls that make daily shade adjustments easier for homes and commercial spaces.",
         image: productImages.motorizedWindowCoverings,
-        supportingImages: [supportingProductImages.motorizedWindowCoverings],
+        supportingImages: supportingProductImages.motorizedWindowCoverings,
         benefits: [
           "Makes daily shade adjustments easier for large or hard-to-reach windows.",
           "Supports consistent light control for routines, comfort, and privacy.",
@@ -271,7 +391,7 @@ export const services: Service[] = [
         description:
           "Professional solutions for offices, storefronts, meeting rooms, and commercial spaces that need privacy, durability, and polished presentation.",
         image: productImages.commercialWindowCoveringSolutions,
-        supportingImages: [supportingProductImages.commercialWindowCoveringSolutions],
+        supportingImages: supportingProductImages.commercialWindowCoveringSolutions,
         benefits: [
           "Supports a polished, consistent look for offices, meeting rooms, and customer-facing areas.",
           "Helps manage privacy, glare, and light control in spaces used throughout the workday.",
@@ -323,7 +443,7 @@ export const services: Service[] = [
         description:
           "Outdoor shade products for patios, windows, and sun-facing areas that need better comfort.",
         image: productImages.exteriorShades,
-        supportingImages: [supportingProductImages.exteriorShades],
+        supportingImages: supportingProductImages.exteriorShades,
         benefits: [
           "Helps manage sunlight before it reaches patios, porches, and sun-facing glass.",
           "Adds comfort while keeping outdoor spaces more usable during bright parts of the day.",
@@ -337,7 +457,7 @@ export const services: Service[] = [
         description:
           "Exterior screen options that soften harsh light while keeping the property looking clean.",
         image: productImages.solarScreens,
-        supportingImages: [supportingProductImages.solarScreens],
+        supportingImages: supportingProductImages.solarScreens,
         benefits: [
           "Softens harsh sunlight while preserving a clean exterior appearance.",
           "Helps reduce glare and bright exposure around outdoor seating or window areas.",
@@ -351,7 +471,7 @@ export const services: Service[] = [
         description:
           "Shade structures for patios, entries, storefronts, and outdoor gathering areas.",
         image: productImages.awnings,
-        supportingImages: [supportingProductImages.awnings],
+        supportingImages: supportingProductImages.awnings,
         benefits: [
           "Creates a defined shade zone for patios, entries, and gathering areas.",
           "Adds curb appeal and a more finished architectural presence.",
@@ -365,7 +485,7 @@ export const services: Service[] = [
         description:
           "Exterior solutions that help seating and gathering areas feel more usable during bright parts of the day.",
         image: productImages.exteriorShades,
-        supportingImages: [supportingProductImages.exteriorShades],
+        supportingImages: supportingProductImages.exteriorShades,
         benefits: [
           "Helps outdoor seating areas feel more comfortable during sunny hours.",
           "Supports shade planning for patios, covered spaces, and gathering areas.",
@@ -379,7 +499,7 @@ export const services: Service[] = [
         description:
           "Products selected to manage sunlight before it reaches interior rooms or work areas.",
         image: productImages.solarScreens,
-        supportingImages: [supportingProductImages.solarScreens],
+        supportingImages: supportingProductImages.solarScreens,
         benefits: [
           "Helps manage sunlight before it reaches interior rooms or work areas.",
           "Useful for windows that contribute to heat, glare, or uncomfortable brightness.",
@@ -393,7 +513,7 @@ export const services: Service[] = [
         description:
           "Professional options for businesses that want comfort, curb appeal, and a polished presentation.",
         image: productImages.commercialWindowCoveringSolutions,
-        supportingImages: [supportingProductImages.commercialWindowCoveringSolutions],
+        supportingImages: supportingProductImages.commercialWindowCoveringSolutions,
         benefits: [
           "Supports a polished exterior or customer-facing presentation.",
           "Helps manage comfort for offices, storefronts, patios, and commercial spaces.",
