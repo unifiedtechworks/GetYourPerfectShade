@@ -3,7 +3,10 @@ import { join } from "node:path";
 import { App } from "aws-cdk-lib";
 import { Match, Template } from "aws-cdk-lib/assertions";
 import { describe, expect, it } from "vitest";
-import type { PerfectShadeDevelopmentConfig } from "../lib/config";
+import {
+  loadDevelopmentConfig,
+  type PerfectShadeDevelopmentConfig,
+} from "../lib/config";
 import { PerfectShadeDevelopmentStack } from "../lib/perfect-shade-development-stack";
 
 const baseConfig: PerfectShadeDevelopmentConfig = {
@@ -13,11 +16,12 @@ const baseConfig: PerfectShadeDevelopmentConfig = {
   callbackUrls: ["http://localhost:3000/auth/callback"],
   logoutUrls: ["http://localhost:3000/sign-in"],
   allowedCorsOrigins: ["http://localhost:3000"],
-  auroraEngineVersion: "16.6",
+  auroraEngineVersion: "16.14",
   auroraMinCapacity: 0,
   auroraMaxCapacity: 1,
   auroraAutoPauseMinutes: 15,
   mfaMode: "off",
+  emailSenderMode: "cognito",
   enableBudget: false,
   monthlyBudgetUsd: 50,
 };
@@ -34,6 +38,29 @@ function templateFor(
 }
 
 describe("PerfectShadeDevelopmentStack", { timeout: 30_000 }, () => {
+  it("uses localhost-only deployment defaults and keeps hosted URLs configurable", () => {
+    const config = loadDevelopmentConfig(new App());
+
+    expect(config).toMatchObject({
+      callbackUrls: ["http://localhost:3000/auth/callback"],
+      logoutUrls: ["http://localhost:3000/sign-in"],
+      allowedCorsOrigins: ["http://localhost:3000"],
+      auroraEngineVersion: "16.14",
+      emailSenderMode: "cognito",
+      enableBudget: false,
+    });
+  });
+
+  it("requires complete SES and budget configuration before enabling them", () => {
+    expect(() => loadDevelopmentConfig(new App({
+      context: { emailSenderMode: "ses" },
+    }))).toThrow(/sesFromEmail and sesVerifiedDomain/);
+
+    expect(() => loadDevelopmentConfig(new App({
+      context: { enableBudget: true },
+    }))).toThrow(/budgetNotificationEmail/);
+  });
+
   it("defines a staff-only Cognito pool and public Next.js app client", () => {
     const template = templateFor();
 
@@ -45,6 +72,7 @@ describe("PerfectShadeDevelopmentStack", { timeout: 30_000 }, () => {
       AccountRecoverySetting: {
         RecoveryMechanisms: [{ Name: "verified_email", Priority: 1 }],
       },
+      EmailConfiguration: { EmailSendingAccount: "COGNITO_DEFAULT" },
       Policies: {
         PasswordPolicy: Match.objectLike({ MinimumLength: 12 }),
       },
@@ -65,7 +93,7 @@ describe("PerfectShadeDevelopmentStack", { timeout: 30_000 }, () => {
 
     template.hasResourceProperties("AWS::RDS::DBCluster", {
       Engine: "aurora-postgresql",
-      EngineVersion: "16.6",
+      EngineVersion: "16.14",
       EnableHttpEndpoint: true,
       StorageEncrypted: true,
       DeletionProtection: false,

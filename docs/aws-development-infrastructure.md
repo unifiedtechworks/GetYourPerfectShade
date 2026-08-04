@@ -58,6 +58,9 @@ Before any `cdk bootstrap`, `cdk diff`, or `cdk deploy` that uses AWS:
 
 This task supplies none of those approvals and performs no deployment.
 
+The committed URL defaults are localhost-only. No Amplify URL or custom development domain is
+assumed to exist. Supply the future hosted origin through CDK context after it is confirmed.
+
 ## AWS CLI and CDK bootstrap
 
 Use a named, short-lived profile approved for this project. Do not use static credentials in
@@ -102,14 +105,16 @@ Only after every provisioning gate is satisfied:
 ```powershell
 cd infra
 npm run diff -- --profile '<approved-profile>' `
-  --context callbackUrls='https://<development-host>/auth/callback' `
-  --context logoutUrls='https://<development-host>/sign-in' `
-  --context allowedCorsOrigins='https://<development-host>'
+  --no-change-set `
+  --context callbackUrls='http://localhost:3000/auth/callback,https://<approved-development-host>/auth/callback' `
+  --context logoutUrls='http://localhost:3000/sign-in,https://<approved-development-host>/sign-in' `
+  --context allowedCorsOrigins='http://localhost:3000,https://<approved-development-host>'
 ```
 
 To configure a verified SES identity, add:
 
 ```text
+--context emailSenderMode='ses'
 --context sesFromEmail='<verified-sender>'
 --context sesVerifiedDomain='<verified-domain>'
 ```
@@ -125,7 +130,12 @@ To opt into budget alerts only after approving the amount and recipient, add:
 After reviewing the diff, deployment would use the same context values:
 
 ```powershell
-npx cdk deploy PerfectShadeDevelopment --profile '<approved-profile>' <approved-context>
+npx cdk deploy PerfectShadeDevelopment --profile '<approved-profile>' `
+  --context perfectShadeEnvironment=development `
+  --context auroraEngineVersion=16.14 `
+  --context callbackUrls='http://localhost:3000/auth/callback,https://<approved-development-host>/auth/callback' `
+  --context logoutUrls='http://localhost:3000/sign-in,https://<approved-development-host>/sign-in' `
+  --context allowedCorsOrigins='http://localhost:3000,https://<approved-development-host>'
 ```
 
 Never deploy this development stack with production data or secrets.

@@ -16,13 +16,13 @@ export class IdentityConstruct extends Construct {
     super(scope, id);
 
     const { config } = props;
-    const email = config.sesFromEmail && config.sesVerifiedDomain
+    const email = config.emailSenderMode === "ses"
       ? cognito.UserPoolEmail.withSES({
-          fromEmail: config.sesFromEmail,
+          fromEmail: config.sesFromEmail!,
           fromName: "Perfect Shade",
-          replyTo: config.sesFromEmail,
+          replyTo: config.sesFromEmail!,
           sesRegion: config.region,
-          sesVerifiedDomain: config.sesVerifiedDomain,
+          sesVerifiedDomain: config.sesVerifiedDomain!,
         })
       : cognito.UserPoolEmail.withCognito();
 

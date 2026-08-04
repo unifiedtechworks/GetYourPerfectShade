@@ -1,6 +1,7 @@
 import type { App } from "aws-cdk-lib";
 
 export type MfaMode = "off" | "optional";
+export type EmailSenderMode = "cognito" | "ses";
 
 export interface PerfectShadeDevelopmentConfig {
   readonly environmentName: "development";
@@ -14,6 +15,7 @@ export interface PerfectShadeDevelopmentConfig {
   readonly auroraMaxCapacity: number;
   readonly auroraAutoPauseMinutes: number;
   readonly mfaMode: MfaMode;
+  readonly emailSenderMode: EmailSenderMode;
   readonly sesFromEmail?: string;
   readonly sesVerifiedDomain?: string;
   readonly enableBudget: boolean;
@@ -57,6 +59,29 @@ export function loadDevelopmentConfig(app: App): PerfectShadeDevelopmentConfig {
     throw new Error("mfaMode must be either 'off' or 'optional'.");
   }
 
+  const emailSenderMode = app.node.tryGetContext("emailSenderMode") ?? "cognito";
+  if (emailSenderMode !== "cognito" && emailSenderMode !== "ses") {
+    throw new Error("emailSenderMode must be either 'cognito' or 'ses'.");
+  }
+
+  const sesFromEmail = optionalString(app.node.tryGetContext("sesFromEmail"));
+  const sesVerifiedDomain = optionalString(app.node.tryGetContext("sesVerifiedDomain"));
+  if (emailSenderMode === "ses" && (!sesFromEmail || !sesVerifiedDomain)) {
+    throw new Error(
+      "sesFromEmail and sesVerifiedDomain are required when emailSenderMode=ses.",
+    );
+  }
+
+  const enableBudget = booleanValue(app.node.tryGetContext("enableBudget"), false);
+  const budgetNotificationEmail = optionalString(
+    app.node.tryGetContext("budgetNotificationEmail"),
+  );
+  if (enableBudget && !budgetNotificationEmail) {
+    throw new Error(
+      "budgetNotificationEmail is required when enableBudget=true.",
+    );
+  }
+
   return {
     environmentName: "development",
     region: "us-west-2",
@@ -70,7 +95,7 @@ export function loadDevelopmentConfig(app: App): PerfectShadeDevelopmentConfig {
     allowedCorsOrigins: csv(app.node.tryGetContext("allowedCorsOrigins"), [
       "http://localhost:3000",
     ]),
-    auroraEngineVersion: optionalString(app.node.tryGetContext("auroraEngineVersion")) ?? "16.6",
+    auroraEngineVersion: optionalString(app.node.tryGetContext("auroraEngineVersion")) ?? "16.14",
     auroraMinCapacity: numberValue(app.node.tryGetContext("auroraMinCapacity"), 0),
     auroraMaxCapacity: numberValue(app.node.tryGetContext("auroraMaxCapacity"), 1),
     auroraAutoPauseMinutes: numberValue(
@@ -78,12 +103,11 @@ export function loadDevelopmentConfig(app: App): PerfectShadeDevelopmentConfig {
       15,
     ),
     mfaMode: mfaContext,
-    sesFromEmail: optionalString(app.node.tryGetContext("sesFromEmail")),
-    sesVerifiedDomain: optionalString(app.node.tryGetContext("sesVerifiedDomain")),
-    enableBudget: booleanValue(app.node.tryGetContext("enableBudget"), false),
+    emailSenderMode,
+    sesFromEmail,
+    sesVerifiedDomain,
+    enableBudget,
     monthlyBudgetUsd: numberValue(app.node.tryGetContext("monthlyBudgetUsd"), 50),
-    budgetNotificationEmail: optionalString(
-      app.node.tryGetContext("budgetNotificationEmail"),
-    ),
+    budgetNotificationEmail,
   };
 }

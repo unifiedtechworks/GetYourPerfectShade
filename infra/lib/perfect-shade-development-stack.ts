@@ -91,7 +91,7 @@ export class PerfectShadeDevelopmentStack extends Stack {
     this.output("DocumentBucketName", storage.documentBucket.bucketName);
     this.output(
       "SesSenderStatus",
-      config.sesFromEmail && config.sesVerifiedDomain
+      config.emailSenderMode === "ses"
         ? "configured-from-context"
         : "cognito-default-development-sender",
     );
