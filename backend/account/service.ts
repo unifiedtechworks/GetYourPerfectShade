@@ -18,6 +18,12 @@ select actor_id, organization_id::text, organization_name, role
 from app_private.establish_account_context(:subject)
 `;
 
+const GET_PROFILE_SQL = `
+select email_snapshot, display_name
+from app.profiles
+where user_id = :subject
+`;
+
 function required(row: SqlRow, field: string): string {
   const value = row[field];
   if (!value) {
@@ -68,7 +74,24 @@ export class AccountService {
         organizationId: required(rows[0], "organization_id"),
         organizationName: required(rows[0], "organization_name"),
         role,
+        profile: { displayName: "", email: "" },
       } satisfies AccountApiResponse;
+      const profiles = await this.database.execute({
+        sql: GET_PROFILE_SQL,
+        parameters: parameters({ subject }),
+        transactionId,
+      });
+      if (profiles.length !== 1) {
+        throw new AccountServiceError(
+          "database_contract_error",
+          "The account data contract is invalid.",
+          500,
+        );
+      }
+      account.profile = {
+        displayName: profiles[0].display_name ?? "",
+        email: required(profiles[0], "email_snapshot"),
+      };
       await this.database.commitTransaction(transactionId);
       return account;
     } catch (error) {

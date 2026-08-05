@@ -84,6 +84,7 @@ identity applies these files in order:
 1. `infra/database/migrations/0001_account_foundation.sql`
 2. `infra/database/migrations/0002_estimate_phase_1.sql`
 3. `infra/database/migrations/0003_initial_owner_bootstrap.sql`
+4. `infra/database/migrations/0004_staff_account_management.sql`
 
 Ordinary Lambda cold starts, Amplify builds, and CDK synthesis never apply migrations. The
 application contains no active Supabase runtime, environment variable, package, or migration
@@ -94,3 +95,21 @@ After a separately authorized deployment and migration, follow
 owner. The complete 12-step development activation sequence is documented in
 [`aurora-migration-runner.md`](./aurora-migration-runner.md#initial-development-sequence).
 Repository tests and builds never run those live commands.
+
+## Staff account-management validation
+
+After migration `0004` and the account API routes are separately deployed, an approved
+nonproduction validation should confirm:
+
+1. Owner can list the team and invite admin or staff.
+2. Admin can invite and manage staff but not admins or owners.
+3. Staff receives a denied response for every team operation.
+4. Cognito invitations require `NEW_PASSWORD_REQUIRED` and no temporary password appears in
+   application output or logs.
+5. Disabled and removed memberships fail active account/API resolution.
+6. Cross-organization membership IDs are reported only as not found.
+7. `/sign-up` remains absent and User Pool self-registration remains disabled.
+
+Do not create live users for ordinary implementation tests; use the mocked account/team suites.
+The recovery-only workflow and deployment order are documented in
+[`staff-account-management.md`](./staff-account-management.md).

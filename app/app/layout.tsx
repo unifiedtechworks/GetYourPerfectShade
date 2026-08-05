@@ -18,6 +18,9 @@ export default async function ApplicationLayout({ children }: { children: React.
           <Link href="/app">Dashboard</Link>
           <Link href="/app/estimates">Estimates</Link>
           <Link href="/app/account">Account settings</Link>
+          {(membership?.role === "owner" || membership?.role === "admin") && (
+            <Link href="/app/account/team">Team management</Link>
+          )}
         </nav>
         <form action={signOut}><button className={styles.signOut} type="submit">Sign out</button></form>
       </aside>

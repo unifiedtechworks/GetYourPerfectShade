@@ -1,0 +1,30 @@
+.heading { display: flex; align-items: start; justify-content: space-between; gap: 1rem; }
+.heading p { margin: .35rem 0 0; color: #647068; }
+.actorRole { padding: .45rem .7rem; border-radius: 999px; background: #e5eee8; text-transform: capitalize; }
+.panel { margin-top: 2rem; padding: 1.5rem; border: 1px solid #dddcd5; border-radius: .75rem; background: #fff; }
+.panel h2 { margin-top: 0; }
+.success, .error, .notice { padding: 1rem; border-left: .25rem solid; }
+.success { border-color: #477b5b; background: #edf8f0; }
+.error { border-color: #9b4b43; background: #fff0ee; }
+.notice { border-color: #a66d37; background: #fff5e9; }
+.inviteForm { display: grid; grid-template-columns: minmax(12rem, 1fr) minmax(10rem, .45fr) auto; gap: .6rem 1rem; align-items: end; max-width: 55rem; }
+.inviteForm label:not(.recovery) { align-self: end; font-weight: 700; }
+.inviteForm input[type="email"], .inviteForm select, .controls select { min-height: 2.6rem; padding: .55rem; border: 1px solid #aeb8b0; border-radius: .4rem; background: #fff; color: inherit; }
+.inviteForm button, .controls button { min-height: 2.6rem; padding: .55rem .75rem; border: 1px solid #55705f; border-radius: .4rem; background: #315b43; color: #fff; cursor: pointer; }
+.recovery { grid-column: 1 / -1; display: flex; align-items: start; gap: .55rem; margin-top: .5rem; color: #58645d; font-size: .92rem; }
+.tableWrap { overflow-x: auto; }
+.table { width: 100%; border-collapse: collapse; font-size: .92rem; }
+.table th, .table td { padding: .8rem; border-bottom: 1px solid #e6e4dd; text-align: left; vertical-align: top; }
+.table th { color: #4c5a51; font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; }
+.table td span { display: block; margin-top: .2rem; color: #647068; }
+.controls { display: grid; gap: .45rem; min-width: 8rem; }
+.controls form { display: flex; gap: .4rem; }
+.controls select { min-width: 6rem; }
+.controls .danger { border-color: #8e514b; background: #fff; color: #803d37; }
+.protected { color: #647068; }
+@media (max-width: 800px) {
+  .heading { display: block; }
+  .actorRole { display: inline-block; margin-top: 1rem; }
+  .inviteForm { grid-template-columns: 1fr; }
+  .recovery { grid-column: 1; }
+}

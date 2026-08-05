@@ -65,13 +65,31 @@ configuration fails closed for `/app/*` while public routes continue to build an
 {
   "organizationId": "organization-uuid",
   "organizationName": "Perfect Shade",
-  "role": "owner"
+  "role": "owner",
+  "profile": {
+    "displayName": "Staff display name",
+    "email": "staff@example.invalid"
+  }
 }
 ```
 
 Only `owner`, `admin`, and `staff` are accepted. A missing API configuration or unavailable API
 does not fabricate membership: authenticated screens show an explicit unavailable state and
 organization-required estimate routes remain inaccessible.
+
+## Internal staff administration
+
+Active owners and admins use `/app/account/team`; staff cannot access membership operations.
+The account Lambda derives actor, organization, and current role from the validated Cognito
+`sub` and Aurora membership. It uses Cognito administrator APIs only inside the trusted Lambda,
+while Aurora migration `0004_staff_account_management.sql` enforces task-specific membership
+commands, soft status changes, owner/self protections, tenant predicates, and audit events.
+
+General provisioning accepts only `admin` and `staff`; owner creation remains exclusive to the
+initial owner bootstrap. Cognito generates and emails temporary passwords, which are never
+accepted or returned by the application. See
+[`staff-account-management.md`](./staff-account-management.md) for API contracts, permissions,
+and partial-service recovery.
 
 ## Provider transition status
 

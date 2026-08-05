@@ -45,7 +45,10 @@ export class ApiConstruct extends Construct {
       "AccountFunction",
       `${props.config.resourcePrefix}-account`,
       "backend/runtime/account-handler.ts",
-      commonEnvironment,
+      {
+        ...commonEnvironment,
+        COGNITO_USER_POOL_ID: props.userPool.userPoolId,
+      },
     );
     this.estimateFunction = this.createApplicationFunction(
       "EstimateFunction",
@@ -60,6 +63,15 @@ export class ApiConstruct extends Construct {
     }
     props.documentBucket.grantRead(this.estimateFunction);
     props.documentBucket.grantPut(this.estimateFunction);
+    this.accountFunction.addToRolePolicy(new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: [
+        "cognito-idp:AdminCreateUser",
+        "cognito-idp:AdminGetUser",
+        "cognito-idp:ListUsers",
+      ],
+      resources: [props.userPool.userPoolArn],
+    }));
 
     this.accessLogGroup = new logs.LogGroup(this, "ApiAccessLogs", {
       logGroupName: `/aws/apigateway/${props.config.resourcePrefix}`,
@@ -90,15 +102,32 @@ export class ApiConstruct extends Construct {
       jwtAudience: [props.userPoolClient.userPoolClientId],
     });
 
+    const accountIntegration = new integrations.HttpLambdaIntegration(
+      "AccountIntegration",
+      this.accountFunction,
+    );
     this.api.addRoutes({
       path: "/v1/account",
       methods: [apigwv2.HttpMethod.GET],
-      integration: new integrations.HttpLambdaIntegration(
-        "AccountIntegration",
-        this.accountFunction,
-      ),
+      integration: accountIntegration,
       authorizer: jwtAuthorizer,
     });
+    for (const route of [
+      { path: "/v1/account/team", method: apigwv2.HttpMethod.GET },
+      { path: "/v1/account/team/invitations", method: apigwv2.HttpMethod.POST },
+      { path: "/v1/account/team/{membershipId}/role", method: apigwv2.HttpMethod.POST },
+      { path: "/v1/account/team/{membershipId}/disable", method: apigwv2.HttpMethod.POST },
+      { path: "/v1/account/team/{membershipId}/enable", method: apigwv2.HttpMethod.POST },
+      { path: "/v1/account/team/{membershipId}/remove", method: apigwv2.HttpMethod.POST },
+      { path: "/v1/account/profile", method: apigwv2.HttpMethod.POST },
+    ]) {
+      this.api.addRoutes({
+        path: route.path,
+        methods: [route.method],
+        integration: accountIntegration,
+        authorizer: jwtAuthorizer,
+      });
+    }
     this.api.addRoutes({
       path: "/v1/estimates",
       methods: [apigwv2.HttpMethod.GET],

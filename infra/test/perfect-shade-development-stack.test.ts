@@ -135,7 +135,7 @@ describe("PerfectShadeDevelopmentStack", { timeout: 30_000 }, () => {
 
     template.resourceCountIs("AWS::ApiGatewayV2::Api", 1);
     template.resourceCountIs("AWS::ApiGatewayV2::Authorizer", 1);
-    template.resourceCountIs("AWS::ApiGatewayV2::Route", 3);
+    template.resourceCountIs("AWS::ApiGatewayV2::Route", 10);
     template.allResourcesProperties("AWS::ApiGatewayV2::Route", {
       AuthorizationType: "JWT",
       AuthorizerId: Match.anyValue(),
@@ -149,6 +149,17 @@ describe("PerfectShadeDevelopmentStack", { timeout: 30_000 }, () => {
     template.hasResourceProperties("AWS::ApiGatewayV2::Route", {
       RouteKey: "POST /v1/estimates/drafts",
     });
+    for (const routeKey of [
+      "GET /v1/account/team",
+      "POST /v1/account/team/invitations",
+      "POST /v1/account/team/{membershipId}/role",
+      "POST /v1/account/team/{membershipId}/disable",
+      "POST /v1/account/team/{membershipId}/enable",
+      "POST /v1/account/team/{membershipId}/remove",
+      "POST /v1/account/profile",
+    ]) {
+      template.hasResourceProperties("AWS::ApiGatewayV2::Route", { RouteKey: routeKey });
+    }
   });
 
   it("uses bundled application Lambdas with structured logging and least-privilege service grants", () => {
@@ -166,6 +177,7 @@ describe("PerfectShadeDevelopmentStack", { timeout: 30_000 }, () => {
       Environment: {
         Variables: Match.objectLike({
           DATABASE_RUNTIME_ROLE: "perfect_shade_app_runtime",
+          COGNITO_USER_POOL_ID: Match.anyValue(),
         }),
       },
     });
@@ -202,6 +214,16 @@ describe("PerfectShadeDevelopmentStack", { timeout: 30_000 }, () => {
     expect(estimatePolicy).toBeDefined();
     expect(JSON.stringify(estimatePolicy)).toContain("s3:PutObject");
     expect(JSON.stringify(estimatePolicy)).not.toContain("s3:DeleteObject");
+
+    const accountPolicy = Object.values(policies).find((policy) =>
+      JSON.stringify(policy).includes("ApiAccountFunctionServiceRole"),
+    );
+    expect(accountPolicy).toBeDefined();
+    const serializedAccountPolicy = JSON.stringify(accountPolicy);
+    expect(serializedAccountPolicy).toContain("cognito-idp:AdminCreateUser");
+    expect(serializedAccountPolicy).toContain("cognito-idp:AdminGetUser");
+    expect(serializedAccountPolicy).toContain("cognito-idp:ListUsers");
+    expect(serializedAccountPolicy).not.toContain("cognito-idp:AdminDeleteUser");
   });
 
   it("uses stable application-owned account and estimate entry points", () => {

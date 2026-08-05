@@ -24,6 +24,11 @@ function parseMembership(value: unknown): OrganizationMembership | null {
     organizationId: candidate.organizationId,
     organizationName: candidate.organizationName,
     role: candidate.role,
+    ...(candidate.profile &&
+      typeof candidate.profile.displayName === "string" &&
+      typeof candidate.profile.email === "string"
+      ? { profile: candidate.profile }
+      : {}),
   };
 }
 

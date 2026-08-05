@@ -94,7 +94,8 @@ notification email in `cdk.json`.
 
 ## Application handler ownership
 
-- `GET /v1/account` bundles `backend/runtime/account-handler.ts`.
+- `GET /v1/account`, the protected `/v1/account/team*` administration routes, and
+  `POST /v1/account/profile` bundle `backend/runtime/account-handler.ts`.
 - `GET /v1/estimates` and `POST /v1/estimates/drafts` bundle
   `backend/runtime/estimate-handler.ts`.
 - Both entry points use the shared RDS Data API adapter. Account and estimate business logic stays

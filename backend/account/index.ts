@@ -4,3 +4,4 @@ export type {
   AccountHttpApiResponse,
 } from "./handler";
 export { AccountService } from "./service";
+export { TeamService } from "./team-service";
