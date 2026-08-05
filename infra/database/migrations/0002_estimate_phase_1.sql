@@ -6,17 +6,9 @@ create extension if not exists pgcrypto;
 create schema if not exists app;
 create schema if not exists app_private;
 
-do $roles$
-begin
-  if not exists (select 1 from pg_roles where rolname = 'perfect_shade_app_runtime') then
-    create role perfect_shade_app_runtime
-      login noinherit nosuperuser nocreatedb nocreaterole noreplication nobypassrls;
-  else
-    alter role perfect_shade_app_runtime
-      login noinherit nosuperuser nocreatedb nocreaterole noreplication nobypassrls;
-  end if;
-end
-$roles$;
+-- Migration 0001 creates and constrains perfect_shade_app_runtime. Do not repeat ALTER ROLE
+-- here: Aurora's administrative migration user is not a true PostgreSQL superuser and cannot
+-- reassert the BYPASSRLS attribute, even as NOBYPASSRLS.
 
 create table app.customers (
   id uuid primary key default gen_random_uuid(),

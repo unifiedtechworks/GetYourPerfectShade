@@ -46,9 +46,7 @@ describe("Aurora estimate Phase 1 migration", () => {
   });
 
   it("uses a restricted non-owner runtime role", () => {
-    expect(migration).toContain(
-      "login noinherit nosuperuser nocreatedb nocreaterole noreplication nobypassrls",
-    );
+    expect(migration).not.toContain("alter role perfect_shade_app_runtime");
     expect(migration).toContain(
       "revoke delete on all tables in schema app from perfect_shade_app_runtime",
     );
