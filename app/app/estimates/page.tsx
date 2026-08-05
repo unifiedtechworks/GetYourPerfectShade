@@ -27,8 +27,7 @@ export default async function EstimatesPage({
         <div>
           <h1>Estimates</h1>
           <p className={styles.intro}>
-            Organization-owned draft estimates. Editing and preview are planned
-            for later phases.
+            Create, review, and edit organization-owned draft estimates.
           </p>
         </div>
         <Link className={styles.primaryButton} href="/app/estimates/new">
@@ -69,7 +68,12 @@ export default async function EstimatesPage({
               {estimates.map((estimate) => (
                 <tr key={estimate.id}>
                   <td>
-                    <strong>{estimate.projectName}</strong>
+                    <Link
+                      className={styles.estimateLink}
+                      href={`/app/estimates/${encodeURIComponent(estimate.id)}`}
+                    >
+                      {estimate.projectName}
+                    </Link>
                     {estimate.estimateNumber && (
                       <span className={styles.secondary}>
                         Bid #{estimate.estimateNumber}

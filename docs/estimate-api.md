@@ -96,6 +96,26 @@ transaction:
 
 Any error attempts rollback. Success is never returned before commit succeeds.
 
+### `GET /v1/estimates/{estimateId}`
+
+Returns one editable estimate snapshot plus its linked customer/project identifiers, ordered
+scope rows, ordered base/alternate pricing rows, canonical financial totals, audit timestamps,
+and `rowVersion`. The operation is read-only and organization-scoped. Missing and
+cross-organization IDs both return `estimate_not_found` (404).
+
+### `PUT /v1/estimates/{estimateId}`
+
+Replaces the complete editable Phase 2 draft state. The request includes a canonical positive
+integer-string `expectedRowVersion`, header/project snapshot fields, canonical deposit percent,
+alternate inclusion, and compact ordered row arrays. Empty form rows are removed before the API
+call. Monetary row values are signed integer strings in minor units.
+
+The transaction locks and verifies the organization-owned estimate, refuses every non-draft,
+checks optimistic concurrency, recalculates totals, updates the project/estimate, replaces scope
+and pricing rows through the controlled RLS-protected function, appends
+`estimate.draft_updated`, reloads the canonical detail, and commits. Failures roll back all
+changes. `stale_estimate` and `estimate_not_editable` return 409.
+
 ## Numeric representation
 
 - Every monetary API field is a canonical signed base-10 integer string in minor units, for
@@ -129,6 +149,7 @@ Errors are non-sensitive and stable:
 
 Current codes include `authentication_required`, `active_membership_required`,
 `invalid_json`, `invalid_request`, `idempotency_conflict`,
+`estimate_not_found`, `estimate_not_editable`, `stale_estimate`,
 `database_contract_error`, and `internal_error`. Unexpected database details are not returned.
 
 ## Authorization, deletion, and revisions

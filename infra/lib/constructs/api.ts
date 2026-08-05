@@ -88,6 +88,7 @@ export class ApiConstruct extends Construct {
         allowMethods: [
           apigwv2.CorsHttpMethod.GET,
           apigwv2.CorsHttpMethod.POST,
+          apigwv2.CorsHttpMethod.PUT,
           apigwv2.CorsHttpMethod.OPTIONS,
         ],
         allowOrigins: props.config.allowedCorsOrigins,
@@ -142,6 +143,24 @@ export class ApiConstruct extends Construct {
       methods: [apigwv2.HttpMethod.POST],
       integration: new integrations.HttpLambdaIntegration(
         "CreateEstimateDraftIntegration",
+        this.estimateFunction,
+      ),
+      authorizer: jwtAuthorizer,
+    });
+    this.api.addRoutes({
+      path: "/v1/estimates/{estimateId}",
+      methods: [apigwv2.HttpMethod.GET],
+      integration: new integrations.HttpLambdaIntegration(
+        "GetEstimateIntegration",
+        this.estimateFunction,
+      ),
+      authorizer: jwtAuthorizer,
+    });
+    this.api.addRoutes({
+      path: "/v1/estimates/{estimateId}",
+      methods: [apigwv2.HttpMethod.PUT],
+      integration: new integrations.HttpLambdaIntegration(
+        "UpdateEstimateDraftIntegration",
         this.estimateFunction,
       ),
       authorizer: jwtAuthorizer,

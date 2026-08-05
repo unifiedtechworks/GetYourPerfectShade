@@ -51,4 +51,12 @@ describe("integrated AWS provider boundary", () => {
       "ESTIMATE_API_BASE_URL",
     );
   });
+
+  it("protects the estimate editor with the existing server identity boundary", () => {
+    const page = source("app/app/estimates/[estimateId]/page.tsx");
+    const action = source("app/app/estimates/actions.ts");
+    expect(page).toContain("requireEstimateApiIdentity");
+    expect(action).toContain("requireEstimateApiIdentity");
+    expect(page).not.toMatch(/organizationId|actorId|AWS_ACCESS_KEY/i);
+  });
 });

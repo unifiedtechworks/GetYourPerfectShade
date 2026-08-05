@@ -3,13 +3,16 @@ import { EstimateServiceError } from "./errors";
 import { EstimateService } from "./service";
 import {
   validateCreateDraftRequest,
+  validateEstimateId,
   validateIdempotencyKey,
+  validateUpdateDraftRequest,
 } from "./validation";
 
 export type HttpApiEvent = Readonly<{
   body?: string | null;
   headers?: Readonly<Record<string, string | undefined>>;
   queryStringParameters?: Readonly<Record<string, string | undefined>> | null;
+  pathParameters?: Readonly<Record<string, string | undefined>> | null;
   requestContext: Readonly<{
     requestId: string;
     authorizer?: Readonly<{
@@ -85,7 +88,9 @@ export function createEstimateHandlers(
   database: EstimateDatabase,
 ): Readonly<{
   createDraft: Handler;
+  get: Handler;
   list: Handler;
+  updateDraft: Handler;
 }> {
   const service = new EstimateService(database);
   return {
@@ -129,6 +134,51 @@ export function createEstimateHandlers(
           limit: limitValue === undefined ? undefined : Number(limitValue),
         });
         return response(200, result);
+      } catch (error) {
+        return errorResponse(error, requestId);
+      }
+    },
+
+    async get(event) {
+      const requestId = event.requestContext.requestId;
+      try {
+        const actorSubject = subject(event);
+        const estimateId = validateEstimateId(
+          event.pathParameters?.estimateId,
+        );
+        return response(200, await service.get(actorSubject, estimateId));
+      } catch (error) {
+        return errorResponse(error, requestId);
+      }
+    },
+
+    async updateDraft(event) {
+      const requestId = event.requestContext.requestId;
+      try {
+        const actorSubject = subject(event);
+        const estimateId = validateEstimateId(
+          event.pathParameters?.estimateId,
+        );
+        let input: unknown;
+        try {
+          input = JSON.parse(event.body ?? "");
+        } catch {
+          throw new EstimateServiceError(
+            "invalid_json",
+            "The request body must be valid JSON.",
+            400,
+          );
+        }
+        const request = validateUpdateDraftRequest(input);
+        return response(
+          200,
+          await service.updateDraft(
+            actorSubject,
+            estimateId,
+            request,
+            requestId,
+          ),
+        );
       } catch (error) {
         return errorResponse(error, requestId);
       }

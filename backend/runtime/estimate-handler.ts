@@ -22,6 +22,10 @@ export async function handler(event: RoutedHttpApiEvent): Promise<HttpApiRespons
   if (method === "POST" && path === "/v1/estimates/drafts") {
     return handlers.createDraft(event);
   }
+  if (/^\/v1\/estimates\/[^/]+$/.test(path ?? "")) {
+    if (method === "GET") return handlers.get(event);
+    if (method === "PUT") return handlers.updateDraft(event);
+  }
   return {
     statusCode: 404,
     headers: {

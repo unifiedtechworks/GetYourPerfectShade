@@ -135,7 +135,7 @@ describe("PerfectShadeDevelopmentStack", { timeout: 30_000 }, () => {
 
     template.resourceCountIs("AWS::ApiGatewayV2::Api", 1);
     template.resourceCountIs("AWS::ApiGatewayV2::Authorizer", 1);
-    template.resourceCountIs("AWS::ApiGatewayV2::Route", 10);
+    template.resourceCountIs("AWS::ApiGatewayV2::Route", 12);
     template.allResourcesProperties("AWS::ApiGatewayV2::Route", {
       AuthorizationType: "JWT",
       AuthorizerId: Match.anyValue(),
@@ -160,6 +160,17 @@ describe("PerfectShadeDevelopmentStack", { timeout: 30_000 }, () => {
     ]) {
       template.hasResourceProperties("AWS::ApiGatewayV2::Route", { RouteKey: routeKey });
     }
+    template.hasResourceProperties("AWS::ApiGatewayV2::Route", {
+      RouteKey: "GET /v1/estimates/{estimateId}",
+    });
+    template.hasResourceProperties("AWS::ApiGatewayV2::Route", {
+      RouteKey: "PUT /v1/estimates/{estimateId}",
+    });
+    template.hasResourceProperties("AWS::ApiGatewayV2::Api", {
+      CorsConfiguration: Match.objectLike({
+        AllowMethods: Match.arrayWith(["PUT"]),
+      }),
+    });
   });
 
   it("uses bundled application Lambdas with structured logging and least-privilege service grants", () => {

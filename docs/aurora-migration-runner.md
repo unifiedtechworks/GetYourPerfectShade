@@ -74,6 +74,7 @@ table if necessary, then applies:
 2. `0002_estimate_phase_1.sql`
 3. `0003_initial_owner_bootstrap.sql`
 4. `0004_staff_account_management.sql`
+5. `0005_estimate_phase_2.sql`
 
 Files are ordered deterministically by filename. A malformed `.sql` filename or duplicate
 numeric version stops every command before migration SQL runs.

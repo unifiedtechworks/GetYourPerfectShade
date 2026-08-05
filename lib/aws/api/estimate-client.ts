@@ -2,7 +2,10 @@ import type {
   CreateEstimateDraftRequest,
   CreateEstimateDraftResponse,
   EstimateApiErrorBody,
+  GetEstimateResponse,
   ListEstimatesResponse,
+  UpdateEstimateDraftRequest,
+  UpdateEstimateDraftResponse,
 } from "./estimate-contracts";
 import { getCognitoConfiguration } from "../../auth/cognito/config";
 
@@ -30,6 +33,11 @@ export type EstimateApiClient = Readonly<{
     cursor?: string;
     limit?: number;
   }>): Promise<ListEstimatesResponse>;
+  get(estimateId: string): Promise<GetEstimateResponse>;
+  updateDraft(
+    estimateId: string,
+    request: UpdateEstimateDraftRequest,
+  ): Promise<UpdateEstimateDraftResponse>;
 }>;
 
 function configuredBaseUrl(): string {
@@ -94,6 +102,33 @@ export function createEstimateApiClient(options: Readonly<{
         cache: "no-store",
       });
       return parseResponse<ListEstimatesResponse>(response);
+    },
+
+    async get(estimateId) {
+      const response = await fetchImpl(
+        `${baseUrl}/v1/estimates/${encodeURIComponent(estimateId)}`,
+        {
+          headers: { authorization },
+          cache: "no-store",
+        },
+      );
+      return parseResponse<GetEstimateResponse>(response);
+    },
+
+    async updateDraft(estimateId, request) {
+      const response = await fetchImpl(
+        `${baseUrl}/v1/estimates/${encodeURIComponent(estimateId)}`,
+        {
+          method: "PUT",
+          headers: {
+            authorization,
+            "content-type": "application/json",
+          },
+          body: JSON.stringify(request),
+          cache: "no-store",
+        },
+      );
+      return parseResponse<UpdateEstimateDraftResponse>(response);
     },
   };
 }

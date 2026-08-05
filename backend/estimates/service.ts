@@ -5,9 +5,15 @@ import {
 } from "../../lib/estimates/calculations";
 import type {
   CreateEstimateDraftRequest,
+  EstimateDetail,
   EstimateListItem,
+  EstimatePricingLine,
+  EstimateScopeItem,
   EstimateStatus,
+  GetEstimateResponse,
   ListEstimatesResponse,
+  UpdateEstimateDraftRequest,
+  UpdateEstimateDraftResponse,
 } from "../../lib/aws/api/estimate-contracts";
 import type { EstimateDatabase, SqlRow } from "./database";
 import { parameters } from "./database";
@@ -124,6 +130,110 @@ where organization_id = :organizationId::uuid
   and idempotency_key = :idempotencyKey
 `;
 
+export const GET_ESTIMATE_SQL = `
+select e.id::text, e.document_type, e.estimate_number, e.estimate_date,
+       e.valid_through, e.bid_due, e.project_name, e.project_location,
+       e.prepared_for, e.contact_information, e.status,
+       e.revision_number::text, e.row_version::text,
+       e.deposit_percent::text, e.tax_rate_percent::text,
+       e.include_alternate_pricing::text,
+       e.subtotal_minor::text, e.sales_tax_minor::text, e.total_minor::text,
+       e.required_deposit_minor::text, e.remaining_balance_minor::text,
+       e.created_by, e.updated_by, e.created_at::text, e.updated_at::text,
+       p.id::text as project_id, c.id::text as customer_id, c.name as customer_name
+from app.estimates e
+join app.projects p
+  on p.organization_id = e.organization_id and p.id = e.project_id
+join app.customers c
+  on c.organization_id = p.organization_id and c.id = p.customer_id
+where e.organization_id = :organizationId::uuid
+  and e.id = :estimateId::uuid
+  and e.deleted_at is null
+  and p.deleted_at is null
+  and c.deleted_at is null
+`;
+
+const GET_SCOPE_SQL = `
+select sort_order::text, description
+from app.estimate_scope_items
+where organization_id = :organizationId::uuid
+  and estimate_id = :estimateId::uuid
+order by sort_order
+`;
+
+const GET_PRICING_SQL = `
+select kind, sort_order::text, description, amount_minor::text
+from app.estimate_pricing_lines
+where organization_id = :organizationId::uuid
+  and estimate_id = :estimateId::uuid
+order by kind, sort_order
+`;
+
+const LOCK_ESTIMATE_SQL = `
+select id::text, project_id::text, status, row_version::text
+from app.estimates
+where organization_id = :organizationId::uuid
+  and id = :estimateId::uuid
+  and deleted_at is null
+for update
+`;
+
+const UPDATE_PROJECT_SQL = `
+update app.projects
+set name = :projectName, location = :projectLocation, updated_by = :actorId
+where organization_id = :organizationId::uuid
+  and id = :projectId::uuid
+  and deleted_at is null
+`;
+
+const UPDATE_ESTIMATE_SQL = `
+update app.estimates
+set document_type = :documentType,
+    estimate_number = :estimateNumber,
+    estimate_date = :estimateDate,
+    valid_through = :validThrough,
+    bid_due = :bidDue,
+    project_name = :projectName,
+    project_location = :projectLocation,
+    prepared_for = :preparedFor,
+    contact_information = :contactInformation,
+    deposit_percent = :depositPercent::numeric,
+    tax_rate_percent = 0,
+    include_alternate_pricing = :includeAlternatePricing::boolean,
+    subtotal_minor = :subtotalMinor::bigint,
+    sales_tax_minor = 0,
+    total_minor = :totalMinor::bigint,
+    required_deposit_minor = :requiredDepositMinor::bigint,
+    remaining_balance_minor = :remainingBalanceMinor::bigint,
+    updated_by = :actorId
+where organization_id = :organizationId::uuid
+  and id = :estimateId::uuid
+  and status = 'draft'
+  and row_version = :expectedRowVersion::bigint
+  and deleted_at is null
+returning row_version::text
+`;
+
+const REPLACE_PHASE_2_ROWS_SQL = `
+select app_private.replace_estimate_phase_2_rows(
+  :estimateId::uuid,
+  :scopeItems::jsonb,
+  :pricingLines::jsonb,
+  :alternatePricingLines::jsonb
+)
+`;
+
+const INSERT_UPDATE_AUDIT_SQL = `
+insert into app.audit_events (
+  id, organization_id, actor_id, action, entity_type, entity_id,
+  request_id, metadata, created_by, updated_by
+) values (
+  :auditEventId::uuid, :organizationId::uuid, :actorId,
+  'estimate.draft_updated', 'estimate', :estimateId::uuid,
+  :requestId, :metadata::jsonb, :actorId, :actorId
+)
+`;
+
 function required(row: SqlRow, field: string): string {
   const value = row[field];
   if (!value) {
@@ -134,6 +244,35 @@ function required(row: SqlRow, field: string): string {
     );
   }
   return value;
+}
+
+function booleanValue(row: SqlRow, field: string): boolean {
+  const value = required(row, field);
+  if (value === "true") return true;
+  if (value === "false") return false;
+  throw new EstimateServiceError(
+    "database_contract_error",
+    "The estimate data contract is invalid.",
+    500,
+  );
+}
+
+function sortOrder(row: SqlRow): number {
+  const value = Number(required(row, "sort_order"));
+  if (!Number.isSafeInteger(value) || value < 0) {
+    throw new EstimateServiceError(
+      "database_contract_error",
+      "The estimate data contract is invalid.",
+      500,
+    );
+  }
+  return value;
+}
+
+function ensureBigint(value: bigint, field: string): void {
+  if (value < -(2n ** 63n) || value > 2n ** 63n - 1n) {
+    throw invalidRequest(`${field} is outside the supported range.`);
+  }
 }
 
 function requestHash(request: CreateEstimateDraftRequest): string {
@@ -227,6 +366,287 @@ export class EstimateService {
       await this.database.rollbackTransaction(transactionId);
     } catch {
       // Preserve the original operation error; the adapter must log rollback failure.
+    }
+  }
+
+  private async loadDetail(
+    transactionId: string,
+    membership: MembershipContext,
+    estimateId: string,
+  ): Promise<EstimateDetail | null> {
+    const commonParameters = parameters({
+      organizationId: membership.organizationId,
+      estimateId,
+    });
+    const headerRows = await this.database.execute({
+      sql: GET_ESTIMATE_SQL,
+      parameters: commonParameters,
+      transactionId,
+    });
+    if (headerRows.length === 0) return null;
+    if (headerRows.length !== 1) {
+      throw new EstimateServiceError(
+        "database_contract_error",
+        "The estimate data contract is invalid.",
+        500,
+      );
+    }
+    const scopeRows = await this.database.execute({
+      sql: GET_SCOPE_SQL,
+      parameters: commonParameters,
+      transactionId,
+    });
+    const pricingRows = await this.database.execute({
+      sql: GET_PRICING_SQL,
+      parameters: commonParameters,
+      transactionId,
+    });
+    const header = headerRows[0];
+    const scopeItems: EstimateScopeItem[] = scopeRows.map((row) => ({
+      sortOrder: sortOrder(row),
+      description: required(row, "description"),
+    }));
+    const basePricing: EstimatePricingLine[] = [];
+    const alternatePricing: EstimatePricingLine[] = [];
+    for (const row of pricingRows) {
+      const line = {
+        sortOrder: sortOrder(row),
+        description: row.description ?? "",
+        amountMinor: required(row, "amount_minor"),
+      };
+      const kind = required(row, "kind");
+      if (kind === "base") basePricing.push(line);
+      else if (kind === "alternate") alternatePricing.push(line);
+      else {
+        throw new EstimateServiceError(
+          "database_contract_error",
+          "The estimate data contract is invalid.",
+          500,
+        );
+      }
+    }
+    const alternateTotalMinor = alternatePricing.reduce(
+      (sum, line) => sum + BigInt(line.amountMinor),
+      0n,
+    );
+
+    return {
+      id: required(header, "id"),
+      customerId: required(header, "customer_id"),
+      customerName: required(header, "customer_name"),
+      projectId: required(header, "project_id"),
+      documentType: required(header, "document_type") as EstimateDetail["documentType"],
+      estimateNumber: header.estimate_number ?? "",
+      estimateDate: header.estimate_date ?? "",
+      validThrough: header.valid_through ?? "",
+      bidDue: header.bid_due ?? "",
+      projectName: required(header, "project_name"),
+      projectLocation: header.project_location ?? "",
+      preparedFor: required(header, "prepared_for"),
+      contactInformation: header.contact_information ?? "",
+      status: required(header, "status") as EstimateStatus,
+      revisionNumber: required(header, "revision_number"),
+      rowVersion: required(header, "row_version"),
+      depositPercent: required(header, "deposit_percent"),
+      taxRatePercent: required(header, "tax_rate_percent") as "0",
+      includeAlternatePricing: booleanValue(
+        header,
+        "include_alternate_pricing",
+      ),
+      scopeItems,
+      pricingLines: basePricing,
+      alternatePricingLines: alternatePricing,
+      totals: {
+        subtotalMinor: required(header, "subtotal_minor"),
+        salesTaxMinor: required(header, "sales_tax_minor"),
+        totalMinor: required(header, "total_minor"),
+        requiredDepositMinor: required(header, "required_deposit_minor"),
+        remainingBalanceMinor: required(header, "remaining_balance_minor"),
+        alternateTotalMinor: alternateTotalMinor.toString(),
+      },
+      createdBy: required(header, "created_by"),
+      updatedBy: required(header, "updated_by"),
+      createdAt: required(header, "created_at"),
+      updatedAt: required(header, "updated_at"),
+    };
+  }
+
+  async get(subject: string, estimateId: string): Promise<GetEstimateResponse> {
+    const transactionId = await this.database.beginTransaction();
+    try {
+      const membership = await this.establishContext(transactionId, subject);
+      const estimate = await this.loadDetail(
+        transactionId,
+        membership,
+        estimateId,
+      );
+      if (!estimate) {
+        throw new EstimateServiceError(
+          "estimate_not_found",
+          "The estimate was not found.",
+          404,
+        );
+      }
+      await this.database.commitTransaction(transactionId);
+      return { data: estimate };
+    } catch (error) {
+      await this.rollback(transactionId);
+      throw error;
+    }
+  }
+
+  async updateDraft(
+    subject: string,
+    estimateId: string,
+    request: UpdateEstimateDraftRequest,
+    requestId: string,
+  ): Promise<UpdateEstimateDraftResponse> {
+    const totals = calculateEstimateTotals(
+      request.pricingLines.map((line) => BigInt(line.amountMinor)),
+      parseDecimal(request.depositPercent, "Deposit %"),
+    );
+    const alternateTotal = request.alternatePricingLines.reduce(
+      (sum, line) => sum + BigInt(line.amountMinor),
+      0n,
+    );
+    for (const [label, value] of [
+      ["Subtotal", totals.subtotalMinor],
+      ["Total", totals.totalMinor],
+      ["Required deposit", totals.requiredDepositMinor],
+      ["Remaining balance", totals.remainingBalanceMinor],
+      ["Alternate total", alternateTotal],
+    ] as const) {
+      ensureBigint(value, label);
+    }
+
+    const transactionId = await this.database.beginTransaction();
+    try {
+      const membership = await this.establishContext(transactionId, subject);
+      const common = {
+        organizationId: membership.organizationId,
+        actorId: membership.actorId,
+        estimateId,
+      };
+      const locked = await this.database.execute({
+        sql: LOCK_ESTIMATE_SQL,
+        parameters: parameters(common),
+        transactionId,
+      });
+      if (locked.length === 0) {
+        throw new EstimateServiceError(
+          "estimate_not_found",
+          "The estimate was not found.",
+          404,
+        );
+      }
+      if (locked.length !== 1) {
+        throw new EstimateServiceError(
+          "database_contract_error",
+          "The estimate data contract is invalid.",
+          500,
+        );
+      }
+      const current = locked[0];
+      if (required(current, "status") !== "draft") {
+        throw new EstimateServiceError(
+          "estimate_not_editable",
+          "Only draft estimates can be edited. Create a new revision for an issued estimate.",
+          409,
+        );
+      }
+      if (required(current, "row_version") !== request.expectedRowVersion) {
+        throw new EstimateServiceError(
+          "stale_estimate",
+          "This draft changed after it was loaded. Reload it before saving.",
+          409,
+        );
+      }
+      const projectId = required(current, "project_id");
+      await this.database.execute({
+        sql: UPDATE_PROJECT_SQL,
+        parameters: parameters({
+          ...common,
+          projectId,
+          projectName: request.projectName,
+          projectLocation: request.projectLocation,
+        }),
+        transactionId,
+      });
+      const updatedRows = await this.database.execute({
+        sql: UPDATE_ESTIMATE_SQL,
+        parameters: parameters({
+          ...common,
+          expectedRowVersion: request.expectedRowVersion,
+          documentType: request.documentType,
+          estimateNumber: request.estimateNumber,
+          estimateDate: request.estimateDate,
+          validThrough: request.validThrough,
+          bidDue: request.bidDue,
+          projectName: request.projectName,
+          projectLocation: request.projectLocation,
+          preparedFor: request.preparedFor,
+          contactInformation: request.contactInformation,
+          depositPercent: request.depositPercent,
+          includeAlternatePricing: String(request.includeAlternatePricing),
+          subtotalMinor: totals.subtotalMinor.toString(),
+          totalMinor: totals.totalMinor.toString(),
+          requiredDepositMinor: totals.requiredDepositMinor.toString(),
+          remainingBalanceMinor: totals.remainingBalanceMinor.toString(),
+        }),
+        transactionId,
+      });
+      if (updatedRows.length !== 1) {
+        throw new EstimateServiceError(
+          "stale_estimate",
+          "This draft changed after it was loaded. Reload it before saving.",
+          409,
+        );
+      }
+      const nextRowVersion = required(updatedRows[0], "row_version");
+      await this.database.execute({
+        sql: REPLACE_PHASE_2_ROWS_SQL,
+        parameters: parameters({
+          estimateId,
+          scopeItems: JSON.stringify(request.scopeItems),
+          pricingLines: JSON.stringify(request.pricingLines),
+          alternatePricingLines: JSON.stringify(request.alternatePricingLines),
+        }),
+        transactionId,
+      });
+      await this.database.execute({
+        sql: INSERT_UPDATE_AUDIT_SQL,
+        parameters: parameters({
+          ...common,
+          auditEventId: this.idFactory(),
+          requestId,
+          metadata: JSON.stringify({
+            previousRowVersion: request.expectedRowVersion,
+            rowVersion: nextRowVersion,
+            scopeItemCount: request.scopeItems.length,
+            pricingLineCount: request.pricingLines.length,
+            alternatePricingLineCount: request.alternatePricingLines.length,
+            includeAlternatePricing: request.includeAlternatePricing,
+          }),
+        }),
+        transactionId,
+      });
+      const estimate = await this.loadDetail(
+        transactionId,
+        membership,
+        estimateId,
+      );
+      if (!estimate) {
+        throw new EstimateServiceError(
+          "database_contract_error",
+          "The estimate data contract is invalid.",
+          500,
+        );
+      }
+      await this.database.commitTransaction(transactionId);
+      return { data: estimate };
+    } catch (error) {
+      await this.rollback(transactionId);
+      throw error;
     }
   }
 

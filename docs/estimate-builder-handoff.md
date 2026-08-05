@@ -1,5 +1,14 @@
 # Estimate Builder Handoff
 
+## Phase 2 draft editor
+
+Phase 2 implementation and desktop differences are recorded in
+[`docs/estimate-phase-2.md`](./estimate-phase-2.md). It adds the protected
+`/app/estimates/[estimateId]` editor, exact live totals, authenticated estimate detail/update
+API, optimistic concurrency, and controlled ordered-row replacement. Integration must deploy
+the two API routes and apply `0005_estimate_phase_2.sql` before live use. Phase 3 and Phase 4
+remain deferred.
+
 ## Phase 1 AWS conversion
 
 Phase 1 design and parity decisions are recorded in

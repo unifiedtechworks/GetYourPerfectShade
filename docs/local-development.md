@@ -85,6 +85,7 @@ identity applies these files in order:
 2. `infra/database/migrations/0002_estimate_phase_1.sql`
 3. `infra/database/migrations/0003_initial_owner_bootstrap.sql`
 4. `infra/database/migrations/0004_staff_account_management.sql`
+5. `infra/database/migrations/0005_estimate_phase_2.sql`
 
 Ordinary Lambda cold starts, Amplify builds, and CDK synthesis never apply migrations. The
 application contains no active Supabase runtime, environment variable, package, or migration

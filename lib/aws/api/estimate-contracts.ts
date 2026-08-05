@@ -42,6 +42,83 @@ export type CreateEstimateDraftResponse = Readonly<{
   }>;
 }>;
 
+export type EstimateScopeItem = Readonly<{
+  sortOrder: number;
+  description: string;
+}>;
+
+export type EstimatePricingLine = Readonly<{
+  sortOrder: number;
+  description: string;
+  amountMinor: string;
+}>;
+
+export type EstimateTotalsContract = Readonly<{
+  subtotalMinor: string;
+  salesTaxMinor: string;
+  totalMinor: string;
+  requiredDepositMinor: string;
+  remainingBalanceMinor: string;
+  alternateTotalMinor: string;
+}>;
+
+export type EstimateDetail = Readonly<{
+  id: string;
+  customerId: string;
+  customerName: string;
+  projectId: string;
+  documentType: DocumentType;
+  estimateNumber: string;
+  estimateDate: string;
+  validThrough: string;
+  bidDue: string;
+  projectName: string;
+  projectLocation: string;
+  preparedFor: string;
+  contactInformation: string;
+  status: EstimateStatus;
+  revisionNumber: string;
+  rowVersion: string;
+  depositPercent: string;
+  taxRatePercent: "0";
+  includeAlternatePricing: boolean;
+  scopeItems: readonly EstimateScopeItem[];
+  pricingLines: readonly EstimatePricingLine[];
+  alternatePricingLines: readonly EstimatePricingLine[];
+  totals: EstimateTotalsContract;
+  createdBy: string;
+  updatedBy: string;
+  createdAt: string;
+  updatedAt: string;
+}>;
+
+export type UpdateEstimateDraftRequest = Readonly<{
+  expectedRowVersion: string;
+  documentType: DocumentType;
+  estimateNumber: string;
+  estimateDate: string;
+  validThrough: string;
+  bidDue: string;
+  projectName: string;
+  projectLocation: string;
+  preparedFor: string;
+  contactInformation: string;
+  depositPercent: string;
+  includeAlternatePricing: boolean;
+  scopeItems: readonly Readonly<{ description: string }>[];
+  pricingLines: readonly Readonly<{
+    description: string;
+    amountMinor: string;
+  }>[];
+  alternatePricingLines: readonly Readonly<{
+    description: string;
+    amountMinor: string;
+  }>[];
+}>;
+
+export type GetEstimateResponse = Readonly<{ data: EstimateDetail }>;
+export type UpdateEstimateDraftResponse = Readonly<{ data: EstimateDetail }>;
+
 export type ListEstimatesResponse = Readonly<{
   data: readonly EstimateListItem[];
   page: Readonly<{ nextCursor: string | null }>;
@@ -60,6 +137,7 @@ export const CANONICAL_MINOR_UNITS_PATTERN =
   /^(?:0|-?[1-9]\d*)$/;
 export const CANONICAL_DECIMAL_PATTERN =
   /^(?:0|[1-9]\d*)(?:\.\d*[1-9])?$/;
+export const CANONICAL_ROW_VERSION_PATTERN = /^[1-9]\d*$/;
 
 export function isCanonicalMinorUnits(value: unknown): value is string {
   return (

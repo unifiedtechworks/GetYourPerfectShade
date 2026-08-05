@@ -108,8 +108,8 @@ export function CreateEstimateForm() {
       </fieldset>
 
       <p className={styles.help}>
-        This Phase 1 flow creates the customer, project, draft estimate, and first
-        base pricing row. Full editing and live totals arrive in Phase 2.
+        This creates the customer, project, draft estimate, and first pricing
+        row. You will continue in the full draft editor after creation.
       </p>
       <SubmitButton />
     </form>

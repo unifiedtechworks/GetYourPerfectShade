@@ -146,3 +146,11 @@ export function formatCurrencyFromMinorUnits(value: bigint): string {
   const cents = (absolute % 100n).toString().padStart(2, "0");
   return `${negative ? "-" : ""}$${dollars.toLocaleString("en-US")}.${cents}`;
 }
+
+export function formatMoneyInputFromMinorUnits(value: bigint): string {
+  const negative = value < 0n;
+  const absolute = negative ? -value : value;
+  const dollars = absolute / 100n;
+  const cents = (absolute % 100n).toString().padStart(2, "0");
+  return `${negative ? "-" : ""}${dollars}.${cents}`;
+}

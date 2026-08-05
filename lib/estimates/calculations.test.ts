@@ -5,6 +5,7 @@ import {
   compareDecimal,
   decimalToString,
   formatCurrencyFromMinorUnits,
+  formatMoneyInputFromMinorUnits,
   parseDecimal,
   parseMoneyToMinorUnits,
   parsePercent,
@@ -90,5 +91,10 @@ describe("formatCurrencyFromMinorUnits", () => {
       "$1,234,567,890,123.45",
     );
     expect(formatCurrencyFromMinorUnits(-250n)).toBe("-$2.50");
+  });
+
+  it("formats editable decimal text without grouping or currency symbols", () => {
+    expect(formatMoneyInputFromMinorUnits(100050n)).toBe("1000.50");
+    expect(formatMoneyInputFromMinorUnits(-250n)).toBe("-2.50");
   });
 });
