@@ -18,12 +18,12 @@ JSON download, duplication, revisions, and status transitions.
 | Dates | `Bid Date`, `Valid Through`, and `Bid Due` are optional free text | Preserved as free text; no date parsing or automatic default was invented. |
 | Document identity | `Bid Proposal` default; `Estimate` alternative; optional `Bid Number` | Preserved. The protected record UUID and draft status are also displayed as web metadata. |
 | Customer | Desktop has only the Owner field | The approved Phase 1 workflow creates a customer and project atomically. The editor displays the linked customer read-only and edits the project/estimate snapshot. |
-| Scope rows | 3 blank rows initially; blank rows omitted; maximum 20 | Saved rows reload in order and blank rows are added up to a minimum display of 3. Blank rows are omitted on save; maximum 20. |
-| Base pricing | 3 blank rows; maximum 50; both-blank rows omitted; description-only row fails; description may be blank when amount exists; at least one amount required | Preserved. Negative credit amounts remain valid. |
-| Alternate pricing | 1 blank row; maximum 20; opt-in requires at least one valid amount | Preserved. Valid rows are retained even when inclusion is off, matching desktop collection behavior. |
-| Alternate total | Separate from subtotal, total, deposit, and balance | Displayed live and persisted separately as ordered alternate rows; never supplied to main-total calculation. |
+| Scope rows | 3 blank rows initially; blank rows omitted; maximum 20 | The approved web default is 1 visible row. Additional rows appear only after Add; saved multi-row estimates still reload completely. Blank rows are omitted on save; maximum 20. |
+| Base pricing | 3 blank rows; maximum 50; both-blank rows omitted; description-only row fails; description may be blank when amount exists; at least one amount required | The approved web default is 1 visible row. Additional rows appear only after Add; saved multi-row estimates still reload completely. Validation, negative credits, and maximum 50 remain unchanged. |
+| Alternate pricing | 1 blank row; maximum 20; opt-in requires at least one valid amount | The table is hidden while inclusion is off and starts with exactly 1 row when enabled. Hiding does not clear saved or unsaved alternate rows. |
+| Alternate total | Separate from subtotal, total, deposit, and balance | Shown only while alternate pricing is enabled. Alternate rows remain separately persisted and are never supplied to main-total calculation. |
 | Sales tax | No editable rate; rate and calculated tax are zero; tax notice is constant | Displayed read-only as fixed 0% / $0.00. It remains excluded from totals. |
-| Deposit | Defaults to 0%; exact decimal; 0 through 100 | Preserved. Desktop percentage formats are accepted by the form and canonicalized at the API boundary. |
+| Deposit | Defaults to 0%; exact decimal; 0 through 100 | The approved web new-draft default is 50%. Existing estimates retain their stored percentage. Exact parsing, 0–100 validation, and canonicalization remain unchanged. |
 | Rounding | Decimal `ROUND_HALF_UP` | Exact integer/rational round-half-away-from-zero, equivalent for signed values. No authoritative floating point is used. |
 | Retainage | Constant 5% maximum term; does not change calculations | Shown as read-only policy text and excluded from calculations. Full terms rendering remains Phase 3. |
 | Validation | Project Name, Architect, one base amount, valid deposit, and valid enabled alternate required | Preserved. Output-folder validation is not applicable until document generation. |
@@ -81,7 +81,7 @@ Stable update errors include:
 
 The Lambda runtime role still has no direct table `DELETE`, schema, role, or RLS-bypass grant.
 The replacement operation executes within the API's existing explicit Data API transaction.
-Migrations `0001`, `0002`, and `0003` were not modified.
+Migrations `0001` through `0004` were not modified.
 
 ## Draft UX and save behavior
 
@@ -103,8 +103,13 @@ Migrations `0001`, `0002`, and `0003` were not modified.
 - Customer Name is a linked, read-only record in the editor because changing a normalized
   customer could affect other projects. Creating/selecting reusable customer records is a
   separate customer-management workflow; current creation behavior remains approved.
-- The web displays live alternate totals even when inclusion is disabled so saved alternate
-  input remains understandable. Inclusion still controls later proposal output.
+- The desktop begins with 3 scope rows and 3 base-pricing rows. The approved web UX begins each
+  enabled section with 1 row and requires explicit Add actions for more rows; existing saved
+  multi-row estimates are never collapsed or truncated.
+- The desktop deposit default is 0%. New web drafts intentionally default to 50%, while every
+  existing estimate continues to display and save its stored deposit percentage.
+- The web hides the alternate table and alternate total while inclusion is disabled. Alternate
+  row state is retained across disable/re-enable and remains outside the main total.
 - Invalid live money rows are excluded from the provisional display total and shown as field
   errors on save; the desktop leaves the previous total visible. Neither application commits an
   invalid row.

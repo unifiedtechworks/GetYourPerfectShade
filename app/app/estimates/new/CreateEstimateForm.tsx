@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { createEstimate } from "../actions";
 import type { CreateEstimateState } from "../types";
+import { DEFAULT_DEPOSIT_PERCENT } from "@/lib/estimates/editor";
 import styles from "../estimates.module.css";
 
 const INITIAL_STATE: CreateEstimateState = { message: "" };
@@ -100,7 +101,7 @@ export function CreateEstimateForm() {
         <label>
           Deposit %
           <input
-            defaultValue={values.depositPercent ?? "0"}
+            defaultValue={values.depositPercent ?? DEFAULT_DEPOSIT_PERCENT}
             inputMode="decimal"
             name="depositPercent"
           />

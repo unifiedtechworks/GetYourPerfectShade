@@ -14,16 +14,22 @@ import {
   formatMoneyInputFromMinorUnits,
 } from "@/lib/estimates/calculations";
 import {
-  DEFAULT_ALTERNATE_PRICING_ROWS,
-  DEFAULT_PRICING_ROWS,
-  DEFAULT_SCOPE_ROWS,
   MAX_ALTERNATE_PRICING_LINES,
   MAX_PRICING_LINES,
   MAX_SCOPE_ITEMS,
+  depositPercentForEditor,
   type EstimateEditorPricingRow,
   type EstimateEditorTextRow,
   validateEstimateEditor,
 } from "@/lib/estimates/editor";
+import {
+  canAddEditorRow,
+  initializePricingEditorRows,
+  initializeScopeEditorRows,
+  removePricingEditorRow,
+  removeScopeEditorRow,
+  showAlternatePricing,
+} from "@/lib/estimates/editor-state";
 import { updateEstimate } from "../actions";
 import type { SaveEstimateState } from "../types";
 import styles from "../estimates.module.css";
@@ -38,33 +44,6 @@ const INITIAL_SAVE_STATE: SaveEstimateState = {
   message: "",
   saveSequence: 0,
 };
-
-function padTextRows(
-  rows: readonly EstimateEditorTextRow[],
-  minimum: number,
-): EstimateEditorTextRow[] {
-  const result = [...rows];
-  while (result.length < minimum) {
-    result.push({ key: `scope-blank-${result.length}`, description: "" });
-  }
-  return result;
-}
-
-function padPricingRows(
-  rows: readonly EstimateEditorPricingRow[],
-  minimum: number,
-  prefix: string,
-): EstimateEditorPricingRow[] {
-  const result = [...rows];
-  while (result.length < minimum) {
-    result.push({
-      key: `${prefix}-blank-${result.length}`,
-      description: "",
-      amount: "",
-    });
-  }
-  return result;
-}
 
 function SaveButton({ disabled }: { disabled: boolean }) {
   const { pending } = useFormStatus();
@@ -102,40 +81,37 @@ export function EstimateEditor({ estimate }: { estimate: EstimateEditorEstimate 
     projectLocation: estimate.projectLocation,
     preparedFor: estimate.preparedFor,
     contactInformation: estimate.contactInformation,
-    depositPercent: estimate.depositPercent,
+    depositPercent: depositPercentForEditor(estimate.depositPercent),
     includeAlternatePricing: estimate.includeAlternatePricing,
   });
   const [scopeItems, setScopeItems] = useState<EstimateEditorTextRow[]>(() =>
-    padTextRows(
+    initializeScopeEditorRows(
       estimate.scopeItems.map((row, index) => ({
         key: `scope-${row.sortOrder}-${index}`,
         description: row.description,
       })),
-      DEFAULT_SCOPE_ROWS,
     ),
   );
   const [pricingLines, setPricingLines] = useState<EstimateEditorPricingRow[]>(
     () =>
-      padPricingRows(
+      initializePricingEditorRows(
         estimate.pricingLines.map((row, index) => ({
           key: `base-${row.sortOrder}-${index}`,
           description: row.description,
           amount: formatMoneyInputFromMinorUnits(BigInt(row.amountMinor)),
         })),
-        DEFAULT_PRICING_ROWS,
         "base",
       ),
   );
   const [alternatePricingLines, setAlternatePricingLines] = useState<
     EstimateEditorPricingRow[]
   >(() =>
-    padPricingRows(
+    initializePricingEditorRows(
       estimate.alternatePricingLines.map((row, index) => ({
         key: `alternate-${row.sortOrder}-${index}`,
         description: row.description,
         amount: formatMoneyInputFromMinorUnits(BigInt(row.amountMinor)),
       })),
-      DEFAULT_ALTERNATE_PRICING_ROWS,
       "alternate",
     ),
   );
@@ -190,7 +166,7 @@ export function EstimateEditor({ estimate }: { estimate: EstimateEditorEstimate 
   }
 
   function addScopeRow() {
-    if (scopeItems.length >= MAX_SCOPE_ITEMS) {
+    if (!canAddEditorRow(scopeItems.length, MAX_SCOPE_ITEMS)) {
       setLocalMessage(`Scope of work supports up to ${MAX_SCOPE_ITEMS} items.`);
       return;
     }
@@ -208,7 +184,7 @@ export function EstimateEditor({ estimate }: { estimate: EstimateEditorEstimate 
     ) {
       return;
     }
-    setScopeItems((rows) => rows.filter((_, rowIndex) => rowIndex !== index));
+    setScopeItems((rows) => removeScopeEditorRow(rows, index));
     changed();
   }
 
@@ -216,7 +192,7 @@ export function EstimateEditor({ estimate }: { estimate: EstimateEditorEstimate 
     const rows = kind === "base" ? pricingLines : alternatePricingLines;
     const maximum =
       kind === "base" ? MAX_PRICING_LINES : MAX_ALTERNATE_PRICING_LINES;
-    if (rows.length >= maximum) {
+    if (!canAddEditorRow(rows.length, maximum)) {
       setLocalMessage(
         `${kind === "base" ? "Pricing" : "Alternate pricing"} supports up to ${maximum} lines.`,
       );
@@ -244,12 +220,10 @@ export function EstimateEditor({ estimate }: { estimate: EstimateEditorEstimate 
       return;
     }
     if (kind === "base") {
-      setPricingLines((rows) =>
-        rows.filter((_, rowIndex) => rowIndex !== index),
-      );
+      setPricingLines((rows) => removePricingEditorRow(rows, index, "base"));
     } else {
       setAlternatePricingLines((rows) =>
-        rows.filter((_, rowIndex) => rowIndex !== index),
+        removePricingEditorRow(rows, index, "alternate"),
       );
     }
     changed();
@@ -581,83 +555,89 @@ export function EstimateEditor({ estimate }: { estimate: EstimateEditorEstimate 
             />
             Include Alternate Pricing
           </label>
-          <p className={styles.help}>
-            Alternate amounts are saved separately and never change the base
-            estimate total, deposit, or balance.
-          </p>
-          <div className={styles.pricingHeader} aria-hidden="true">
-            <span>Description</span>
-            <span>Amount</span>
-            <span />
-          </div>
-          <div className={styles.rows}>
-            {alternatePricingLines.map((row, index) => (
-              <div className={styles.pricingRow} key={row.key}>
-                <label>
-                  <span className={styles.visuallyHidden}>
-                    Alternate description {index + 1}
-                  </span>
-                  <input
-                    onChange={(event) => {
-                      setAlternatePricingLines((current) =>
-                        current.map((item, rowIndex) =>
-                          rowIndex === index
-                            ? { ...item, description: event.target.value }
-                            : item,
-                        ),
-                      );
-                      changed();
-                    }}
-                    placeholder={`Alternate description ${index + 1}`}
-                    value={row.description}
-                  />
-                </label>
-                <label>
-                  <span className={styles.visuallyHidden}>
-                    Alternate amount {index + 1}
-                  </span>
-                  <input
-                    aria-invalid={Boolean(
-                      serverFields[`alternatePricingLines.${index}.amount`],
-                    )}
-                    inputMode="decimal"
-                    onChange={(event) => {
-                      setAlternatePricingLines((current) =>
-                        current.map((item, rowIndex) =>
-                          rowIndex === index
-                            ? { ...item, amount: event.target.value }
-                            : item,
-                        ),
-                      );
-                      changed();
-                    }}
-                    placeholder="$0.00"
-                    value={row.amount}
-                  />
-                  <FieldError
-                    message={
-                      serverFields[`alternatePricingLines.${index}.amount`]
-                    }
-                  />
-                </label>
-                <button
-                  className={styles.removeButton}
-                  onClick={() => removePricingRow("alternate", index)}
-                  type="button"
-                >
-                  Remove
-                </button>
+          {showAlternatePricing(header.includeAlternatePricing) && (
+            <>
+              <p className={styles.help}>
+                Alternate amounts are saved separately and never change the
+                base estimate total, deposit, or balance.
+              </p>
+              <div className={styles.pricingHeader} aria-hidden="true">
+                <span>Description</span>
+                <span>Amount</span>
+                <span />
               </div>
-            ))}
-          </div>
-          <FieldError message={serverFields.alternatePricingLines} />
-          <button
-            className={styles.secondaryButton}
-            onClick={() => addPricingRow("alternate")}
-            type="button"
-          >
-            Add Alternate Price
-          </button>
+              <div className={styles.rows}>
+                {alternatePricingLines.map((row, index) => (
+                  <div className={styles.pricingRow} key={row.key}>
+                    <label>
+                      <span className={styles.visuallyHidden}>
+                        Alternate description {index + 1}
+                      </span>
+                      <input
+                        onChange={(event) => {
+                          setAlternatePricingLines((current) =>
+                            current.map((item, rowIndex) =>
+                              rowIndex === index
+                                ? { ...item, description: event.target.value }
+                                : item,
+                            ),
+                          );
+                          changed();
+                        }}
+                        placeholder={`Alternate description ${index + 1}`}
+                        value={row.description}
+                      />
+                    </label>
+                    <label>
+                      <span className={styles.visuallyHidden}>
+                        Alternate amount {index + 1}
+                      </span>
+                      <input
+                        aria-invalid={Boolean(
+                          serverFields[
+                            `alternatePricingLines.${index}.amount`
+                          ],
+                        )}
+                        inputMode="decimal"
+                        onChange={(event) => {
+                          setAlternatePricingLines((current) =>
+                            current.map((item, rowIndex) =>
+                              rowIndex === index
+                                ? { ...item, amount: event.target.value }
+                                : item,
+                            ),
+                          );
+                          changed();
+                        }}
+                        placeholder="$0.00"
+                        value={row.amount}
+                      />
+                      <FieldError
+                        message={
+                          serverFields[`alternatePricingLines.${index}.amount`]
+                        }
+                      />
+                    </label>
+                    <button
+                      className={styles.removeButton}
+                      onClick={() => removePricingRow("alternate", index)}
+                      type="button"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <FieldError message={serverFields.alternatePricingLines} />
+              <button
+                className={styles.secondaryButton}
+                onClick={() => addPricingRow("alternate")}
+                type="button"
+              >
+                Add Alternate Price
+              </button>
+            </>
+          )}
         </div>
 
         <div className={styles.financialGrid}>
@@ -707,14 +687,16 @@ export function EstimateEditor({ estimate }: { estimate: EstimateEditorEstimate 
                 )}
               </dd>
             </div>
-            <div className={styles.alternateTotal}>
-              <dt>Alternate Total (separate)</dt>
-              <dd>
-                {formatCurrencyFromMinorUnits(
-                  validation.totals.alternateTotalMinor,
-                )}
-              </dd>
-            </div>
+            {showAlternatePricing(header.includeAlternatePricing) && (
+              <div className={styles.alternateTotal}>
+                <dt>Alternate Total (separate)</dt>
+                <dd>
+                  {formatCurrencyFromMinorUnits(
+                    validation.totals.alternateTotalMinor,
+                  )}
+                </dd>
+              </div>
+            )}
           </dl>
         </div>
         <div className={styles.policyNotes}>

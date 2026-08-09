@@ -17,6 +17,7 @@ import {
   parsePercent,
 } from "@/lib/estimates/calculations";
 import {
+  DEFAULT_DEPOSIT_PERCENT,
   type EstimateEditorPricingRow,
   type EstimateEditorTextRow,
   validateEstimateEditor,
@@ -42,7 +43,9 @@ export async function createEstimate(
     estimateNumber: field(formData, "estimateNumber"),
     pricingDescription: field(formData, "pricingDescription"),
     pricingAmount: field(formData, "pricingAmount"),
-    depositPercent: field(formData, "depositPercent"),
+    depositPercent: formData.has("depositPercent")
+      ? field(formData, "depositPercent")
+      : DEFAULT_DEPOSIT_PERCENT,
   };
 
   if (!fields.customerName) {

@@ -11,9 +11,10 @@ import {
   parsePercent,
 } from "./calculations";
 
-export const DEFAULT_SCOPE_ROWS = 3;
-export const DEFAULT_PRICING_ROWS = 3;
+export const DEFAULT_SCOPE_ROWS = 1;
+export const DEFAULT_PRICING_ROWS = 1;
 export const DEFAULT_ALTERNATE_PRICING_ROWS = 1;
+export const DEFAULT_DEPOSIT_PERCENT = "50";
 export const MAX_SCOPE_ITEMS = 20;
 export const MAX_PRICING_LINES = 50;
 export const MAX_ALTERNATE_PRICING_LINES = 20;
@@ -65,6 +66,12 @@ export type EstimateEditorValidation = Readonly<{
   totals: EstimateEditorTotals;
   fields: Readonly<Record<string, string>>;
 }>;
+
+export function depositPercentForEditor(
+  storedValue?: string | null,
+): string {
+  return storedValue?.trim() ? storedValue : DEFAULT_DEPOSIT_PERCENT;
+}
 
 function inBigintRange(value: bigint): boolean {
   return value >= BIGINT_MIN && value <= BIGINT_MAX;

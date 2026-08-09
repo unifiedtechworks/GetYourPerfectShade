@@ -1,12 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_ALTERNATE_PRICING_ROWS,
+  DEFAULT_DEPOSIT_PERCENT,
   DEFAULT_PRICING_ROWS,
   DEFAULT_SCOPE_ROWS,
   MAX_ALTERNATE_PRICING_LINES,
   MAX_PRICING_LINES,
   MAX_SCOPE_ITEMS,
   type EstimateEditorForm,
+  depositPercentForEditor,
   validateEstimateEditor,
 } from "./editor";
 
@@ -39,7 +41,7 @@ function form(overrides: Partial<EstimateEditorForm> = {}): EstimateEditorForm {
   };
 }
 
-describe("estimate editor desktop parity", () => {
+describe("estimate editor approved behavior", () => {
   it("publishes the approved row defaults and caps", () => {
     expect({
       scopeDefault: DEFAULT_SCOPE_ROWS,
@@ -49,13 +51,21 @@ describe("estimate editor desktop parity", () => {
       pricingMax: MAX_PRICING_LINES,
       alternateMax: MAX_ALTERNATE_PRICING_LINES,
     }).toEqual({
-      scopeDefault: 3,
-      pricingDefault: 3,
+      scopeDefault: 1,
+      pricingDefault: 1,
       alternateDefault: 1,
       scopeMax: 20,
       pricingMax: 50,
       alternateMax: 20,
     });
+  });
+
+  it("defaults new drafts to a 50% deposit and preserves stored deposits", () => {
+    expect(DEFAULT_DEPOSIT_PERCENT).toBe("50");
+    expect(depositPercentForEditor()).toBe("50");
+    expect(depositPercentForEditor("")).toBe("50");
+    expect(depositPercentForEditor("0")).toBe("0");
+    expect(depositPercentForEditor("12.5")).toBe("12.5");
   });
 
   it("omits blank rows and preserves the remaining order", () => {
@@ -111,6 +121,7 @@ describe("estimate editor desktop parity", () => {
     expect(result.request?.alternatePricingLines).toEqual([
       { description: "Motorized", amountMinor: "25000" },
     ]);
+    expect(result.totals.totalMinor).toBe(100050n);
     expect(result.totals.alternateTotalMinor).toBe(25000n);
   });
 
