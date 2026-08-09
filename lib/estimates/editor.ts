@@ -10,6 +10,7 @@ import {
   parseMoneyToMinorUnits,
   parsePercent,
 } from "./calculations";
+import { DEFAULT_PREVAILING_WAGE_STATEMENT } from "./presentation";
 
 export const DEFAULT_SCOPE_ROWS = 1;
 export const DEFAULT_PRICING_ROWS = 1;
@@ -18,6 +19,9 @@ export const DEFAULT_DEPOSIT_PERCENT = "50";
 export const MAX_SCOPE_ITEMS = 20;
 export const MAX_PRICING_LINES = 50;
 export const MAX_ALTERNATE_PRICING_LINES = 20;
+export const DEFAULT_TERM_ROWS = 1;
+export const DEFAULT_ADDENDA_ROWS = 1;
+export const MAX_ADDITIONAL_TERMS = 20;
 
 const BIGINT_MIN = -(2n ** 63n);
 const BIGINT_MAX = 2n ** 63n - 1n;
@@ -47,9 +51,16 @@ export type EstimateEditorForm = Readonly<{
   contactInformation: string;
   depositPercent: string;
   includeAlternatePricing: boolean;
+  includePrevailingWageStatement: boolean;
+  prevailingWageStatement: string;
+  leadTime: string;
+  pricingValidDays: string;
+  projectNotes: string;
   scopeItems: readonly EstimateEditorTextRow[];
   pricingLines: readonly EstimateEditorPricingRow[];
   alternatePricingLines: readonly EstimateEditorPricingRow[];
+  terms: readonly EstimateEditorTextRow[];
+  addenda: readonly EstimateEditorTextRow[];
 }>;
 
 export type EstimateEditorTotals = Readonly<{
@@ -147,9 +158,19 @@ export function validateEstimateEditor(
   if (form.scopeItems.length > MAX_SCOPE_ITEMS) {
     fields.scopeItems = `Scope of work supports up to ${MAX_SCOPE_ITEMS} items.`;
   }
+  if (form.terms.length > MAX_ADDITIONAL_TERMS) {
+    fields.terms = `Additional terms support up to ${MAX_ADDITIONAL_TERMS} items.`;
+  }
 
   const scopeItems = form.scopeItems
     .slice(0, MAX_SCOPE_ITEMS)
+    .map((row) => ({ description: trim(row.description) }))
+    .filter((row) => row.description);
+  const terms = form.terms
+    .slice(0, MAX_ADDITIONAL_TERMS)
+    .map((row) => ({ description: trim(row.description) }))
+    .filter((row) => row.description);
+  const addenda = form.addenda
     .map((row) => ({ description: trim(row.description) }))
     .filter((row) => row.description);
   const pricingLines = parsePricingRows(
@@ -217,9 +238,19 @@ export function validateEstimateEditor(
             contactInformation: trim(form.contactInformation),
             depositPercent: decimalToString(depositPercent),
             includeAlternatePricing: form.includeAlternatePricing,
+            includePrevailingWageStatement:
+              form.includePrevailingWageStatement,
+            prevailingWageStatement:
+              trim(form.prevailingWageStatement) ||
+              DEFAULT_PREVAILING_WAGE_STATEMENT,
+            leadTime: trim(form.leadTime),
+            pricingValidDays: trim(form.pricingValidDays),
+            projectNotes: trim(form.projectNotes),
             scopeItems,
             pricingLines,
             alternatePricingLines,
+            terms,
+            addenda,
           }
         : null,
   };

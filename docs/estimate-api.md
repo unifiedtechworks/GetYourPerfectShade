@@ -99,20 +99,21 @@ Any error attempts rollback. Success is never returned before commit succeeds.
 ### `GET /v1/estimates/{estimateId}`
 
 Returns one editable estimate snapshot plus its linked customer/project identifiers, ordered
-scope rows, ordered base/alternate pricing rows, canonical financial totals, audit timestamps,
-and `rowVersion`. The operation is read-only and organization-scoped. Missing and
+scope, base/alternate pricing, terms, and addenda rows; Phase 3 text and conditional-section
+fields; canonical financial totals; audit timestamps; and `rowVersion`. The operation is read-only and organization-scoped. Missing and
 cross-organization IDs both return `estimate_not_found` (404).
 
 ### `PUT /v1/estimates/{estimateId}`
 
-Replaces the complete editable Phase 2 draft state. The request includes a canonical positive
+Replaces the complete editable Phase 3 draft state. The request includes a canonical positive
 integer-string `expectedRowVersion`, header/project snapshot fields, canonical deposit percent,
-alternate inclusion, and compact ordered row arrays. Empty form rows are removed before the API
+alternate and prevailing-wage inclusion, prevailing/lead-time/pricing-validity/notes fields, and
+compact ordered scope, pricing, terms, and addenda arrays. Empty form rows are removed before the API
 call. Monetary row values are signed integer strings in minor units.
 
 The transaction locks and verifies the organization-owned estimate, refuses every non-draft,
-checks optimistic concurrency, recalculates totals, updates the project/estimate, replaces scope
-and pricing rows through the controlled RLS-protected function, appends
+checks optimistic concurrency, recalculates totals, updates the project/estimate, replaces scope,
+pricing, terms, and addenda rows through controlled RLS-protected functions, appends
 `estimate.draft_updated`, reloads the canonical detail, and commits. Failures roll back all
 changes. `stale_estimate` and `estimate_not_editable` return 409.
 

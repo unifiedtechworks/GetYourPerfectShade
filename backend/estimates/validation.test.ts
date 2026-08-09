@@ -15,9 +15,17 @@ const REQUEST: UpdateEstimateDraftRequest = {
   contactInformation: "Owner",
   depositPercent: "12.5",
   includeAlternatePricing: false,
+  includePrevailingWageStatement: false,
+  prevailingWageStatement:
+    "Applicable prevailing wage labor rates are included where required by the project.",
+  leadTime: "",
+  pricingValidDays: "",
+  projectNotes: "",
   scopeItems: [{ description: "Scope" }],
   pricingLines: [{ description: "Base", amountMinor: "100" }],
   alternatePricingLines: [],
+  terms: [],
+  addenda: [],
 };
 
 describe("Phase 2 update API validation", () => {
@@ -85,5 +93,28 @@ describe("Phase 2 update API validation", () => {
     expect(() =>
       validateUpdateDraftRequest({ ...REQUEST, organizationId: "attacker" }),
     ).toThrow(/derived from the authenticated context/);
+  });
+
+  it("trims ordered text rows, enforces the term cap, and defaults blank prevailing wording", () => {
+    expect(
+      validateUpdateDraftRequest({
+        ...REQUEST,
+        includePrevailingWageStatement: true,
+        prevailingWageStatement: "  ",
+        terms: [{ description: "  First term\ncontinues  " }],
+        addenda: [{ description: "  Addendum 2  " }],
+      }),
+    ).toMatchObject({
+      prevailingWageStatement:
+        "Applicable prevailing wage labor rates are included where required by the project.",
+      terms: [{ description: "First term\ncontinues" }],
+      addenda: [{ description: "Addendum 2" }],
+    });
+    expect(() =>
+      validateUpdateDraftRequest({
+        ...REQUEST,
+        terms: Array.from({ length: 21 }, () => ({ description: "Term" })),
+      }),
+    ).toThrow(/up to 20/);
   });
 });

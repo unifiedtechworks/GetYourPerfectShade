@@ -26,6 +26,12 @@ function form(overrides: Partial<EstimateEditorForm> = {}): EstimateEditorForm {
     contactInformation: "Owner",
     depositPercent: "20",
     includeAlternatePricing: false,
+    includePrevailingWageStatement: false,
+    prevailingWageStatement:
+      "Applicable prevailing wage labor rates are included where required by the project.",
+    leadTime: "",
+    pricingValidDays: "",
+    projectNotes: "",
     scopeItems: [
       { key: "scope-1", description: " Shades " },
       { key: "scope-2", description: "" },
@@ -37,6 +43,8 @@ function form(overrides: Partial<EstimateEditorForm> = {}): EstimateEditorForm {
     alternatePricingLines: [
       { key: "alternate-1", description: "Motorized", amount: "250" },
     ],
+    terms: [{ key: "term-1", description: "" }],
+    addenda: [{ key: "addendum-1", description: "" }],
     ...overrides,
   };
 }
@@ -187,5 +195,32 @@ describe("estimate editor approved behavior", () => {
     expect(result.fields.pricingLines).toMatch(/up to 50/);
     expect(result.fields.alternatePricingLines).toMatch(/up to 20/);
     expect(result.fields["pricingLines.0.amount"]).toBe("Invalid amount: 12.345");
+  });
+
+  it("suppresses blank text rows, preserves multiline order, and keeps custom prevailing wording while disabled", () => {
+    const result = validateEstimateEditor(
+      form({
+        includePrevailingWageStatement: false,
+        prevailingWageStatement: " Custom wording. ",
+        terms: [
+          { key: "1", description: " First\nline " },
+          { key: "2", description: "  " },
+          { key: "3", description: "Third" },
+        ],
+        addenda: [
+          { key: "1", description: "Addendum 1" },
+          { key: "2", description: "" },
+        ],
+      }),
+    );
+    expect(result.request).toMatchObject({
+      includePrevailingWageStatement: false,
+      prevailingWageStatement: "Custom wording.",
+      terms: [
+        { description: "First\nline" },
+        { description: "Third" },
+      ],
+      addenda: [{ description: "Addendum 1" }],
+    });
   });
 });

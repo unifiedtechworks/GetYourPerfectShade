@@ -3,8 +3,11 @@ import {
   canAddEditorRow,
   initializePricingEditorRows,
   initializeScopeEditorRows,
+  initializeTextEditorRows,
+  moveTextEditorRow,
   removePricingEditorRow,
   removeScopeEditorRow,
+  removeTextEditorRow,
   showAlternatePricing,
 } from "./editor-state";
 
@@ -72,5 +75,29 @@ describe("estimate editor UX state", () => {
     expect(canAddEditorRow(20, 20)).toBe(false);
     expect(canAddEditorRow(49, 50)).toBe(true);
     expect(canAddEditorRow(50, 50)).toBe(false);
+  });
+
+  it("starts terms and addenda with one row, preserves saved rows, and retains a final editor row", () => {
+    expect(initializeTextEditorRows([], "term")).toHaveLength(1);
+    expect(initializeTextEditorRows([], "addendum")).toHaveLength(1);
+    const saved = [
+      { key: "term-1", description: "First" },
+      { key: "term-2", description: "Second\nline" },
+    ];
+    expect(initializeTextEditorRows(saved, "term")).toEqual(saved);
+    expect(removeTextEditorRow([saved[0]], 0, "term")).toEqual([
+      { key: "term-1", description: "" },
+    ]);
+  });
+
+  it("reorders text rows without losing multiline content", () => {
+    const rows = [
+      { key: "1", description: "First\nline" },
+      { key: "2", description: "Second" },
+      { key: "3", description: "Third" },
+    ];
+    expect(moveTextEditorRow(rows, 1, -1)).toEqual([rows[1], rows[0], rows[2]]);
+    expect(moveTextEditorRow(rows, 1, 1)).toEqual([rows[0], rows[2], rows[1]]);
+    expect(moveTextEditorRow(rows, 0, -1)).toEqual(rows);
   });
 });

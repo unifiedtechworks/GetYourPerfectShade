@@ -47,6 +47,11 @@ export type EstimateScopeItem = Readonly<{
   description: string;
 }>;
 
+export type EstimateTextItem = Readonly<{
+  sortOrder: number;
+  description: string;
+}>;
+
 export type EstimatePricingLine = Readonly<{
   sortOrder: number;
   description: string;
@@ -82,9 +87,16 @@ export type EstimateDetail = Readonly<{
   depositPercent: string;
   taxRatePercent: "0";
   includeAlternatePricing: boolean;
+  includePrevailingWageStatement: boolean;
+  prevailingWageStatement: string;
+  leadTime: string;
+  pricingValidDays: string;
+  projectNotes: string;
   scopeItems: readonly EstimateScopeItem[];
   pricingLines: readonly EstimatePricingLine[];
   alternatePricingLines: readonly EstimatePricingLine[];
+  terms: readonly EstimateTextItem[];
+  addenda: readonly EstimateTextItem[];
   totals: EstimateTotalsContract;
   createdBy: string;
   updatedBy: string;
@@ -105,6 +117,11 @@ export type UpdateEstimateDraftRequest = Readonly<{
   contactInformation: string;
   depositPercent: string;
   includeAlternatePricing: boolean;
+  includePrevailingWageStatement: boolean;
+  prevailingWageStatement: string;
+  leadTime: string;
+  pricingValidDays: string;
+  projectNotes: string;
   scopeItems: readonly Readonly<{ description: string }>[];
   pricingLines: readonly Readonly<{
     description: string;
@@ -114,6 +131,8 @@ export type UpdateEstimateDraftRequest = Readonly<{
     description: string;
     amountMinor: string;
   }>[];
+  terms: readonly Readonly<{ description: string }>[];
+  addenda: readonly Readonly<{ description: string }>[];
 }>;
 
 export type GetEstimateResponse = Readonly<{ data: EstimateDetail }>;

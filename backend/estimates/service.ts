@@ -10,6 +10,7 @@ import type {
   EstimatePricingLine,
   EstimateScopeItem,
   EstimateStatus,
+  EstimateTextItem,
   GetEstimateResponse,
   ListEstimatesResponse,
   UpdateEstimateDraftRequest,
@@ -137,6 +138,8 @@ select e.id::text, e.document_type, e.estimate_number, e.estimate_date,
        e.revision_number::text, e.row_version::text,
        e.deposit_percent::text, e.tax_rate_percent::text,
        e.include_alternate_pricing::text,
+       e.include_prevailing_wage_statement::text, e.prevailing_wage_statement,
+       e.lead_time, e.pricing_valid_days, e.project_notes,
        e.subtotal_minor::text, e.sales_tax_minor::text, e.total_minor::text,
        e.required_deposit_minor::text, e.remaining_balance_minor::text,
        e.created_by, e.updated_by, e.created_at::text, e.updated_at::text,
@@ -167,6 +170,22 @@ from app.estimate_pricing_lines
 where organization_id = :organizationId::uuid
   and estimate_id = :estimateId::uuid
 order by kind, sort_order
+`;
+
+const GET_TERMS_SQL = `
+select sort_order::text, description
+from app.estimate_terms
+where organization_id = :organizationId::uuid
+  and estimate_id = :estimateId::uuid
+order by sort_order
+`;
+
+const GET_ADDENDA_SQL = `
+select sort_order::text, description
+from app.estimate_addenda
+where organization_id = :organizationId::uuid
+  and estimate_id = :estimateId::uuid
+order by sort_order
 `;
 
 const LOCK_ESTIMATE_SQL = `
@@ -200,6 +219,11 @@ set document_type = :documentType,
     deposit_percent = :depositPercent::numeric,
     tax_rate_percent = 0,
     include_alternate_pricing = :includeAlternatePricing::boolean,
+    include_prevailing_wage_statement = :includePrevailingWageStatement::boolean,
+    prevailing_wage_statement = :prevailingWageStatement,
+    lead_time = :leadTime,
+    pricing_valid_days = :pricingValidDays,
+    project_notes = :projectNotes,
     subtotal_minor = :subtotalMinor::bigint,
     sales_tax_minor = 0,
     total_minor = :totalMinor::bigint,
@@ -220,6 +244,14 @@ select app_private.replace_estimate_phase_2_rows(
   :scopeItems::jsonb,
   :pricingLines::jsonb,
   :alternatePricingLines::jsonb
+)
+`;
+
+const REPLACE_PHASE_3_CONTENT_SQL = `
+select app_private.replace_estimate_phase_3_content(
+  :estimateId::uuid,
+  :terms::jsonb,
+  :addenda::jsonb
 )
 `;
 
@@ -401,6 +433,16 @@ export class EstimateService {
       parameters: commonParameters,
       transactionId,
     });
+    const termRows = await this.database.execute({
+      sql: GET_TERMS_SQL,
+      parameters: commonParameters,
+      transactionId,
+    });
+    const addendaRows = await this.database.execute({
+      sql: GET_ADDENDA_SQL,
+      parameters: commonParameters,
+      transactionId,
+    });
     const header = headerRows[0];
     const scopeItems: EstimateScopeItem[] = scopeRows.map((row) => ({
       sortOrder: sortOrder(row),
@@ -429,6 +471,11 @@ export class EstimateService {
       (sum, line) => sum + BigInt(line.amountMinor),
       0n,
     );
+    const textItems = (rows: readonly SqlRow[]): EstimateTextItem[] =>
+      rows.map((row) => ({
+        sortOrder: sortOrder(row),
+        description: required(row, "description"),
+      }));
 
     return {
       id: required(header, "id"),
@@ -453,9 +500,19 @@ export class EstimateService {
         header,
         "include_alternate_pricing",
       ),
+      includePrevailingWageStatement: booleanValue(
+        header,
+        "include_prevailing_wage_statement",
+      ),
+      prevailingWageStatement: required(header, "prevailing_wage_statement"),
+      leadTime: header.lead_time ?? "",
+      pricingValidDays: header.pricing_valid_days ?? "",
+      projectNotes: header.project_notes ?? "",
       scopeItems,
       pricingLines: basePricing,
       alternatePricingLines: alternatePricing,
+      terms: textItems(termRows),
+      addenda: textItems(addendaRows),
       totals: {
         subtotalMinor: required(header, "subtotal_minor"),
         salesTaxMinor: required(header, "sales_tax_minor"),
@@ -588,6 +645,13 @@ export class EstimateService {
           contactInformation: request.contactInformation,
           depositPercent: request.depositPercent,
           includeAlternatePricing: String(request.includeAlternatePricing),
+          includePrevailingWageStatement: String(
+            request.includePrevailingWageStatement,
+          ),
+          prevailingWageStatement: request.prevailingWageStatement,
+          leadTime: request.leadTime,
+          pricingValidDays: request.pricingValidDays,
+          projectNotes: request.projectNotes,
           subtotalMinor: totals.subtotalMinor.toString(),
           totalMinor: totals.totalMinor.toString(),
           requiredDepositMinor: totals.requiredDepositMinor.toString(),
@@ -614,6 +678,15 @@ export class EstimateService {
         transactionId,
       });
       await this.database.execute({
+        sql: REPLACE_PHASE_3_CONTENT_SQL,
+        parameters: parameters({
+          estimateId,
+          terms: JSON.stringify(request.terms),
+          addenda: JSON.stringify(request.addenda),
+        }),
+        transactionId,
+      });
+      await this.database.execute({
         sql: INSERT_UPDATE_AUDIT_SQL,
         parameters: parameters({
           ...common,
@@ -626,6 +699,10 @@ export class EstimateService {
             pricingLineCount: request.pricingLines.length,
             alternatePricingLineCount: request.alternatePricingLines.length,
             includeAlternatePricing: request.includeAlternatePricing,
+            termCount: request.terms.length,
+            addendaCount: request.addenda.length,
+            includePrevailingWageStatement:
+              request.includePrevailingWageStatement,
           }),
         }),
         transactionId,

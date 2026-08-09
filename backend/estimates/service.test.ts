@@ -36,12 +36,19 @@ const UPDATE_REQUEST: UpdateEstimateDraftRequest = {
   contactInformation: "Owner",
   depositPercent: "0.5",
   includeAlternatePricing: true,
+  includePrevailingWageStatement: true,
+  prevailingWageStatement: "Custom prevailing wage statement.",
+  leadTime: "4-6 weeks",
+  pricingValidDays: "30",
+  projectNotes: "Coordinate final measurements.",
   scopeItems: [{ description: "First" }, { description: "Second" }],
   pricingLines: [
     { description: "Base", amountMinor: "100" },
     { description: "Credit", amountMinor: "-25" },
   ],
   alternatePricingLines: [{ description: "Option", amountMinor: "500" }],
+  terms: [{ description: "Electrical work by others." }],
+  addenda: [{ description: "Addendum 1" }],
 };
 
 const DETAIL_ROW: SqlRow = {
@@ -64,6 +71,11 @@ const DETAIL_ROW: SqlRow = {
   deposit_percent: "0.5",
   tax_rate_percent: "0",
   include_alternate_pricing: "true",
+  include_prevailing_wage_statement: "true",
+  prevailing_wage_statement: "Custom prevailing wage statement.",
+  lead_time: "4-6 weeks",
+  pricing_valid_days: "30",
+  project_notes: "Coordinate final measurements.",
   subtotal_minor: "75",
   sales_tax_minor: "0",
   total_minor: "75",
@@ -95,6 +107,8 @@ class FakeDatabase implements EstimateDatabase {
   detailRows: readonly SqlRow[] = [];
   scopeRows: readonly SqlRow[] = [];
   pricingRows: readonly SqlRow[] = [];
+  termRows: readonly SqlRow[] = [];
+  addendaRows: readonly SqlRow[] = [];
   lockedEstimateRows: readonly SqlRow[] = [];
   updatedEstimateRows: readonly SqlRow[] = [];
 
@@ -129,6 +143,8 @@ class FakeDatabase implements EstimateDatabase {
     if (statement.sql.includes("from app.estimate_pricing_lines")) {
       return this.pricingRows;
     }
+    if (statement.sql.includes("from app.estimate_terms")) return this.termRows;
+    if (statement.sql.includes("from app.estimate_addenda")) return this.addendaRows;
     if (statement.sql.includes("join app.projects")) return this.detailRows;
     if (statement.sql.includes("from app.estimates")) return this.listRows;
     return [];
@@ -209,6 +225,11 @@ describe("EstimateService editable detail", () => {
         amount_minor: "500",
       },
     ];
+    database.termRows = [
+      { sort_order: "0", description: "First term" },
+      { sort_order: "1", description: "Second term" },
+    ];
+    database.addendaRows = [{ sort_order: "0", description: "Addendum 1" }];
 
     const result = await new EstimateService(database).get(
       "cognito-subject",
@@ -219,6 +240,11 @@ describe("EstimateService editable detail", () => {
       "Second",
     ]);
     expect(result.data.totals.alternateTotalMinor).toBe("500");
+    expect(result.data.terms.map((item) => item.description)).toEqual([
+      "First term",
+      "Second term",
+    ]);
+    expect(result.data.addenda[0].description).toBe("Addendum 1");
     expect(
       database.statements
         .filter((statement) => !statement.sql.includes("establish_estimate_context"))
@@ -387,6 +413,8 @@ describe("EstimateService optimistic draft update", () => {
         amount_minor: "500",
       },
     ];
+    database.termRows = [{ sort_order: "0", description: "Electrical by others" }];
+    database.addendaRows = [{ sort_order: "0", description: "Addendum 1" }];
     return database;
   }
 
@@ -413,6 +441,15 @@ describe("EstimateService optimistic draft update", () => {
     )!;
     expect(JSON.parse(parameter(replacement, "scopeItems")!)).toEqual(
       UPDATE_REQUEST.scopeItems,
+    );
+    const phase3Replacement = database.statements.find((statement) =>
+      statement.sql.includes("replace_estimate_phase_3_content"),
+    )!;
+    expect(JSON.parse(parameter(phase3Replacement, "terms")!)).toEqual(
+      UPDATE_REQUEST.terms,
+    );
+    expect(JSON.parse(parameter(phase3Replacement, "addenda")!)).toEqual(
+      UPDATE_REQUEST.addenda,
     );
     expect(
       database.statements.some((statement) =>
@@ -492,6 +529,26 @@ describe("EstimateService optimistic draft update", () => {
   it("rolls back header and child changes when replacement fails", async () => {
     const database = editableDatabase();
     database.failOn = "replace_estimate_phase_2_rows";
+    await expect(
+      new EstimateService(database).updateDraft(
+        "cognito-subject",
+        String(DETAIL_ROW.id),
+        UPDATE_REQUEST,
+        "request-id",
+      ),
+    ).rejects.toThrow("forced database failure");
+    expect(database.rolledBack).toBe(true);
+    expect(database.committed).toBe(false);
+    expect(
+      database.statements.some((statement) =>
+        statement.sql.includes("estimate.draft_updated"),
+      ),
+    ).toBe(false);
+  });
+
+  it("rolls back all Phase 2 and Phase 3 changes when content replacement fails", async () => {
+    const database = editableDatabase();
+    database.failOn = "replace_estimate_phase_3_content";
     await expect(
       new EstimateService(database).updateDraft(
         "cognito-subject",

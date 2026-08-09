@@ -10,6 +10,7 @@ import {
   compareDecimal,
   parseDecimal,
 } from "../../lib/estimates/calculations";
+import { DEFAULT_PREVAILING_WAGE_STATEMENT } from "../../lib/estimates/presentation";
 import { invalidRequest } from "./errors";
 
 const BIGINT_MIN = -(2n ** 63n);
@@ -174,6 +175,35 @@ function pricingRows(
   });
 }
 
+function textRows(
+  value: unknown,
+  field: "terms" | "addenda",
+  maximum?: number,
+): readonly Readonly<{ description: string }>[] {
+  if (!Array.isArray(value)) {
+    throw invalidRequest(`${field} must be an array.`, {
+      [field]: "Must be an array.",
+    });
+  }
+  if (maximum !== undefined && value.length > maximum) {
+    throw invalidRequest(`${field} supports up to ${maximum} items.`, {
+      [field]: `Supports up to ${maximum} items.`,
+    });
+  }
+  return value.map((item, index) => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      throw invalidRequest(`${field} row ${index + 1} is invalid.`);
+    }
+    return {
+      description: requiredString(
+        (item as Record<string, unknown>).description,
+        `${field}.${index}.description`,
+        `${field === "terms" ? "Term" : "Addendum"} row ${index + 1}`,
+      ),
+    };
+  });
+}
+
 export function validateEstimateId(value: unknown): string {
   if (typeof value !== "string" || !UUID_PATTERN.test(value)) {
     throw invalidRequest("Estimate ID is invalid.");
@@ -249,6 +279,14 @@ export function validateUpdateDraftRequest(
       { alternatePricingLines: "Add at least one alternate pricing line." },
     );
   }
+  if (typeof record.includePrevailingWageStatement !== "boolean") {
+    throw invalidRequest("includePrevailingWageStatement must be a boolean.");
+  }
+  const prevailingWageStatement =
+    optionalString(record.prevailingWageStatement, "prevailingWageStatement") ||
+    DEFAULT_PREVAILING_WAGE_STATEMENT;
+  const terms = textRows(record.terms, "terms", 20);
+  const addenda = textRows(record.addenda, "addenda");
 
   return {
     expectedRowVersion: record.expectedRowVersion,
@@ -277,9 +315,19 @@ export function validateUpdateDraftRequest(
       "Deposit %",
     ),
     includeAlternatePricing: record.includeAlternatePricing,
+    includePrevailingWageStatement: record.includePrevailingWageStatement,
+    prevailingWageStatement,
+    leadTime: optionalString(record.leadTime, "leadTime"),
+    pricingValidDays: optionalString(
+      record.pricingValidDays,
+      "pricingValidDays",
+    ),
+    projectNotes: optionalString(record.projectNotes, "projectNotes"),
     scopeItems,
     pricingLines,
     alternatePricingLines,
+    terms,
+    addenda,
   };
 }
 

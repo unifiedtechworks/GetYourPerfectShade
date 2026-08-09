@@ -506,6 +506,61 @@
   margin: 0;
 }
 
+.rowActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.rowActions button {
+  min-height: 2.25rem;
+  padding: 0.45rem 0.6rem;
+}
+
+.rowActions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.subsection {
+  display: grid;
+  gap: 0.8rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e3e2dc;
+}
+
+.subsection h2,
+.constantSections h2,
+.editorSection > h2 {
+  margin: 0;
+  color: #263b30;
+  font-size: 1rem;
+}
+
+.subsection > label:not(.checkboxLabel),
+.editorSection > label {
+  display: grid;
+  gap: 0.35rem;
+  font-weight: 750;
+}
+
+.constantSections {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.constantSections article {
+  padding: 1rem;
+  border-left: 0.25rem solid #8aa294;
+  background: #f6f8f6;
+}
+
+.constantSections p {
+  margin: 0.45rem 0 0;
+  color: #4f6258;
+  white-space: pre-wrap;
+}
+
 .editorFooter {
   position: sticky;
   bottom: 0.75rem;

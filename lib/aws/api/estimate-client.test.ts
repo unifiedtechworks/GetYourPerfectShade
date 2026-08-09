@@ -74,9 +74,17 @@ describe("estimate API client", () => {
       contactInformation: "",
       depositPercent: "0",
       includeAlternatePricing: false,
+      includePrevailingWageStatement: false,
+      prevailingWageStatement:
+        "Applicable prevailing wage labor rates are included where required by the project.",
+      leadTime: "",
+      pricingValidDays: "",
+      projectNotes: "",
       scopeItems: [],
       pricingLines: [{ description: "Base", amountMinor: "100" }],
       alternatePricingLines: [],
+      terms: [],
+      addenda: [],
     });
 
     expect(fetchImpl.mock.calls[0][0]).toBe(

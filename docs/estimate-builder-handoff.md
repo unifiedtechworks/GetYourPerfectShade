@@ -1,13 +1,22 @@
 # Estimate Builder Handoff
 
+## Phase 3 terms, notes, and preview
+
+Phase 3 implementation and desktop-alignment decisions are recorded in
+[`docs/estimate-phase-3.md`](./estimate-phase-3.md). It extends the protected editor and existing
+estimate detail/update API with ordered terms and addenda, prevailing-wage behavior, lead time,
+pricing validity, project notes, exact constant proposal sections, and a protected saved-draft
+preview. Integration must apply `0006_estimate_phase_3.sql` before live Phase 3 saves. Phase 4
+document generation, output comparison, duplication, revisions, and status workflows remain
+deferred.
+
 ## Phase 2 draft editor
 
 Phase 2 implementation and desktop differences are recorded in
 [`docs/estimate-phase-2.md`](./estimate-phase-2.md). It adds the protected
 `/app/estimates/[estimateId]` editor, exact live totals, authenticated estimate detail/update
 API, optimistic concurrency, and controlled ordered-row replacement. Integration must deploy
-the two API routes and apply `0005_estimate_phase_2.sql` before live use. Phase 3 and Phase 4
-remain deferred.
+the two API routes and apply `0005_estimate_phase_2.sql` before live use.
 
 ## Phase 1 AWS conversion
 
@@ -50,9 +59,8 @@ account-foundation phase.
    `app.organization_memberships` with Cognito `sub` stored as text.
 3. CDK connects the account and estimate handlers to API Gateway through the shared RDS Data API
    adapter.
-4. The controlled migration job applies
-   `infra/database/migrations/0001_account_foundation.sql` and then
-   `infra/database/migrations/0002_estimate_phase_1.sql`.
+4. The controlled migration job applies all forward-only files through
+   `infra/database/migrations/0006_estimate_phase_3.sql` in numeric filename order.
 5. Development bootstrap creates one active Perfect Shade membership per staff identity.
 6. Live authentication, tenant, role, rollback, and money-boundary gates run only after a
    separately authorized development deployment.

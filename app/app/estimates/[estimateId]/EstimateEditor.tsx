@@ -17,6 +17,7 @@ import {
   MAX_ALTERNATE_PRICING_LINES,
   MAX_PRICING_LINES,
   MAX_SCOPE_ITEMS,
+  MAX_ADDITIONAL_TERMS,
   depositPercentForEditor,
   type EstimateEditorPricingRow,
   type EstimateEditorTextRow,
@@ -26,10 +27,20 @@ import {
   canAddEditorRow,
   initializePricingEditorRows,
   initializeScopeEditorRows,
+  initializeTextEditorRows,
+  moveTextEditorRow,
   removePricingEditorRow,
   removeScopeEditorRow,
+  removeTextEditorRow,
   showAlternatePricing,
 } from "@/lib/estimates/editor-state";
+import {
+  COMPANY_QUALIFICATIONS_TEXT,
+  CRAFTSMANSHIP_WARRANTY_TEXT,
+  MEASUREMENT_READINESS_TEXT,
+  RETAINAGE_TERM_TEXT,
+  SALES_TAX_NOTICE_TEXT,
+} from "@/lib/estimates/presentation";
 import { updateEstimate } from "../actions";
 import type { SaveEstimateState } from "../types";
 import styles from "../estimates.module.css";
@@ -83,6 +94,11 @@ export function EstimateEditor({ estimate }: { estimate: EstimateEditorEstimate 
     contactInformation: estimate.contactInformation,
     depositPercent: depositPercentForEditor(estimate.depositPercent),
     includeAlternatePricing: estimate.includeAlternatePricing,
+    includePrevailingWageStatement: estimate.includePrevailingWageStatement,
+    prevailingWageStatement: estimate.prevailingWageStatement,
+    leadTime: estimate.leadTime,
+    pricingValidDays: estimate.pricingValidDays,
+    projectNotes: estimate.projectNotes,
   });
   const [scopeItems, setScopeItems] = useState<EstimateEditorTextRow[]>(() =>
     initializeScopeEditorRows(
@@ -115,6 +131,24 @@ export function EstimateEditor({ estimate }: { estimate: EstimateEditorEstimate 
       "alternate",
     ),
   );
+  const [terms, setTerms] = useState<EstimateEditorTextRow[]>(() =>
+    initializeTextEditorRows(
+      estimate.terms.map((row, index) => ({
+        key: `term-${row.sortOrder}-${index}`,
+        description: row.description,
+      })),
+      "term",
+    ),
+  );
+  const [addenda, setAddenda] = useState<EstimateEditorTextRow[]>(() =>
+    initializeTextEditorRows(
+      estimate.addenda.map((row, index) => ({
+        key: `addendum-${row.sortOrder}-${index}`,
+        description: row.description,
+      })),
+      "addendum",
+    ),
+  );
   const [dirty, setDirty] = useState(false);
   const [messageVisible, setMessageVisible] = useState(false);
   const [localMessage, setLocalMessage] = useState("");
@@ -129,8 +163,10 @@ export function EstimateEditor({ estimate }: { estimate: EstimateEditorEstimate 
         scopeItems,
         pricingLines,
         alternatePricingLines,
+        terms,
+        addenda,
       }),
-    [alternatePricingLines, header, pricingLines, rowVersion, scopeItems],
+    [addenda, alternatePricingLines, header, pricingLines, rowVersion, scopeItems, terms],
   );
 
   useEffect(() => {
@@ -229,6 +265,54 @@ export function EstimateEditor({ estimate }: { estimate: EstimateEditorEstimate 
     changed();
   }
 
+  function addTextRow(kind: "term" | "addendum") {
+    const rows = kind === "term" ? terms : addenda;
+    if (kind === "term" && !canAddEditorRow(rows.length, MAX_ADDITIONAL_TERMS)) {
+      setLocalMessage(
+        `Additional terms support up to ${MAX_ADDITIONAL_TERMS} items.`,
+      );
+      return;
+    }
+    const row = {
+      key: `${kind}-new-${nextKey.current++}`,
+      description: "",
+    };
+    if (kind === "term") setTerms((current) => [...current, row]);
+    else setAddenda((current) => [...current, row]);
+    changed();
+  }
+
+  function removeTextRow(kind: "term" | "addendum", index: number) {
+    const rows = kind === "term" ? terms : addenda;
+    if (
+      rows[index].description.trim() &&
+      !window.confirm(
+        `Remove this ${kind === "term" ? "term or exclusion" : "addendum"} from the draft?`,
+      )
+    ) {
+      return;
+    }
+    if (kind === "term") {
+      setTerms((current) => removeTextEditorRow(current, index, kind));
+    } else {
+      setAddenda((current) => removeTextEditorRow(current, index, kind));
+    }
+    changed();
+  }
+
+  function moveTextRow(
+    kind: "term" | "addendum",
+    index: number,
+    direction: -1 | 1,
+  ) {
+    if (kind === "term") {
+      setTerms((current) => moveTextEditorRow(current, index, direction));
+    } else {
+      setAddenda((current) => moveTextEditorRow(current, index, direction));
+    }
+    changed();
+  }
+
   const serverFields = messageVisible ? saveState.fields ?? {} : {};
 
   return (
@@ -253,6 +337,12 @@ export function EstimateEditor({ estimate }: { estimate: EstimateEditorEstimate 
                 : "All changes saved"}
           </span>
           {!readOnly && <SaveButton disabled={!dirty} />}
+          <a
+            className={styles.secondaryButton}
+            href={`/app/estimates/${encodeURIComponent(estimate.id)}/preview`}
+          >
+            Preview saved draft
+          </a>
         </div>
       </header>
 
@@ -260,6 +350,9 @@ export function EstimateEditor({ estimate }: { estimate: EstimateEditorEstimate 
         <a href="#project-information">Project</a>
         <a href="#scope-of-work">Scope of Work</a>
         <a href="#pricing">Pricing</a>
+        <a href="#addenda">Addenda</a>
+        <a href="#terms-and-notes">Terms &amp; Notes</a>
+        <a href="#proposal-preview">Preview</a>
       </nav>
 
       {readOnly && (
@@ -309,6 +402,8 @@ export function EstimateEditor({ estimate }: { estimate: EstimateEditorEstimate 
         type="hidden"
         value={JSON.stringify(alternatePricingLines)}
       />
+      <input name="termsJson" type="hidden" value={JSON.stringify(terms)} />
+      <input name="addendaJson" type="hidden" value={JSON.stringify(addenda)} />
 
       <fieldset className={styles.editorSection} disabled={readOnly} id="project-information">
         <legend>Project and estimate information</legend>
@@ -712,6 +807,230 @@ export function EstimateEditor({ estimate }: { estimate: EstimateEditorEstimate 
           </p>
         </div>
       </fieldset>
+
+      <fieldset className={styles.editorSection} disabled={readOnly} id="addenda">
+        <legend>Addenda Acknowledgement</legend>
+        <p className={styles.help}>
+          Addenda are optional. Blank rows are ignored, and the preview omits this
+          section when no acknowledgements are saved.
+        </p>
+        <div className={styles.rows}>
+          {addenda.map((row, index) => (
+            <div className={styles.scopeRow} key={row.key}>
+              <label>
+                <span className={styles.visuallyHidden}>Addendum {index + 1}</span>
+                <textarea
+                  onChange={(event) => {
+                    setAddenda((current) =>
+                      current.map((item, rowIndex) =>
+                        rowIndex === index
+                          ? { ...item, description: event.target.value }
+                          : item,
+                      ),
+                    );
+                    changed();
+                  }}
+                  placeholder={`Addendum ${index + 1}`}
+                  rows={2}
+                  value={row.description}
+                />
+              </label>
+              <div className={styles.rowActions}>
+                <button
+                  className={styles.secondaryButton}
+                  disabled={index === 0}
+                  onClick={() => moveTextRow("addendum", index, -1)}
+                  type="button"
+                >Up</button>
+                <button
+                  className={styles.secondaryButton}
+                  disabled={index === addenda.length - 1}
+                  onClick={() => moveTextRow("addendum", index, 1)}
+                  type="button"
+                >Down</button>
+                <button
+                  className={styles.removeButton}
+                  onClick={() => removeTextRow("addendum", index)}
+                  type="button"
+                >Remove</button>
+              </div>
+            </div>
+          ))}
+        </div>
+        <button
+          className={styles.secondaryButton}
+          onClick={() => addTextRow("addendum")}
+          type="button"
+        >
+          Add Addendum
+        </button>
+      </fieldset>
+
+      <fieldset
+        className={styles.editorSection}
+        disabled={readOnly}
+        id="terms-and-notes"
+      >
+        <legend>Terms &amp; Notes</legend>
+        <div className={styles.fieldGrid}>
+          <label>
+            Pricing Valid For Days
+            <input
+              name="pricingValidDays"
+              onChange={(event) =>
+                updateHeader("pricingValidDays", event.target.value)
+              }
+              value={header.pricingValidDays}
+            />
+          </label>
+          <label>
+            Estimated Lead Time
+            <input
+              name="leadTime"
+              onChange={(event) => updateHeader("leadTime", event.target.value)}
+              value={header.leadTime}
+            />
+          </label>
+        </div>
+        <div className={styles.policyNotes}>
+          <p>{SALES_TAX_NOTICE_TEXT}</p>
+          <p>{RETAINAGE_TERM_TEXT}</p>
+          <p>Retainage is proposal wording only and does not change financial totals.</p>
+        </div>
+
+        <div className={styles.subsection}>
+          <h2>Prevailing Wage</h2>
+          <label className={styles.checkboxLabel}>
+            <input
+              checked={header.includePrevailingWageStatement}
+              name="includePrevailingWageStatement"
+              onChange={(event) =>
+                updateHeader(
+                  "includePrevailingWageStatement",
+                  event.target.checked,
+                )
+              }
+              type="checkbox"
+            />
+            Include Prevailing Wage Statement
+          </label>
+          <label>
+            <span className={styles.visuallyHidden}>Prevailing Wage Statement</span>
+            <textarea
+              name="prevailingWageStatement"
+              onChange={(event) =>
+                updateHeader("prevailingWageStatement", event.target.value)
+              }
+              rows={3}
+              value={header.prevailingWageStatement}
+            />
+          </label>
+          <p className={styles.help}>
+            The wording remains editable and is preserved when the checkbox is
+            turned off. It appears in the preview only when enabled.
+          </p>
+        </div>
+
+        <div className={styles.subsection}>
+          <h2>Additional Terms / Exclusions</h2>
+          <p className={styles.help}>
+            Blank rows are ignored. Up to {MAX_ADDITIONAL_TERMS} ordered items
+            are supported.
+          </p>
+          <div className={styles.rows}>
+            {terms.map((row, index) => (
+              <div className={styles.scopeRow} key={row.key}>
+                <label>
+                  <span className={styles.visuallyHidden}>
+                    Term or exclusion {index + 1}
+                  </span>
+                  <textarea
+                    onChange={(event) => {
+                      setTerms((current) =>
+                        current.map((item, rowIndex) =>
+                          rowIndex === index
+                            ? { ...item, description: event.target.value }
+                            : item,
+                        ),
+                      );
+                      changed();
+                    }}
+                    placeholder={`Term or exclusion ${index + 1}`}
+                    rows={2}
+                    value={row.description}
+                  />
+                </label>
+                <div className={styles.rowActions}>
+                  <button
+                    className={styles.secondaryButton}
+                    disabled={index === 0}
+                    onClick={() => moveTextRow("term", index, -1)}
+                    type="button"
+                  >Up</button>
+                  <button
+                    className={styles.secondaryButton}
+                    disabled={index === terms.length - 1}
+                    onClick={() => moveTextRow("term", index, 1)}
+                    type="button"
+                  >Down</button>
+                  <button
+                    className={styles.removeButton}
+                    onClick={() => removeTextRow("term", index)}
+                    type="button"
+                  >Remove</button>
+                </div>
+              </div>
+            ))}
+          </div>
+          <FieldError message={serverFields.terms} />
+          <button
+            className={styles.secondaryButton}
+            onClick={() => addTextRow("term")}
+            type="button"
+          >
+            Add Term / Exclusion
+          </button>
+        </div>
+
+        <label>
+          Project Notes
+          <textarea
+            name="projectNotes"
+            onChange={(event) => updateHeader("projectNotes", event.target.value)}
+            rows={5}
+            value={header.projectNotes}
+          />
+        </label>
+
+        <div className={styles.constantSections}>
+          <article>
+            <h2>Measurement Readiness</h2>
+            <p>{MEASUREMENT_READINESS_TEXT}</p>
+          </article>
+          <article>
+            <h2>One-Year Craftsmanship Warranty</h2>
+            <p>{CRAFTSMANSHIP_WARRANTY_TEXT}</p>
+          </article>
+          <article>
+            <h2>Company Qualifications</h2>
+            <p>{COMPANY_QUALIFICATIONS_TEXT}</p>
+          </article>
+        </div>
+      </fieldset>
+
+      <section className={styles.editorSection} id="proposal-preview">
+        <h2>Proposal Preview</h2>
+        <p className={styles.help}>
+          Preview uses the last saved draft and clearly labels it as a draft.
+          Save first if this editor shows unsaved changes.
+        </p>
+        <a
+          className={styles.primaryButton}
+          href={`/app/estimates/${encodeURIComponent(estimate.id)}/preview`}
+        >
+          Open saved-draft preview
+        </a>
+      </section>
 
       <footer className={styles.editorFooter}>
         <div aria-live="polite">

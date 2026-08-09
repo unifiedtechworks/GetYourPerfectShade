@@ -48,6 +48,12 @@ class DetailDatabase extends NoopDatabase {
           deposit_percent: "0",
           tax_rate_percent: "0",
           include_alternate_pricing: "false",
+          include_prevailing_wage_statement: "false",
+          prevailing_wage_statement:
+            "Applicable prevailing wage labor rates are included where required by the project.",
+          lead_time: "",
+          pricing_valid_days: "",
+          project_notes: "",
           subtotal_minor: "100",
           sales_tax_minor: "0",
           total_minor: "100",

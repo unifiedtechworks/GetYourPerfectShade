@@ -141,6 +141,8 @@ export async function updateEstimate(
   let scopeItems: readonly EstimateEditorTextRow[];
   let pricingLines: readonly EstimateEditorPricingRow[];
   let alternatePricingLines: readonly EstimateEditorPricingRow[];
+  let terms: readonly EstimateEditorTextRow[];
+  let addenda: readonly EstimateEditorTextRow[];
   try {
     scopeItems = parsedRows(formData, "scopeItemsJson", (row, index) => ({
       key: stringValue(row.key) || `scope-${index}`,
@@ -160,6 +162,14 @@ export async function updateEstimate(
         amount: stringValue(row.amount),
       }),
     );
+    terms = parsedRows(formData, "termsJson", (row, index) => ({
+      key: stringValue(row.key) || `term-${index}`,
+      description: stringValue(row.description),
+    }));
+    addenda = parsedRows(formData, "addendaJson", (row, index) => ({
+      key: stringValue(row.key) || `addendum-${index}`,
+      description: stringValue(row.description),
+    }));
   } catch {
     return {
       status: "error",
@@ -181,9 +191,17 @@ export async function updateEstimate(
     contactInformation: field(formData, "contactInformation"),
     depositPercent: field(formData, "depositPercent"),
     includeAlternatePricing: formData.get("includeAlternatePricing") === "on",
+    includePrevailingWageStatement:
+      formData.get("includePrevailingWageStatement") === "on",
+    prevailingWageStatement: field(formData, "prevailingWageStatement"),
+    leadTime: field(formData, "leadTime"),
+    pricingValidDays: field(formData, "pricingValidDays"),
+    projectNotes: field(formData, "projectNotes"),
     scopeItems,
     pricingLines,
     alternatePricingLines,
+    terms,
+    addenda,
   });
   if (!validation.request) {
     return {
@@ -202,6 +220,7 @@ export async function updateEstimate(
     );
     revalidatePath("/app/estimates");
     revalidatePath(`/app/estimates/${estimateId}`);
+    revalidatePath(`/app/estimates/${estimateId}/preview`);
     return {
       status: "success",
       message: "Draft saved.",
