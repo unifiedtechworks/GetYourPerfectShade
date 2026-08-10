@@ -30,6 +30,25 @@ export class ObservabilityConstruct extends Construct {
         evaluationPeriods: 1,
         treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
       });
+      new cloudwatch.Alarm(this, `${fn.node.id}ThrottleAlarm`, {
+        alarmName: `${fn.functionName}-throttles`,
+        metric: fn.metricThrottles({ period: Duration.minutes(5) }),
+        threshold: 1,
+        evaluationPeriods: 1,
+        treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+      });
+      if (fn.node.id === "EstimateFunction") {
+        new cloudwatch.Alarm(this, "EstimateFunctionDurationAlarm", {
+          alarmName: `${fn.functionName}-duration`,
+          metric: fn.metricDuration({
+            period: Duration.minutes(5),
+            statistic: "p95",
+          }),
+          threshold: 55_000,
+          evaluationPeriods: 2,
+          treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+        });
+      }
       dashboard.addWidgets(
         new cloudwatch.GraphWidget({
           title: `${fn.functionName} errors and duration`,

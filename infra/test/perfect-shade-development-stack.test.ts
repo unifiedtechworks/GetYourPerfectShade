@@ -127,7 +127,15 @@ describe("PerfectShadeDevelopmentStack", { timeout: 30_000 }, () => {
         RestrictPublicBuckets: true,
       },
       VersioningConfiguration: { Status: "Enabled" },
+      LifecycleConfiguration: {
+        Rules: [Match.objectLike({
+          Id: "abort-incomplete-uploads",
+          Status: "Enabled",
+        })],
+      },
     });
+    const buckets = template.findResources("AWS::S3::Bucket");
+    expect(JSON.stringify(buckets)).not.toContain("NoncurrentVersionExpiration");
   });
 
   it("protects all approved application API routes with the Cognito JWT authorizer", () => {
@@ -135,7 +143,7 @@ describe("PerfectShadeDevelopmentStack", { timeout: 30_000 }, () => {
 
     template.resourceCountIs("AWS::ApiGatewayV2::Api", 1);
     template.resourceCountIs("AWS::ApiGatewayV2::Authorizer", 1);
-    template.resourceCountIs("AWS::ApiGatewayV2::Route", 12);
+    template.resourceCountIs("AWS::ApiGatewayV2::Route", 18);
     template.allResourcesProperties("AWS::ApiGatewayV2::Route", {
       AuthorizationType: "JWT",
       AuthorizerId: Match.anyValue(),
@@ -166,6 +174,16 @@ describe("PerfectShadeDevelopmentStack", { timeout: 30_000 }, () => {
     template.hasResourceProperties("AWS::ApiGatewayV2::Route", {
       RouteKey: "PUT /v1/estimates/{estimateId}",
     });
+    for (const routeKey of [
+      "POST /v1/estimates/{estimateId}/documents",
+      "GET /v1/estimates/{estimateId}/documents",
+      "GET /v1/estimates/{estimateId}/documents/{documentId}/download",
+      "POST /v1/estimates/{estimateId}/issue",
+      "POST /v1/estimates/{estimateId}/duplicate",
+      "POST /v1/estimates/{estimateId}/revisions",
+    ]) {
+      template.hasResourceProperties("AWS::ApiGatewayV2::Route", { RouteKey: routeKey });
+    }
     template.hasResourceProperties("AWS::ApiGatewayV2::Api", {
       CorsConfiguration: Match.objectLike({
         AllowMethods: Match.arrayWith(["PUT"]),
@@ -196,6 +214,15 @@ describe("PerfectShadeDevelopmentStack", { timeout: 30_000 }, () => {
       FunctionName: "perfect-shade-development-estimates",
       Runtime: "nodejs22.x",
       Architectures: ["arm64"],
+      MemorySize: 1024,
+      Timeout: 60,
+      EphemeralStorage: { Size: 1024 },
+      Environment: {
+        Variables: Match.objectLike({
+          DOCUMENT_BUCKET_NAME: Match.anyValue(),
+          DOCUMENT_KEY_PREFIX: "organizations/",
+        }),
+      },
       LoggingConfig: {
         ApplicationLogLevel: "INFO",
         LogFormat: "JSON",
@@ -223,8 +250,12 @@ describe("PerfectShadeDevelopmentStack", { timeout: 30_000 }, () => {
       JSON.stringify(policy).includes("ApiEstimateFunctionServiceRole"),
     );
     expect(estimatePolicy).toBeDefined();
-    expect(JSON.stringify(estimatePolicy)).toContain("s3:PutObject");
-    expect(JSON.stringify(estimatePolicy)).not.toContain("s3:DeleteObject");
+    const serializedEstimatePolicy = JSON.stringify(estimatePolicy);
+    expect(serializedEstimatePolicy).toContain("s3:GetObject");
+    expect(serializedEstimatePolicy).toContain("s3:PutObject");
+    expect(serializedEstimatePolicy).toContain("/organizations/*");
+    expect(serializedEstimatePolicy).not.toContain("s3:ListBucket");
+    expect(serializedEstimatePolicy).not.toContain("s3:DeleteObject");
 
     const accountPolicy = Object.values(policies).find((policy) =>
       JSON.stringify(policy).includes("ApiAccountFunctionServiceRole"),
@@ -235,6 +266,23 @@ describe("PerfectShadeDevelopmentStack", { timeout: 30_000 }, () => {
     expect(serializedAccountPolicy).toContain("cognito-idp:AdminGetUser");
     expect(serializedAccountPolicy).toContain("cognito-idp:ListUsers");
     expect(serializedAccountPolicy).not.toContain("cognito-idp:AdminDeleteUser");
+    expect(serializedAccountPolicy).not.toContain("s3:");
+  });
+
+  it("alarms on Lambda throttles and slow estimate execution", () => {
+    const template = templateFor();
+    template.hasResourceProperties("AWS::CloudWatch::Alarm", {
+      MetricName: "Duration",
+      Namespace: "AWS/Lambda",
+      ExtendedStatistic: "p95",
+      Threshold: 55000,
+      EvaluationPeriods: 2,
+    });
+    template.hasResourceProperties("AWS::CloudWatch::Alarm", {
+      MetricName: "Throttles",
+      Namespace: "AWS/Lambda",
+      Threshold: 1,
+    });
   });
 
   it("uses stable application-owned account and estimate entry points", () => {

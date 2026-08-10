@@ -24,9 +24,8 @@ export class StorageConstruct extends Construct {
       removalPolicy: RemovalPolicy.DESTROY,
       lifecycleRules: [
         {
-          id: "development-cleanup",
+          id: "abort-incomplete-uploads",
           abortIncompleteMultipartUploadAfter: Duration.days(7),
-          noncurrentVersionExpiration: Duration.days(30),
         },
       ],
     });

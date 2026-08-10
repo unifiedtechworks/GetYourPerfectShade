@@ -1,5 +1,5 @@
 import * as path from "node:path";
-import { Duration, RemovalPolicy, Stack } from "aws-cdk-lib";
+import { Duration, RemovalPolicy, Size, Stack } from "aws-cdk-lib";
 import * as apigwv2 from "aws-cdk-lib/aws-apigatewayv2";
 import * as authorizers from "aws-cdk-lib/aws-apigatewayv2-authorizers";
 import * as integrations from "aws-cdk-lib/aws-apigatewayv2-integrations";
@@ -22,6 +22,12 @@ export interface ApiConstructProps {
   readonly documentBucket: s3.Bucket;
 }
 
+interface ApplicationFunctionOptions {
+  readonly memorySize?: number;
+  readonly timeout?: Duration;
+  readonly ephemeralStorageSize?: Size;
+}
+
 export class ApiConstruct extends Construct {
   readonly api: apigwv2.HttpApi;
   readonly accountFunction: lambda.Function;
@@ -38,7 +44,6 @@ export class ApiConstruct extends Construct {
       DATABASE_SECRET_ARN: props.cluster.secret?.secretArn ?? "",
       DATABASE_NAME: props.databaseName,
       DATABASE_RUNTIME_ROLE: "perfect_shade_app_runtime",
-      DOCUMENT_BUCKET_NAME: props.documentBucket.bucketName,
     };
 
     this.accountFunction = this.createApplicationFunction(
@@ -54,15 +59,27 @@ export class ApiConstruct extends Construct {
       "EstimateFunction",
       `${props.config.resourcePrefix}-estimates`,
       "backend/runtime/estimate-handler.ts",
-      commonEnvironment,
+      {
+        ...commonEnvironment,
+        DOCUMENT_BUCKET_NAME: props.documentBucket.bucketName,
+        DOCUMENT_KEY_PREFIX: "organizations/",
+      },
+      {
+        memorySize: 1024,
+        timeout: Duration.seconds(60),
+        ephemeralStorageSize: Size.mebibytes(1024),
+      },
     );
 
     for (const fn of [this.accountFunction, this.estimateFunction]) {
       props.cluster.grantDataApiAccess(fn);
       props.cluster.secret?.grantRead(fn);
     }
-    props.documentBucket.grantRead(this.estimateFunction);
-    props.documentBucket.grantPut(this.estimateFunction);
+    this.estimateFunction.addToRolePolicy(new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: ["s3:GetObject", "s3:PutObject"],
+      resources: [`${props.documentBucket.bucketArn}/organizations/*`],
+    }));
     this.accountFunction.addToRolePolicy(new iam.PolicyStatement({
       effect: iam.Effect.ALLOW,
       actions: [
@@ -156,6 +173,48 @@ export class ApiConstruct extends Construct {
       ),
       authorizer: jwtAuthorizer,
     });
+    for (const route of [
+      {
+        id: "GenerateEstimateDocumentIntegration",
+        path: "/v1/estimates/{estimateId}/documents",
+        method: apigwv2.HttpMethod.POST,
+      },
+      {
+        id: "ListEstimateDocumentsIntegration",
+        path: "/v1/estimates/{estimateId}/documents",
+        method: apigwv2.HttpMethod.GET,
+      },
+      {
+        id: "DownloadEstimateDocumentIntegration",
+        path: "/v1/estimates/{estimateId}/documents/{documentId}/download",
+        method: apigwv2.HttpMethod.GET,
+      },
+      {
+        id: "IssueEstimateIntegration",
+        path: "/v1/estimates/{estimateId}/issue",
+        method: apigwv2.HttpMethod.POST,
+      },
+      {
+        id: "DuplicateEstimateIntegration",
+        path: "/v1/estimates/{estimateId}/duplicate",
+        method: apigwv2.HttpMethod.POST,
+      },
+      {
+        id: "CreateEstimateRevisionIntegration",
+        path: "/v1/estimates/{estimateId}/revisions",
+        method: apigwv2.HttpMethod.POST,
+      },
+    ]) {
+      this.api.addRoutes({
+        path: route.path,
+        methods: [route.method],
+        integration: new integrations.HttpLambdaIntegration(
+          route.id,
+          this.estimateFunction,
+        ),
+        authorizer: jwtAuthorizer,
+      });
+    }
     this.api.addRoutes({
       path: "/v1/estimates/{estimateId}",
       methods: [apigwv2.HttpMethod.PUT],
@@ -188,6 +247,7 @@ export class ApiConstruct extends Construct {
     functionName: string,
     entryPath: string,
     environment: Record<string, string>,
+    options: ApplicationFunctionOptions = {},
   ): lambda.Function {
     const projectRoot = path.join(__dirname, "../../..");
     const logGroup = new logs.LogGroup(this, `${id}Logs`, {
@@ -204,8 +264,9 @@ export class ApiConstruct extends Construct {
       runtime: lambda.Runtime.NODEJS_22_X,
       architecture: lambda.Architecture.ARM_64,
       handler: "handler",
-      timeout: Duration.seconds(15),
-      memorySize: 256,
+      timeout: options.timeout ?? Duration.seconds(15),
+      memorySize: options.memorySize ?? 256,
+      ephemeralStorageSize: options.ephemeralStorageSize,
       environment,
       bundling: {
         target: "node22",
