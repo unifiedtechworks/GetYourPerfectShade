@@ -115,6 +115,11 @@ the documented API Gateway routes and confirm the existing estimate Lambda's
 bucket access before live verification. Do not generate a presigned link, upload
 an object, or apply migration `0007` during ordinary local tests.
 
+`ESTIMATE_INCLUDE_COMPANY_SIGNATURE` controls the exact retained Sheri Brannan
+signature in generated DOCX/PDF output. Keep it unset or `false` unless the
+business owner has explicitly approved signature inclusion. The development
+CDK stack deliberately defaults it to `false`.
+
 ## Staff account-management validation
 
 After migration `0004` and the account API routes are separately deployed, an approved

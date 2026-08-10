@@ -102,7 +102,7 @@ describe("protected saved-draft estimate preview", () => {
     const markup = previewMarkup(estimate());
     expect(markup).not.toContain("Alternate Pricing");
     expect(markup).not.toContain("Addenda Acknowledgement");
-    expect(markup).not.toContain("Additional Terms / Exclusions");
+    expect(markup).not.toContain("Additional terms or exclusions:");
     expect(markup).not.toContain("Prevailing Wage</h2>");
     expect(markup).not.toContain("Project Notes</h2>");
   });
@@ -123,10 +123,10 @@ describe("protected saved-draft estimate preview", () => {
       "Pricing",
       "Alternate Pricing",
       "Terms",
-      "Additional Terms / Exclusions",
+      "Additional terms or exclusions:",
       "Prevailing Wage",
       "Measurement Readiness",
-      "One-Year Craftsmanship Warranty",
+      "Craftsmanship Warranty",
       "Company Qualifications",
       "Project Notes",
     ].map((heading) => markup.indexOf(heading));
@@ -134,6 +134,35 @@ describe("protected saved-draft estimate preview", () => {
     expect(ordered).toEqual([...ordered].sort((a, b) => a - b));
     expect(markup).toContain("$100.00");
     expect(markup).toContain("$500.00");
-    expect(markup).toContain("Alternate pricing is excluded from the main estimate total.");
+    expect(markup).toContain(
+      "Alternate pricing is provided for consideration only and is not included in the base bid total unless accepted in writing.",
+    );
+  });
+
+  it("matches the bid header, information, pricing, authorization, and footer hierarchy", () => {
+    const markup = previewMarkup(estimate());
+    expect(markup).toContain("PERFECT SHADE LLC");
+    expect(markup).toContain("BID PROPOSAL");
+    for (const label of ["Bid No.", "Prepared", "Valid Through", "Bid Due", "Project", "Location", "Architect", "Owner"]) {
+      expect(markup).toContain(label);
+    }
+    expect(markup).toContain("Required Deposit");
+    expect(markup).toContain("Balance Due");
+    expect(markup).toContain("Authorization and Acceptance");
+    expect(markup).toContain("Perfect Shade Authorized Signature");
+    expect(markup).toContain("Authorized Signature");
+    expect(markup).toContain("Perfect Shade LLC | Bid Proposal");
+  });
+
+  it("suppresses blank dynamic terms and a blank enabled prevailing-wage section", () => {
+    const markup = previewMarkup(estimate({
+      includePrevailingWageStatement: true,
+      prevailingWageStatement: " ",
+      pricingValidDays: "",
+      leadTime: " ",
+    }));
+    expect(markup).not.toContain("Pricing is valid for  days");
+    expect(markup).not.toContain("Estimated lead time: .");
+    expect(markup).not.toContain("Prevailing Wage</h2>");
   });
 });

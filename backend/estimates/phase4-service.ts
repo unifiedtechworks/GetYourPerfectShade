@@ -344,17 +344,19 @@ function documentRecord(row: SqlRow): EstimateDocumentRecord {
   };
 }
 
+export type EstimateDocumentGenerator = (
+  estimate: Parameters<typeof generateEstimateDocument>[0],
+  type: EstimateDocumentType,
+  generatedAt: Date,
+) => Promise<GeneratedEstimateDocument>;
+
 export class EstimatePhase4Service {
   constructor(
     private readonly database: EstimateDatabase,
     private readonly storage: EstimateDocumentStorage,
     private readonly idFactory: () => string = randomUUID,
     private readonly clock: () => Date = () => new Date(),
-    private readonly generator: (
-      estimate: Parameters<typeof generateEstimateDocument>[0],
-      type: EstimateDocumentType,
-      generatedAt: Date,
-    ) => Promise<GeneratedEstimateDocument> = generateEstimateDocument,
+    private readonly generator: EstimateDocumentGenerator = generateEstimateDocument,
   ) {}
 
   private async establishContext(transactionId: string, subject: string): Promise<Membership> {

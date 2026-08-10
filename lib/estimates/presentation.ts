@@ -43,32 +43,43 @@ type EstimatePresentationData = Pick<
   | "alternatePricingLines"
   | "terms"
   | "includePrevailingWageStatement"
+  | "prevailingWageStatement"
   | "projectNotes"
 >;
 
 export function coreTerms(estimate: EstimatePresentationData): readonly string[] {
-  return [
+  const terms = [
     `${estimate.depositPercent}% deposit required prior to ordering materials.`,
     "Balance due upon substantial completion.",
-    `Pricing is valid for ${estimate.pricingValidDays} days unless otherwise stated.`,
-    "Changes to the approved scope of work may result in additional charges.",
-    `Estimated lead time: ${estimate.leadTime}.`,
-    SALES_TAX_NOTICE_TEXT,
-    RETAINAGE_TERM_TEXT,
   ];
+  const pricingValidDays = estimate.pricingValidDays.trim();
+  if (pricingValidDays) {
+    terms.push(`Pricing is valid for ${pricingValidDays} days unless otherwise stated.`);
+  }
+  terms.push("Changes to the approved scope of work may result in additional charges.");
+  const leadTime = estimate.leadTime.trim().replace(/[.\s]+$/g, "");
+  if (leadTime) terms.push(`Estimated lead time: ${leadTime}.`);
+  terms.push(SALES_TAX_NOTICE_TEXT, RETAINAGE_TERM_TEXT);
+  return terms;
 }
 
 export function visibleProposalSections(
   estimate: EstimatePresentationData,
 ): readonly string[] {
   return PROPOSAL_SECTION_ORDER.filter((section) => {
-    if (section === "addenda") return estimate.addenda.length > 0;
-    if (section === "alternates") {
-      return estimate.includeAlternatePricing && estimate.alternatePricingLines.length > 0;
+    if (section === "addenda") {
+      return estimate.addenda.some((item) => Boolean(item.description.trim()));
     }
-    if (section === "additionalTerms") return estimate.terms.length > 0;
+    if (section === "alternates") {
+      return estimate.includeAlternatePricing
+        && estimate.alternatePricingLines.some((item) => Boolean(item.description.trim()));
+    }
+    if (section === "additionalTerms") {
+      return estimate.terms.some((item) => Boolean(item.description.trim()));
+    }
     if (section === "prevailingWage") {
-      return estimate.includePrevailingWageStatement;
+      return estimate.includePrevailingWageStatement
+        && Boolean(estimate.prevailingWageStatement.trim());
     }
     if (section === "projectNotes") return Boolean(estimate.projectNotes.trim());
     return true;

@@ -1,4 +1,7 @@
 import { PDFDocument } from "pdf-lib";
+import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { EstimateDetail } from "../aws/api/estimate-contracts";
 import {
@@ -180,6 +183,73 @@ describe("Phase 4 DOCX and PDF generation", () => {
     expect(withoutOptional).not.toContain("Project Notes");
   });
 
+  it("preserves the reference header, bid-information, pricing, authorization, and footer content", () => {
+    const text = buildEstimatePdfText(estimate());
+    const ordered = [
+      "PERFECT SHADE LLC",
+      "BID PROPOSAL",
+      "Perfect Shade LLC",
+      "Sheri Brannan",
+      "Bid No.",
+      "Prepared",
+      "Valid Through",
+      "Bid Information",
+      "Bid Due",
+      "Project",
+      "Location",
+      "Architect",
+      "Owner",
+      "Pricing",
+      "Subtotal",
+      "Total",
+      "Required Deposit",
+      "Balance Due",
+      "Authorization and Acceptance",
+      "Perfect Shade Authorized Signature",
+      "Authorized Signature",
+      "Perfect Shade LLC | Bid Proposal",
+    ].map((value) => text.indexOf(value));
+    expect(ordered.every((index) => index >= 0)).toBe(true);
+    expect(ordered).toEqual([...ordered].sort((left, right) => left - right));
+  });
+
+  it("suppresses malformed optional terms and blank-looking optional sections", () => {
+    const text = buildEstimatePdfText(estimate({
+      addenda: [{ sortOrder: 0, description: " " }],
+      terms: [{ sortOrder: 0, description: "" }],
+      includePrevailingWageStatement: true,
+      prevailingWageStatement: " ",
+      pricingValidDays: "",
+      leadTime: " ",
+    }));
+    expect(text).not.toContain("Pricing is valid for  days");
+    expect(text).not.toContain("Estimated lead time: .");
+    expect(text).not.toContain("Addenda Acknowledgement");
+    expect(text).not.toContain("Prevailing Wage");
+    expect(text).not.toContain("Additional terms or exclusions:");
+  });
+
+  it("embeds only the exact configurable Sheri signature asset", async () => {
+    const signature = readFileSync(join(
+      process.cwd(),
+      "backend",
+      "estimates",
+      "assets",
+      "sheri_signature.pssig",
+    ));
+    expect(createHash("sha256").update(signature).digest("hex")).toBe(
+      "c68a92e9b7755b71922a0a1b15667b53d531aa9bc4cb8eea94d2c296902f717a",
+    );
+
+    const withoutSignature = await generateEstimateDocx(estimate());
+    const withSignature = await generateEstimateDocx(estimate(), {
+      companySignaturePng: signature,
+    });
+    expect(Buffer.from(withoutSignature).toString("latin1")).not.toContain("word/media/");
+    expect(Buffer.from(withSignature).toString("latin1")).toContain("word/media/");
+    expect(withSignature.length).toBeGreaterThan(withoutSignature.length);
+  });
+
   it("creates a Word-free PDF and paginates long proposals", async () => {
     const manyScopeRows = Array.from({ length: 20 }, (_, index) => ({
       sortOrder: index,
@@ -192,5 +262,22 @@ describe("Phase 4 DOCX and PDF generation", () => {
     expect(Buffer.from(bytes.subarray(0, 5)).toString("ascii")).toBe("%PDF-");
     const pdf = await PDFDocument.load(bytes);
     expect(pdf.getPageCount()).toBeGreaterThan(1);
+  });
+
+  it("supports the exact signature in the Word-free PDF without changing JSON", async () => {
+    const signature = readFileSync(join(
+      process.cwd(),
+      "backend",
+      "estimates",
+      "assets",
+      "sheri_signature.pssig",
+    ));
+    const withoutSignature = await generateEstimatePdf(estimate(), GENERATED_AT);
+    const withSignature = await generateEstimatePdf(estimate(), GENERATED_AT, {
+      companySignaturePng: signature,
+    });
+    expect(withSignature.length).toBeGreaterThan(withoutSignature.length);
+    expect(new TextDecoder().decode(generateEstimateJson(estimate(), GENERATED_AT)))
+      .not.toContain("signature");
   });
 });

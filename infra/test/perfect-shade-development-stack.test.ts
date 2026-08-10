@@ -221,6 +221,7 @@ describe("PerfectShadeDevelopmentStack", { timeout: 30_000 }, () => {
         Variables: Match.objectLike({
           DOCUMENT_BUCKET_NAME: Match.anyValue(),
           DOCUMENT_KEY_PREFIX: "organizations/",
+          ESTIMATE_INCLUDE_COMPANY_SIGNATURE: "false",
         }),
       },
       LoggingConfig: {
@@ -289,6 +290,10 @@ describe("PerfectShadeDevelopmentStack", { timeout: 30_000 }, () => {
     const repositoryRoot = join(__dirname, "../..");
     expect(existsSync(join(repositoryRoot, "backend/runtime/account-handler.ts"))).toBe(true);
     expect(existsSync(join(repositoryRoot, "backend/runtime/estimate-handler.ts"))).toBe(true);
+    expect(existsSync(join(
+      repositoryRoot,
+      "backend/estimates/assets/sheri_signature.pssig",
+    ))).toBe(true);
     expect(existsSync(join(
       repositoryRoot,
       "infra/handlers/account-placeholder/index.js",

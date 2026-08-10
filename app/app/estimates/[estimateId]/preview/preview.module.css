@@ -31,12 +31,15 @@
   border: 1px solid #d7d7d2;
   background: #fff;
   box-shadow: 0 0.8rem 2.5rem rgb(32 45 38 / 10%);
-  color: #182a23;
+  color: #111;
+  font-family: Aptos, Arial, sans-serif;
+  font-size: 0.94rem;
+  line-height: 1.2;
 }
 
 .draftBanner {
-  margin: -0.25rem 0 1.5rem;
-  padding: 0.55rem 0.8rem;
+  margin: -0.25rem 0 1.35rem;
+  padding: 0.5rem 0.8rem;
   border: 2px solid #9a652d;
   color: #744817;
   font-weight: 850;
@@ -45,58 +48,165 @@
   text-transform: uppercase;
 }
 
-.brandHeader {
-  display: flex;
-  justify-content: space-between;
-  gap: 2rem;
-  padding-bottom: 1rem;
-  border-bottom: 0.22rem solid #2e5f86;
-  color: #344d5e;
-  font-size: 0.86rem;
+.proposalHeader { margin-bottom: 0; }
+
+.brandName {
+  margin: 0;
+  color: #1f4e79;
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
 }
 
-.brandHeader p { margin: 0.12rem 0; }
-.brandName { color: #204f72; font-size: 1.55rem; font-weight: 850; }
-.document h1 { color: #204f72; text-align: center; }
-.document h2 { margin: 1.5rem 0 0.6rem; color: #204f72; font-size: 1.05rem; }
-.document p, .document li, .document dd { white-space: pre-wrap; }
+.proposalType {
+  margin: 0.25rem 0 0.8rem;
+  color: #505050;
+  font-size: 1rem;
+  font-weight: 800;
+}
 
-.metadata {
+.headerColumns {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  margin: 0;
-  border: 1px solid #aebdca;
+  gap: 2rem;
+  font-size: 0.82rem;
 }
 
-.metadata div { display: grid; grid-template-columns: 7rem 1fr; border-bottom: 1px solid #d7dfe5; }
-.metadata div:nth-last-child(-n + 2) { border-bottom: 0; }
-.metadata dt, .metadata dd { margin: 0; padding: 0.45rem 0.55rem; }
-.metadata dt { background: #e8f0f5; color: #264b65; font-weight: 800; }
-.wide { grid-column: 1 / -1; }
+.companyBlock {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  font-style: normal;
+}
 
-.document table { width: 100%; border-collapse: collapse; }
-.document th, .document td { padding: 0.45rem 0.55rem; border: 1px solid #b7c4cd; text-align: left; }
-.document th { background: #e8f0f5; color: #264b65; }
-.document td:last-child, .document th:last-child { width: 10rem; text-align: right; font-variant-numeric: tabular-nums; }
-.document ul { margin: 0.4rem 0; padding-left: 1.25rem; }
-.document li + li { margin-top: 0.25rem; }
-.muted { color: #68777f; font-style: italic; }
-.unavailable { max-width: 46rem; margin: 2rem auto; padding: 2rem; background: #fff; }
+.headerMetadata {
+  margin: 0;
+  color: #1f4e79;
+  font-weight: 800;
+  text-align: right;
+}
+
+.headerMetadata div { margin-bottom: 0.45rem; }
+.headerMetadata dt, .headerMetadata dd { margin: 0; }
+.headerMetadata dd { white-space: pre-wrap; }
+
+.document section { margin: 0; }
+
+.document h2 {
+  margin: 0.7rem 0 0.15rem;
+  color: #1f4e79;
+  font-size: 1.18rem;
+  font-style: italic;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.document p {
+  margin: 0 0 0.15rem;
+  white-space: pre-wrap;
+}
+
+.document table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.document th,
+.document td {
+  width: 50%;
+  padding: 0.2rem 0.45rem;
+  border: 1px solid #9fbad0;
+  text-align: left;
+  vertical-align: middle;
+  white-space: pre-wrap;
+}
+
+.bidInformation th {
+  background: #ddebf7;
+  color: #1f4e79;
+  font-weight: 800;
+}
+
+.pricingTable thead th {
+  background: #1f4e79;
+  color: #fff;
+  font-weight: 800;
+}
+
+.pricingTable th:last-child,
+.pricingTable td:last-child,
+.pricingTable tfoot th {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.pricingTable tfoot th { color: #1f4e79; }
+.strongTotal th, .strongTotal td { background: #bdd7ee; font-weight: 800; }
+.lightTotal th, .lightTotal td { background: #ddebf7; }
+.boldTotal th, .boldTotal td { font-weight: 800; }
+
+.document ul {
+  margin: 0.2rem 0;
+  padding-left: 1.65rem;
+}
+
+.document li { padding-left: 0.15rem; }
+.inlineLabel { margin-top: 0.25rem !important; }
+
+.signatureColumns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2rem;
+  margin-top: 0.35rem;
+}
+
+.signatureLabel {
+  margin: 0 !important;
+  color: #1f4e79;
+  font-weight: 800;
+}
+
+.signatureSpace { min-height: 4rem; }
+.clientSignatureSpace { min-height: 5.2rem; }
+
+.signatureLine {
+  width: 88%;
+  border-top: 1px solid #222;
+}
+
+.documentFooter {
+  margin-top: 2rem;
+  color: #666;
+  font-size: 0.78rem;
+  text-align: center;
+}
+
+.unavailable {
+  max-width: 46rem;
+  margin: 2rem auto;
+  padding: 2rem;
+  background: #fff;
+}
 
 @media (max-width: 640px) {
-  .brandHeader { flex-direction: column; gap: 0.75rem; }
-  .metadata { grid-template-columns: 1fr; }
-  .metadata div, .metadata div:nth-last-child(-n + 2) { border-bottom: 1px solid #d7dfe5; }
-  .metadata div:last-child { border-bottom: 0; }
-  .wide { grid-column: auto; }
+  .brandName { font-size: 1.55rem; }
+  .headerColumns, .signatureColumns { grid-template-columns: 1fr; gap: 0.9rem; }
+  .headerMetadata { text-align: left; }
   .document { padding: 1.1rem; }
 }
 
 @media print {
-  @page { size: letter; margin: 0.55in; }
+  @page { size: letter; margin: 0.6in 0.7in 0.65in; }
   .actions { display: none; }
-  .document { width: 100%; margin: 0; padding: 0; border: 0; box-shadow: none; font-size: 10pt; }
-  .document section { break-inside: avoid; }
-  .document table { break-inside: avoid; }
+  .document {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+    font-size: 10.5pt;
+  }
+  .document section, .document table { break-inside: avoid; }
   .draftBanner { color: #000; border-color: #000; }
 }

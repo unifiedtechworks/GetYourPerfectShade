@@ -63,6 +63,7 @@ export class ApiConstruct extends Construct {
         ...commonEnvironment,
         DOCUMENT_BUCKET_NAME: props.documentBucket.bucketName,
         DOCUMENT_KEY_PREFIX: "organizations/",
+        ESTIMATE_INCLUDE_COMPANY_SIGNATURE: "false",
       },
       {
         memorySize: 1024,
@@ -273,6 +274,7 @@ export class ApiConstruct extends Construct {
         minify: false,
         sourceMap: true,
         externalModules: [],
+        loader: { ".pssig": "binary" },
       },
       loggingFormat: lambda.LoggingFormat.JSON,
       applicationLogLevelV2: lambda.ApplicationLogLevel.INFO,

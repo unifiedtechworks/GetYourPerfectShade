@@ -5,6 +5,8 @@ import {
 } from "../estimates";
 import { RdsDataDatabase } from "../shared/rds-data";
 import { S3EstimateDocumentStorage } from "../estimates/document-storage";
+import sheriSignaturePng from "../estimates/assets/sheri_signature.pssig";
+import { generateEstimateDocument } from "../../lib/estimates/document-output";
 
 type RoutedHttpApiEvent = HttpApiEvent & Readonly<{
   requestContext: HttpApiEvent["requestContext"] & Readonly<{
@@ -15,6 +17,14 @@ type RoutedHttpApiEvent = HttpApiEvent & Readonly<{
 const handlers = createEstimateHandlers(
   new RdsDataDatabase(),
   new S3EstimateDocumentStorage(),
+  process.env.ESTIMATE_INCLUDE_COMPANY_SIGNATURE === "true"
+    ? (estimate, type, generatedAt) => generateEstimateDocument(
+        estimate,
+        type,
+        generatedAt,
+        { companySignaturePng: sheriSignaturePng },
+      )
+    : undefined,
 );
 
 export async function handler(event: RoutedHttpApiEvent): Promise<HttpApiResponse> {

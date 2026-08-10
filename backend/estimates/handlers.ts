@@ -1,7 +1,10 @@
 import type { EstimateDatabase } from "./database";
 import type { EstimateDocumentStorage } from "./document-storage";
 import { EstimateServiceError } from "./errors";
-import { EstimatePhase4Service } from "./phase4-service";
+import {
+  EstimatePhase4Service,
+  type EstimateDocumentGenerator,
+} from "./phase4-service";
 import { EstimateService } from "./service";
 import {
   validateCreateDraftRequest,
@@ -91,6 +94,7 @@ function errorResponse(error: unknown, requestId: string): HttpApiResponse {
 export function createEstimateHandlers(
   database: EstimateDatabase,
   documentStorage?: EstimateDocumentStorage,
+  documentGenerator?: EstimateDocumentGenerator,
 ): Readonly<{
   createDraft: Handler;
   createRevision: Handler;
@@ -112,6 +116,9 @@ export function createEstimateHandlers(
   const phase4 = new EstimatePhase4Service(
     database,
     documentStorage ?? unavailableStorage,
+    undefined,
+    undefined,
+    documentGenerator,
   );
   return {
     async createDraft(event) {

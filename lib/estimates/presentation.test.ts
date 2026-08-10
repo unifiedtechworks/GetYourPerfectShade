@@ -94,6 +94,20 @@ describe("desktop-aligned proposal presentation", () => {
     expect(detail().totals.totalMinor).toBe("10000");
   });
 
+  it("suppresses malformed dynamic sentences when optional values are blank", () => {
+    const terms = coreTerms(detail({ pricingValidDays: "  ", leadTime: "" }));
+    expect(terms).not.toContain("Pricing is valid for  days unless otherwise stated.");
+    expect(terms).not.toContain("Estimated lead time: .");
+    expect(terms.some((term) => term.startsWith("Pricing is valid for"))).toBe(false);
+    expect(terms.some((term) => term.startsWith("Estimated lead time:"))).toBe(false);
+  });
+
+  it("normalizes trailing lead-time punctuation without changing saved wording", () => {
+    expect(coreTerms(detail({ leadTime: "4-6 weeks. " }))).toContain(
+      "Estimated lead time: 4-6 weeks.",
+    );
+  });
+
   it("suppresses empty or disabled conditional sections and preserves output order", () => {
     expect(visibleProposalSections(detail())).toEqual([
       "project",
@@ -131,5 +145,21 @@ describe("desktop-aligned proposal presentation", () => {
       "qualifications",
       "projectNotes",
     ]);
+  });
+
+  it("does not show blank-looking optional sections", () => {
+    expect(visibleProposalSections(detail({
+      addenda: [{ sortOrder: 0, description: "  " }],
+      terms: [{ sortOrder: 0, description: "" }],
+      includeAlternatePricing: true,
+      alternatePricingLines: [{ sortOrder: 0, description: "  ", amountMinor: "0" }],
+      includePrevailingWageStatement: true,
+      prevailingWageStatement: "  ",
+    }))).not.toEqual(expect.arrayContaining([
+      "addenda",
+      "alternates",
+      "additionalTerms",
+      "prevailingWage",
+    ]));
   });
 });

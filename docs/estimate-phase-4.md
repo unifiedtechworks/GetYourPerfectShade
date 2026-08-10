@@ -42,7 +42,7 @@ The retained desktop project was inspected read-only and remains unchanged.
 | Filename | Current date, project name, `Perfect Shade Bid`, then `(2)`, `(3)` for local collisions | Same readable core; bounded sanitization; unique document ID makes the S3 key collision-safe without probing filenames |
 | Output history | Local files only | Organization-authorized immutable history records for ready outputs |
 | Draft/issued label | No lifecycle status | Explicit `DRAFT` or `ISSUED`, plus revision metadata |
-| Signature | Fixed Sheri Brannan signature image and acceptance block | Acceptance wording and signature lines are retained; the image is deliberately omitted pending an approved server-side signature-asset decision |
+| Signature | Fixed Sheri Brannan signature image and acceptance block | The exact verified signature asset is supported in DOCX/PDF, but deployment inclusion defaults off through `ESTIMATE_INCLUDE_COMPANY_SIGNATURE=false` pending explicit owner approval |
 
 ### Intentional web differences
 
@@ -59,9 +59,10 @@ The retained desktop project was inspected read-only and remains unchanged.
 - The web export adds schema, estimate, revision, status, and generation
   metadata suitable for future import tooling, but excludes organization IDs,
   actor IDs, row versions, S3 keys, credentials, and audit metadata.
-- The fixed handwritten signature image is not copied into AWS output until its
-  ownership and use are explicitly approved. No user-entered signer is silently
-  substituted for the desktop's fixed company signature.
+- The exact desktop signature bytes are bundled only with the protected estimate
+  Lambda. `ESTIMATE_INCLUDE_COMPANY_SIGNATURE` defaults to `false`; enablement
+  remains an explicit deployment decision. No public route imports the asset and
+  no user-entered signer is substituted for Sheri's signature.
 
 ## Shared presentation model
 
@@ -265,7 +266,8 @@ not change CDK or deploy them.
 
 - customer e-signature/acceptance, payment, email delivery, accepted/declined/
   expired/void transitions, and customer portal access;
-- an approved managed company-signature asset and signer administration;
+- explicit owner approval to switch on the bundled company-signature asset, plus
+  any future signer administration;
 - document regeneration jobs/queues for very large proposals;
 - customer/project management UX beyond the current estimate-owned workflow;
 - production retention/legal-hold policy; and
