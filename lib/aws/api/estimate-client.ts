@@ -1,8 +1,14 @@
 import type {
   CreateEstimateDraftRequest,
   CreateEstimateDraftResponse,
+  CopyEstimateResponse,
   EstimateApiErrorBody,
+  EstimateDocumentDownloadResponse,
+  EstimateDocumentType,
+  GenerateEstimateDocumentResponse,
   GetEstimateResponse,
+  IssueEstimateResponse,
+  ListEstimateDocumentsResponse,
   ListEstimatesResponse,
   UpdateEstimateDraftRequest,
   UpdateEstimateDraftResponse,
@@ -34,6 +40,28 @@ export type EstimateApiClient = Readonly<{
     limit?: number;
   }>): Promise<ListEstimatesResponse>;
   get(estimateId: string): Promise<GetEstimateResponse>;
+  issue(
+    estimateId: string,
+    idempotencyKey: string,
+  ): Promise<IssueEstimateResponse>;
+  duplicate(
+    estimateId: string,
+    idempotencyKey: string,
+  ): Promise<CopyEstimateResponse>;
+  createRevision(
+    estimateId: string,
+    idempotencyKey: string,
+  ): Promise<CopyEstimateResponse>;
+  generateDocument(
+    estimateId: string,
+    type: EstimateDocumentType,
+    idempotencyKey: string,
+  ): Promise<GenerateEstimateDocumentResponse>;
+  listDocuments(estimateId: string): Promise<ListEstimateDocumentsResponse>;
+  getDocumentDownload(
+    estimateId: string,
+    documentId: string,
+  ): Promise<EstimateDocumentDownloadResponse>;
   updateDraft(
     estimateId: string,
     request: UpdateEstimateDraftRequest,
@@ -129,6 +157,75 @@ export function createEstimateApiClient(options: Readonly<{
         },
       );
       return parseResponse<UpdateEstimateDraftResponse>(response);
+    },
+
+    async issue(estimateId, idempotencyKey) {
+      const response = await fetchImpl(
+        `${baseUrl}/v1/estimates/${encodeURIComponent(estimateId)}/issue`,
+        {
+          method: "POST",
+          headers: { authorization, "idempotency-key": idempotencyKey },
+          cache: "no-store",
+        },
+      );
+      return parseResponse<IssueEstimateResponse>(response);
+    },
+
+    async duplicate(estimateId, idempotencyKey) {
+      const response = await fetchImpl(
+        `${baseUrl}/v1/estimates/${encodeURIComponent(estimateId)}/duplicate`,
+        {
+          method: "POST",
+          headers: { authorization, "idempotency-key": idempotencyKey },
+          cache: "no-store",
+        },
+      );
+      return parseResponse<CopyEstimateResponse>(response);
+    },
+
+    async createRevision(estimateId, idempotencyKey) {
+      const response = await fetchImpl(
+        `${baseUrl}/v1/estimates/${encodeURIComponent(estimateId)}/revisions`,
+        {
+          method: "POST",
+          headers: { authorization, "idempotency-key": idempotencyKey },
+          cache: "no-store",
+        },
+      );
+      return parseResponse<CopyEstimateResponse>(response);
+    },
+
+    async generateDocument(estimateId, type, idempotencyKey) {
+      const response = await fetchImpl(
+        `${baseUrl}/v1/estimates/${encodeURIComponent(estimateId)}/documents`,
+        {
+          method: "POST",
+          headers: {
+            authorization,
+            "content-type": "application/json",
+            "idempotency-key": idempotencyKey,
+          },
+          body: JSON.stringify({ type }),
+          cache: "no-store",
+        },
+      );
+      return parseResponse<GenerateEstimateDocumentResponse>(response);
+    },
+
+    async listDocuments(estimateId) {
+      const response = await fetchImpl(
+        `${baseUrl}/v1/estimates/${encodeURIComponent(estimateId)}/documents`,
+        { headers: { authorization }, cache: "no-store" },
+      );
+      return parseResponse<ListEstimateDocumentsResponse>(response);
+    },
+
+    async getDocumentDownload(estimateId, documentId) {
+      const response = await fetchImpl(
+        `${baseUrl}/v1/estimates/${encodeURIComponent(estimateId)}/documents/${encodeURIComponent(documentId)}/download`,
+        { headers: { authorization }, cache: "no-store" },
+      );
+      return parseResponse<EstimateDocumentDownloadResponse>(response);
     },
   };
 }

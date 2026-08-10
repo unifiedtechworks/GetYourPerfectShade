@@ -87,6 +87,7 @@ identity applies these files in order:
 4. `infra/database/migrations/0004_staff_account_management.sql`
 5. `infra/database/migrations/0005_estimate_phase_2.sql`
 6. `infra/database/migrations/0006_estimate_phase_3.sql`
+7. `infra/database/migrations/0007_estimate_phase_4.sql`
 
 Ordinary Lambda cold starts, Amplify builds, and CDK synthesis never apply migrations. The
 application contains no active Supabase runtime, environment variable, package, or migration
@@ -97,6 +98,22 @@ After a separately authorized deployment and migration, follow
 owner. The complete 12-step development activation sequence is documented in
 [`aurora-migration-runner.md`](./aurora-migration-runner.md#initial-development-sequence).
 Repository tests and builds never run those live commands.
+
+## Phase 4 document and lifecycle checks
+
+Phase 4 core tests use mocked Aurora and S3 boundaries and require no AWS
+credentials, database connection, Office installation, browser renderer, or
+hosted conversion service:
+
+```powershell
+pnpm exec vitest run lib/estimates/document-output.test.ts backend/estimates/document-storage.test.ts backend/estimates/phase4-service.test.ts lib/estimates/phase-4-migration.test.ts
+```
+
+The implementation adds `docx`, `pdf-lib`, `@aws-sdk/client-s3`, and
+`@aws-sdk/s3-request-presigner` to the root application bundle. Chat 5 must wire
+the documented API Gateway routes and confirm the existing estimate Lambda's
+bucket access before live verification. Do not generate a presigned link, upload
+an object, or apply migration `0007` during ordinary local tests.
 
 ## Staff account-management validation
 

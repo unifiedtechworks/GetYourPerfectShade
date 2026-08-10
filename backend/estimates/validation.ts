@@ -4,6 +4,7 @@ import {
   CANONICAL_ROW_VERSION_PATTERN,
   type CreateEstimateDraftRequest,
   type DocumentType,
+  type EstimateDocumentType,
   type UpdateEstimateDraftRequest,
 } from "../../lib/aws/api/estimate-contracts";
 import {
@@ -211,6 +212,19 @@ export function validateEstimateId(value: unknown): string {
   return value;
 }
 
+export const validateDocumentId = validateEstimateId;
+
+export function validateEstimateDocumentType(
+  value: unknown,
+): EstimateDocumentType {
+  if (value !== "docx" && value !== "pdf" && value !== "json") {
+    throw invalidRequest("Choose DOCX, PDF, or JSON output.", {
+      type: "Choose docx, pdf, or json.",
+    });
+  }
+  return value;
+}
+
 export function validateUpdateDraftRequest(
   input: unknown,
 ): UpdateEstimateDraftRequest {
@@ -335,7 +349,7 @@ export function validateIdempotencyKey(value: string | undefined): string {
   const key = value?.trim();
   if (!key || key.length < 16 || key.length > 200 || !/^[A-Za-z0-9._:-]+$/.test(key)) {
     throw invalidRequest(
-      "A valid Idempotency-Key header is required for draft creation.",
+      "A valid Idempotency-Key header is required for this command.",
     );
   }
   return key;

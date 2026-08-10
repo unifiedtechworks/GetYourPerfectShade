@@ -4,6 +4,7 @@ import {
   type HttpApiResponse,
 } from "../estimates";
 import { RdsDataDatabase } from "../shared/rds-data";
+import { S3EstimateDocumentStorage } from "../estimates/document-storage";
 
 type RoutedHttpApiEvent = HttpApiEvent & Readonly<{
   requestContext: HttpApiEvent["requestContext"] & Readonly<{
@@ -11,7 +12,10 @@ type RoutedHttpApiEvent = HttpApiEvent & Readonly<{
   }>;
 }>;
 
-const handlers = createEstimateHandlers(new RdsDataDatabase());
+const handlers = createEstimateHandlers(
+  new RdsDataDatabase(),
+  new S3EstimateDocumentStorage(),
+);
 
 export async function handler(event: RoutedHttpApiEvent): Promise<HttpApiResponse> {
   const method = event.requestContext.http?.method;
@@ -21,6 +25,22 @@ export async function handler(event: RoutedHttpApiEvent): Promise<HttpApiRespons
   }
   if (method === "POST" && path === "/v1/estimates/drafts") {
     return handlers.createDraft(event);
+  }
+  if (/^\/v1\/estimates\/[^/]+\/documents$/.test(path ?? "")) {
+    if (method === "GET") return handlers.listDocuments(event);
+    if (method === "POST") return handlers.generateDocument(event);
+  }
+  if (/^\/v1\/estimates\/[^/]+\/documents\/[^/]+\/download$/.test(path ?? "") && method === "GET") {
+    return handlers.downloadDocument(event);
+  }
+  if (/^\/v1\/estimates\/[^/]+\/issue$/.test(path ?? "") && method === "POST") {
+    return handlers.issue(event);
+  }
+  if (/^\/v1\/estimates\/[^/]+\/duplicate$/.test(path ?? "") && method === "POST") {
+    return handlers.duplicate(event);
+  }
+  if (/^\/v1\/estimates\/[^/]+\/revisions$/.test(path ?? "") && method === "POST") {
+    return handlers.createRevision(event);
   }
   if (/^\/v1\/estimates\/[^/]+$/.test(path ?? "")) {
     if (method === "GET") return handlers.get(event);

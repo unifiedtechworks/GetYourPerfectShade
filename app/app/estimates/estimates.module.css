@@ -181,6 +181,70 @@
   background: #fff5e9;
 }
 
+.outputPanel {
+  display: grid;
+  gap: 1rem;
+  max-width: 76rem;
+  margin-bottom: 1.25rem;
+  padding: 1.25rem;
+  border: 1px solid #d9d8d1;
+  border-radius: 0.75rem;
+  background: #fff;
+}
+
+.outputPanel h2,
+.outputPanel h3,
+.outputPanel p {
+  margin: 0;
+}
+
+.outputHeading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.outputHeading p {
+  margin-top: 0.25rem;
+  color: #647068;
+}
+
+.commandButtons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.issueButton {
+  min-height: 2.5rem;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid #8f522f;
+  border-radius: 0.4rem;
+  background: #8f522f;
+  color: #fff;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.issueButton:disabled,
+.commandButtons button:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.documentTableWrap {
+  overflow-x: auto;
+  border: 1px solid #e2e1da;
+  border-radius: 0.6rem;
+}
+
+.documentTableWrap .inlineButton {
+  margin-left: 0;
+}
+
 .editorForm {
   display: grid;
   gap: 1.25rem;
@@ -589,6 +653,16 @@
   .headingRow {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .outputHeading,
+  .commandButtons {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .commandButtons {
+    justify-content: flex-start;
   }
 
   .fieldset {

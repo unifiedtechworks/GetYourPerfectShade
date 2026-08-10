@@ -47,7 +47,7 @@ import styles from "../estimates.module.css";
 
 export type EstimateEditorEstimate = Omit<
   EstimateDetail,
-  "createdBy" | "updatedBy"
+  "createdBy" | "updatedBy" | "issuedBy"
 >;
 
 const INITIAL_SAVE_STATE: SaveEstimateState = {
@@ -316,7 +316,13 @@ export function EstimateEditor({ estimate }: { estimate: EstimateEditorEstimate 
   const serverFields = messageVisible ? saveState.fields ?? {} : {};
 
   return (
-    <form action={action} className={styles.editorForm} onChange={changed}>
+    <form
+      action={action}
+      className={styles.editorForm}
+      data-dirty={dirty ? "true" : "false"}
+      data-estimate-editor
+      onChange={changed}
+    >
       <header className={styles.editorHeader}>
         <div>
           <div className={styles.eyebrow}>Estimate editor</div>

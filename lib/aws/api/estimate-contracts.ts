@@ -82,8 +82,11 @@ export type EstimateDetail = Readonly<{
   preparedFor: string;
   contactInformation: string;
   status: EstimateStatus;
+  sourceEstimateId: string | null;
   revisionNumber: string;
   rowVersion: string;
+  issuedAt: string | null;
+  issuedBy: string | null;
   depositPercent: string;
   taxRatePercent: "0";
   includeAlternatePricing: boolean;
@@ -137,6 +140,64 @@ export type UpdateEstimateDraftRequest = Readonly<{
 
 export type GetEstimateResponse = Readonly<{ data: EstimateDetail }>;
 export type UpdateEstimateDraftResponse = Readonly<{ data: EstimateDetail }>;
+
+export type EstimateDocumentType = "docx" | "pdf" | "json";
+export type EstimateDocumentState = "pending" | "ready" | "failed";
+
+export type EstimateDocumentRecord = Readonly<{
+  id: string;
+  estimateId: string;
+  revisionNumber: string;
+  type: EstimateDocumentType;
+  state: EstimateDocumentState;
+  filename: string;
+  contentType: string;
+  byteSize: string | null;
+  checksumSha256: string | null;
+  generatedAt: string | null;
+  createdAt: string;
+}>;
+
+export type GenerateEstimateDocumentRequest = Readonly<{
+  type: EstimateDocumentType;
+}>;
+
+export type GenerateEstimateDocumentResponse = Readonly<{
+  data: EstimateDocumentRecord & Readonly<{ replayed: boolean }>;
+}>;
+
+export type ListEstimateDocumentsResponse = Readonly<{
+  data: readonly EstimateDocumentRecord[];
+}>;
+
+export type EstimateDocumentDownloadResponse = Readonly<{
+  data: Readonly<{
+    documentId: string;
+    filename: string;
+    downloadUrl: string;
+    expiresAt: string;
+  }>;
+}>;
+
+export type IssueEstimateResponse = Readonly<{
+  data: Readonly<{
+    estimateId: string;
+    status: "issued";
+    issuedAt: string;
+    rowVersion: string;
+    replayed: boolean;
+  }>;
+}>;
+
+export type CopyEstimateResponse = Readonly<{
+  data: Readonly<{
+    estimateId: string;
+    sourceEstimateId: string | null;
+    status: "draft";
+    revisionNumber: string;
+    replayed: boolean;
+  }>;
+}>;
 
 export type ListEstimatesResponse = Readonly<{
   data: readonly EstimateListItem[];

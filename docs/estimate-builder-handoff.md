@@ -6,9 +6,10 @@ Phase 3 implementation and desktop-alignment decisions are recorded in
 [`docs/estimate-phase-3.md`](./estimate-phase-3.md). It extends the protected editor and existing
 estimate detail/update API with ordered terms and addenda, prevailing-wage behavior, lead time,
 pricing validity, project notes, exact constant proposal sections, and a protected saved-draft
-preview. Integration must apply `0006_estimate_phase_3.sql` before live Phase 3 saves. Phase 4
-document generation, output comparison, duplication, revisions, and status workflows remain
-deferred.
+preview. Phase 4 now adds server-side DOCX/PDF/JSON output, recoverable S3
+document history, explicit issue, revision, and duplication commands, and
+protected lifecycle controls. Integration must apply `0007_estimate_phase_4.sql`
+before enabling the new routes.
 
 ## Phase 2 draft editor
 
@@ -60,7 +61,7 @@ account-foundation phase.
 3. CDK connects the account and estimate handlers to API Gateway through the shared RDS Data API
    adapter.
 4. The controlled migration job applies all forward-only files through
-   `infra/database/migrations/0006_estimate_phase_3.sql` in numeric filename order.
+   `infra/database/migrations/0007_estimate_phase_4.sql` in numeric filename order.
 5. Development bootstrap creates one active Perfect Shade membership per staff identity.
 6. Live authentication, tenant, role, rollback, and money-boundary gates run only after a
    separately authorized development deployment.

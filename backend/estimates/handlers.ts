@@ -1,9 +1,13 @@
 import type { EstimateDatabase } from "./database";
+import type { EstimateDocumentStorage } from "./document-storage";
 import { EstimateServiceError } from "./errors";
+import { EstimatePhase4Service } from "./phase4-service";
 import { EstimateService } from "./service";
 import {
   validateCreateDraftRequest,
+  validateDocumentId,
   validateEstimateId,
+  validateEstimateDocumentType,
   validateIdempotencyKey,
   validateUpdateDraftRequest,
 } from "./validation";
@@ -86,13 +90,29 @@ function errorResponse(error: unknown, requestId: string): HttpApiResponse {
 
 export function createEstimateHandlers(
   database: EstimateDatabase,
+  documentStorage?: EstimateDocumentStorage,
 ): Readonly<{
   createDraft: Handler;
+  createRevision: Handler;
+  downloadDocument: Handler;
+  duplicate: Handler;
+  generateDocument: Handler;
   get: Handler;
+  issue: Handler;
   list: Handler;
+  listDocuments: Handler;
   updateDraft: Handler;
 }> {
   const service = new EstimateService(database);
+  const unavailableStorage: EstimateDocumentStorage = {
+    async head() { throw new Error("Document storage is unavailable."); },
+    async put() { throw new Error("Document storage is unavailable."); },
+    async presignDownload() { throw new Error("Document storage is unavailable."); },
+  };
+  const phase4 = new EstimatePhase4Service(
+    database,
+    documentStorage ?? unavailableStorage,
+  );
   return {
     async createDraft(event) {
       const requestId = event.requestContext.requestId;
@@ -179,6 +199,99 @@ export function createEstimateHandlers(
             requestId,
           ),
         );
+      } catch (error) {
+        return errorResponse(error, requestId);
+      }
+    },
+
+    async issue(event) {
+      const requestId = event.requestContext.requestId;
+      try {
+        return response(200, await phase4.issue(
+          subject(event),
+          validateEstimateId(event.pathParameters?.estimateId),
+          validateIdempotencyKey(header(event.headers, "idempotency-key")),
+          requestId,
+        ));
+      } catch (error) {
+        return errorResponse(error, requestId);
+      }
+    },
+
+    async duplicate(event) {
+      const requestId = event.requestContext.requestId;
+      try {
+        return response(201, await phase4.duplicate(
+          subject(event),
+          validateEstimateId(event.pathParameters?.estimateId),
+          validateIdempotencyKey(header(event.headers, "idempotency-key")),
+          requestId,
+        ));
+      } catch (error) {
+        return errorResponse(error, requestId);
+      }
+    },
+
+    async createRevision(event) {
+      const requestId = event.requestContext.requestId;
+      try {
+        return response(201, await phase4.createRevision(
+          subject(event),
+          validateEstimateId(event.pathParameters?.estimateId),
+          validateIdempotencyKey(header(event.headers, "idempotency-key")),
+          requestId,
+        ));
+      } catch (error) {
+        return errorResponse(error, requestId);
+      }
+    },
+
+    async generateDocument(event) {
+      const requestId = event.requestContext.requestId;
+      try {
+        let input: unknown;
+        try {
+          input = JSON.parse(event.body ?? "");
+        } catch {
+          throw new EstimateServiceError("invalid_json", "The request body must be valid JSON.", 400);
+        }
+        const type = validateEstimateDocumentType(
+          input && typeof input === "object" && !Array.isArray(input)
+            ? (input as Record<string, unknown>).type
+            : undefined,
+        );
+        return response(201, await phase4.generate(
+          subject(event),
+          validateEstimateId(event.pathParameters?.estimateId),
+          type,
+          validateIdempotencyKey(header(event.headers, "idempotency-key")),
+          requestId,
+        ));
+      } catch (error) {
+        return errorResponse(error, requestId);
+      }
+    },
+
+    async listDocuments(event) {
+      const requestId = event.requestContext.requestId;
+      try {
+        return response(200, await phase4.listDocuments(
+          subject(event),
+          validateEstimateId(event.pathParameters?.estimateId),
+        ));
+      } catch (error) {
+        return errorResponse(error, requestId);
+      }
+    },
+
+    async downloadDocument(event) {
+      const requestId = event.requestContext.requestId;
+      try {
+        return response(200, await phase4.download(
+          subject(event),
+          validateEstimateId(event.pathParameters?.estimateId),
+          validateDocumentId(event.pathParameters?.documentId),
+        ));
       } catch (error) {
         return errorResponse(error, requestId);
       }

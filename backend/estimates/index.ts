@@ -6,3 +6,6 @@ export type {
   SqlRow,
   SqlStatement,
 } from "./database";
+export { S3EstimateDocumentStorage } from "./document-storage";
+export type { EstimateDocumentStorage } from "./document-storage";
+export { EstimatePhase4Service } from "./phase4-service";

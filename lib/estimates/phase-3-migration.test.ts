@@ -8,7 +8,7 @@ const migration = readFileSync(
 );
 
 describe("Aurora estimate Phase 3 migration", () => {
-  it("keeps the six forward-only migrations uniquely and deterministically ordered", () => {
+  it("keeps the forward-only migrations uniquely and deterministically ordered", () => {
     expect(
       readdirSync(join(process.cwd(), "infra", "database", "migrations"))
         .filter((name) => name.endsWith(".sql"))
@@ -20,6 +20,7 @@ describe("Aurora estimate Phase 3 migration", () => {
       "0004_staff_account_management.sql",
       "0005_estimate_phase_2.sql",
       "0006_estimate_phase_3.sql",
+      "0007_estimate_phase_4.sql",
     ]);
   });
 

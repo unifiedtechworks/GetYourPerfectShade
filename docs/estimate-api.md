@@ -153,14 +153,63 @@ Current codes include `authentication_required`, `active_membership_required`,
 `estimate_not_found`, `estimate_not_editable`, `stale_estimate`,
 `database_contract_error`, and `internal_error`. Unexpected database details are not returned.
 
+Phase 4 also defines `estimate_incomplete`, `estimate_already_issued`,
+`revision_requires_issued_estimate`, `revision_already_exists`,
+`document_not_found`, `document_source_changed`,
+`document_storage_conflict`, `document_storage_unavailable`, and
+`document_finalize_pending`. Storage, SQL, credential, bucket, key, and signing
+details are never included in error bodies.
+
 ## Authorization, deletion, and revisions
 
 Owner, admin, and staff may list and create drafts. The API currently exposes no delete endpoint.
 Customers, projects, and estimates have soft-delete fields; database triggers permit changes to
 those fields only for owner/admin context. The runtime role has no physical-delete privilege.
-Issued estimates and their child rows are immutable. A later revision command will create a new
-draft with `source_estimate_id` and an incremented `revision_number`; Phase 1 adds no revision
-or status UI.
+Issued estimates and their child rows are immutable. Phase 4 creates a new draft
+with `source_estimate_id` and an incremented `revision_number` instead of editing
+an issued estimate.
+
+## Phase 4 lifecycle and document routes
+
+All write commands require a 16-200 character `Idempotency-Key` header using
+letters, digits, `.`, `_`, `:`, or `-`.
+
+### `POST /v1/estimates/{estimateId}/issue`
+
+Explicitly validates and issues a complete draft. The response contains the
+estimate ID, `issued` status, issue timestamp, next row version, and replay flag.
+The issue transition and `estimate.issued` audit event commit in one transaction.
+
+### `POST /v1/estimates/{estimateId}/duplicate`
+
+Creates an independent revision-one draft on the same project, copies ordered
+proposal content, clears the estimate number, and does not copy source linkage or
+generated documents.
+
+### `POST /v1/estimates/{estimateId}/revisions`
+
+Creates the deterministic next draft from an issued estimate. The response
+contains the new estimate ID, immediate source ID, draft status, revision number,
+and replay flag.
+
+### `POST /v1/estimates/{estimateId}/documents`
+
+Accepts `{ "type": "docx" | "pdf" | "json" }`. The response exposes safe
+document history metadata only. Generation reserves a pending row, stores to the
+trusted organization key, then finalizes the row and audit event. See
+[`estimate-phase-4.md`](./estimate-phase-4.md) for cross-service recovery.
+
+### `GET /v1/estimates/{estimateId}/documents`
+
+Returns organization-authorized document history in newest-first order. Bucket
+names, object keys, version IDs, generator identities, and failure details are
+not returned.
+
+### `GET /v1/estimates/{estimateId}/documents/{documentId}/download`
+
+Authorizes the estimate/document relationship and returns a five-minute
+presigned attachment URL plus filename and expiry. Only `ready` rows are
+downloadable. A caller cannot supply an S3 key.
 
 ## Infrastructure integration contract
 

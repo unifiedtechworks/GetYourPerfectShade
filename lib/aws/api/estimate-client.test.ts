@@ -99,4 +99,42 @@ describe("estimate API client", () => {
     expect(body.pricingLines[0].amountMinor).toBe("100");
     expect(body).not.toHaveProperty("organizationId");
   });
+
+  it("uses the authenticated Phase 4 lifecycle and document routes", async () => {
+    const fetchImpl = vi.fn(
+      async (_input: string | URL | Request, _init?: RequestInit) =>
+        new Response(JSON.stringify({ data: [] }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+    );
+    const client = createEstimateApiClient({
+      accessToken: "access-token",
+      baseUrl: "https://api.example.test",
+      fetchImpl: fetchImpl as typeof fetch,
+    });
+    await client.issue("estimate-id", "issue-key-123456");
+    await client.duplicate("estimate-id", "duplicate-key-123456");
+    await client.createRevision("estimate-id", "revision-key-123456");
+    await client.generateDocument("estimate-id", "pdf", "document-key-123456");
+    await client.listDocuments("estimate-id");
+    await client.getDocumentDownload("estimate-id", "document-id");
+
+    expect(fetchImpl.mock.calls.map(([url]) => url)).toEqual([
+      "https://api.example.test/v1/estimates/estimate-id/issue",
+      "https://api.example.test/v1/estimates/estimate-id/duplicate",
+      "https://api.example.test/v1/estimates/estimate-id/revisions",
+      "https://api.example.test/v1/estimates/estimate-id/documents",
+      "https://api.example.test/v1/estimates/estimate-id/documents",
+      "https://api.example.test/v1/estimates/estimate-id/documents/document-id/download",
+    ]);
+    expect(fetchImpl.mock.calls.slice(0, 4).every(([, init]) =>
+      init?.method === "POST" &&
+      (init.headers as Record<string, string>)["idempotency-key"],
+    )).toBe(true);
+    expect(JSON.parse(String(fetchImpl.mock.calls[3][1]?.body))).toEqual({ type: "pdf" });
+    expect(fetchImpl.mock.calls.every(([, init]) =>
+      (init?.headers as Record<string, string>).authorization === "Bearer access-token",
+    )).toBe(true);
+  });
 });
