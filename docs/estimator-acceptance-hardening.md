@@ -75,7 +75,7 @@ Status terms used below:
 | Duplicate estimate | Intentional web improvement | Draft or issued content creates an independent revision-one draft on the same project with blank Bid Number, no source link, and no document history. |
 | Retry/idempotency | Defect fixed | Draft creation, issue, duplicate, revision, and document generation now retain the same browser command key across ambiguous retries; server request hashes, unique constraints, and replay tests remain authoritative. |
 | Tenant ownership/audit | Intentional web improvement | Cognito subject resolves one active membership; every query repeats organization predicates under forced RLS. Mutable records track creator/updater, and lifecycle/document events are append-only. |
-| Signature | Deferred owner decision | Exact rendering support remains private and deployment-controlled. This pass did not change or enable signature configuration. |
+| Signature | Owner-approved development configuration | The exact verified Sheri Brannan asset remains private and deployment-controlled. The owner approved it for generated client bids, and development uses `ESTIMATE_INCLUDE_COMPANY_SIGNATURE=true`; production enablement remains part of a separately approved production deployment. |
 | Accepted/declined/expired/void, e-signature, payment, email | Deferred future feature | Schema reservations are not exposed as incomplete workflows. |
 
 ## Concrete defects corrected
@@ -133,5 +133,6 @@ Use development/test records only. Keep browser paper size at Letter and disable
    pages; record the browser/version and any pagination difference.
 
 Production-user acceptance should begin only after these authenticated hosted
-checks pass and the business owner separately decides whether to enable the
-private company-signature asset.
+checks pass. The private company-signature asset is already owner-approved for
+development-generated client bids; production enablement remains part of a
+separately approved production deployment.
