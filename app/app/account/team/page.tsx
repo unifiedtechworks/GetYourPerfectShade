@@ -7,6 +7,7 @@ import {
   changeTeamMemberStatus,
   inviteTeamMember,
 } from "../actions";
+import { ConfirmActionForm } from "./ConfirmActionForm";
 import styles from "./team.module.css";
 
 const successMessages: Readonly<Record<string, string>> = {
@@ -161,14 +162,17 @@ export default async function TeamManagementPage({
                       {canManage(member) ? (
                         <div className={styles.controls}>
                           {account.membership.role === "owner" && member.status !== "removed" && (
-                            <form action={changeTeamMemberRole}>
+                            <ConfirmActionForm
+                              action={changeTeamMemberRole}
+                              confirmation={`Change the role for ${member.email}?`}
+                            >
                               <input type="hidden" name="membershipId" value={member.membershipId} />
                               <select name="role" defaultValue={member.role} aria-label={`Role for ${member.email}`}>
                                 <option value="admin">Admin</option>
                                 <option value="staff">Staff</option>
                               </select>
                               <button type="submit">Change role</button>
-                            </form>
+                            </ConfirmActionForm>
                           )}
                           {member.status === "active" && (
                             <MembershipAction member={member} action="disable" label="Disable" />
@@ -205,12 +209,21 @@ function MembershipAction({
   label: string;
 }) {
   return (
-    <form action={changeTeamMemberStatus}>
+    <ConfirmActionForm
+      action={changeTeamMemberStatus}
+      confirmation={
+        action === "remove"
+          ? `Remove ${member.email} from this organization? Their Cognito user will remain.`
+          : action === "disable"
+            ? `Disable application access for ${member.email}?`
+            : `Re-enable application access for ${member.email}?`
+      }
+    >
       <input type="hidden" name="membershipId" value={member.membershipId} />
       <input type="hidden" name="action" value={action} />
       <button className={action === "remove" ? styles.danger : undefined} type="submit">
         {label}
       </button>
-    </form>
+    </ConfirmActionForm>
   );
 }

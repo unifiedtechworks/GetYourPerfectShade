@@ -17,7 +17,7 @@ export default async function ForgotPasswordPage({ searchParams }: Props) {
         </p>}
         <form className={styles.form} action={requestPasswordReset}>
           <label>Email<input name="email" type="email" autoComplete="email" required /></label>
-          <button type="submit">Send reset link</button>
+          <button type="submit">Send recovery code</button>
         </form>
         <div className={styles.links}><Link href="/sign-in">Back to sign in</Link></div>
       </section>

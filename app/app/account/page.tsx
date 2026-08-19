@@ -13,8 +13,15 @@ export default async function AccountPage({
 }: {
   searchParams: Promise<{ updated?: string; error?: string }>;
 }) {
-  const { user, membership } = await requireAccount();
+  const { user, membership, accountAvailability } = await requireAccount();
   const { updated, error } = await searchParams;
+  const availabilityMessage = accountAvailability === "api-unconfigured"
+    ? "Account data is not configured in this environment."
+    : accountAvailability === "api-unavailable"
+      ? "Account data is temporarily unavailable. Profile changes are disabled."
+      : accountAvailability === "no-membership"
+        ? "No active organization membership is available for this account."
+        : null;
   return (
     <>
       <h1>Account settings</h1>
@@ -25,6 +32,9 @@ export default async function AccountPage({
         <p className={styles.warning} role="alert">
           {errorMessages[error] ?? "The profile could not be updated safely."}
         </p>
+      )}
+      {availabilityMessage && (
+        <p className={styles.warning} role="alert">{availabilityMessage}</p>
       )}
       <section className={styles.panel}>
         <h2>Profile</h2>

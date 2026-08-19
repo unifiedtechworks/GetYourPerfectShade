@@ -5,6 +5,31 @@ import { AUTH_COOKIES, clearAuthCookies, setSessionCookies } from "./cookies";
 import { refreshSession } from "./client";
 import { sessionFromCookies } from "./session";
 
+function refreshedRequestHeaders(
+  request: NextRequest,
+  tokens: Parameters<typeof setSessionCookies>[1],
+  refreshToken: string,
+) {
+  const requestCookies = new Map(
+    request.cookies.getAll().map(({ name, value }) => [name, value]),
+  );
+  setSessionCookies({
+    set(name, value, options) {
+      if (options.maxAge === 0) requestCookies.delete(name);
+      else requestCookies.set(name, value);
+    },
+  }, tokens, refreshToken);
+
+  const headers = new Headers(request.headers);
+  headers.set(
+    "cookie",
+    [...requestCookies]
+      .map(([name, value]) => `${name}=${value}`)
+      .join("; "),
+  );
+  return headers;
+}
+
 function signInRedirect(request: NextRequest, error?: string) {
   const url = new URL("/sign-in", request.url);
   if (error) url.searchParams.set("error", error);
@@ -49,7 +74,13 @@ export async function updateAuthSession(request: NextRequest) {
   }
   if (session && signInRoute) return NextResponse.redirect(new URL("/app", request.url));
 
-  const response = NextResponse.next({ request });
-  if (session && refreshedTokens) setSessionCookies(response.cookies, refreshedTokens, refreshToken);
+  const response = session && refreshedTokens && refreshToken
+    ? NextResponse.next({
+        request: { headers: refreshedRequestHeaders(request, refreshedTokens, refreshToken) },
+      })
+    : NextResponse.next({ request });
+  if (session && refreshedTokens) {
+    setSessionCookies(response.cookies, refreshedTokens, refreshToken);
+  }
   return response;
 }

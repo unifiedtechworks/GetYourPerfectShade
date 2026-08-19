@@ -8,11 +8,16 @@ import {
   decodeChallenge,
   setSessionCookies,
 } from "@/lib/auth/cognito/cookies";
+import { validateStaffPassword } from "@/lib/auth/password-policy";
 import { safeNextPath } from "@/lib/auth/redirect";
 
 export async function setInitialPassword(formData: FormData) {
   const password = String(formData.get("password") ?? "");
-  if (password.length < 12) redirect("/auth/new-password?error=length");
+  const passwordError = validateStaffPassword(
+    password,
+    String(formData.get("confirmPassword") ?? ""),
+  );
+  if (passwordError) redirect(`/auth/new-password?error=${passwordError}`);
 
   const cookieStore = await cookies();
   const challenge = decodeChallenge(cookieStore.get(AUTH_COOKIES.challenge)?.value);

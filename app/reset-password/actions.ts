@@ -2,13 +2,18 @@
 
 import { redirect } from "next/navigation";
 import { confirmPasswordRecovery } from "@/lib/auth/cognito/client";
+import { validateStaffPassword } from "@/lib/auth/password-policy";
 
 export async function updatePassword(formData: FormData) {
   const password = String(formData.get("password") ?? "");
   const email = String(formData.get("email") ?? "").trim();
   const code = String(formData.get("code") ?? "").trim();
-  if (password.length < 12) {
-    redirect(`/reset-password?error=length&email=${encodeURIComponent(email)}`);
+  const passwordError = validateStaffPassword(
+    password,
+    String(formData.get("confirmPassword") ?? ""),
+  );
+  if (passwordError) {
+    redirect(`/reset-password?error=${passwordError}&email=${encodeURIComponent(email)}`);
   }
   const result = await confirmPasswordRecovery(email, code, password);
   if (result.status !== "complete") {
