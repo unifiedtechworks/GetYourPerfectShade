@@ -116,9 +116,11 @@ bucket access before live verification. Do not generate a presigned link, upload
 an object, or apply migration `0007` during ordinary local tests.
 
 `ESTIMATE_INCLUDE_COMPANY_SIGNATURE` controls the exact retained Sheri Brannan
-signature in generated DOCX/PDF output. Keep it unset or `false` unless the
-business owner has explicitly approved signature inclusion. The development
-CDK stack deliberately defaults it to `false`.
+signature in generated DOCX/PDF output. The owner approved the verified bundled
+asset for development on 2026-08-18, so the deployed development Lambda uses
+`true`. Other environments must make an explicit deployment decision. The
+asset remains backend-only and must never be copied into `public/` or a browser
+bundle.
 
 ## Staff account-management validation
 

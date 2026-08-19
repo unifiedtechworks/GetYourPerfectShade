@@ -30,8 +30,10 @@ The generated reference embeds the same bytes as `word/media/image1.png` at
 The protected Lambda bundle contains the byte-identical private build asset as
 `backend/estimates/assets/sheri_signature.pssig`. Esbuild's binary loader turns
 it into `Uint8Array`; it is not a public Next.js image. Runtime inclusion is
-enabled only when `ESTIMATE_INCLUDE_COMPANY_SIGNATURE=true`. CDK defaults the
-setting to `false` pending explicit business-owner approval.
+enabled only when `ESTIMATE_INCLUDE_COMPANY_SIGNATURE=true`. The owner approved
+the exact verified asset for development-generated client documents on
+2026-08-18. Development CDK now sets the toggle to `true`; a future production
+deployment still requires its own explicit launch authorization.
 
 ## Conditional presentation
 

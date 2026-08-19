@@ -42,7 +42,7 @@ The retained desktop project was inspected read-only and remains unchanged.
 | Filename | Current date, project name, `Perfect Shade Bid`, then `(2)`, `(3)` for local collisions | Same readable core; bounded sanitization; unique document ID makes the S3 key collision-safe without probing filenames |
 | Output history | Local files only | Organization-authorized immutable history records for ready outputs |
 | Draft/issued label | No lifecycle status | Explicit `DRAFT` or `ISSUED`, plus revision metadata |
-| Signature | Fixed Sheri Brannan signature image and acceptance block | The exact verified signature asset is supported in DOCX/PDF, but deployment inclusion defaults off through `ESTIMATE_INCLUDE_COMPANY_SIGNATURE=false` pending explicit owner approval |
+| Signature | Fixed Sheri Brannan signature image and acceptance block | The exact verified signature asset is supported in DOCX/PDF and is approved for development-generated client documents through `ESTIMATE_INCLUDE_COMPANY_SIGNATURE=true` |
 
 ### Intentional web differences
 
@@ -60,9 +60,10 @@ The retained desktop project was inspected read-only and remains unchanged.
   metadata suitable for future import tooling, but excludes organization IDs,
   actor IDs, row versions, S3 keys, credentials, and audit metadata.
 - The exact desktop signature bytes are bundled only with the protected estimate
-  Lambda. `ESTIMATE_INCLUDE_COMPANY_SIGNATURE` defaults to `false`; enablement
-  remains an explicit deployment decision. No public route imports the asset and
-  no user-entered signer is substituted for Sheri's signature.
+  Lambda. The owner approved `ESTIMATE_INCLUDE_COMPANY_SIGNATURE=true` for the
+  development environment on 2026-08-18. No public route imports the asset and
+  no user-entered signer is substituted for Sheri's signature. Production remains
+  a separate deployment decision.
 
 ## Shared presentation model
 
@@ -266,8 +267,7 @@ not change CDK or deploy them.
 
 - customer e-signature/acceptance, payment, email delivery, accepted/declined/
   expired/void transitions, and customer portal access;
-- explicit owner approval to switch on the bundled company-signature asset, plus
-  any future signer administration;
+- any future signer administration or replacement of the approved bundled asset;
 - document regeneration jobs/queues for very large proposals;
 - customer/project management UX beyond the current estimate-owned workflow;
 - production retention/legal-hold policy; and

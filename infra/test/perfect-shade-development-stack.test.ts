@@ -221,7 +221,7 @@ describe("PerfectShadeDevelopmentStack", { timeout: 30_000 }, () => {
         Variables: Match.objectLike({
           DOCUMENT_BUCKET_NAME: Match.anyValue(),
           DOCUMENT_KEY_PREFIX: "organizations/",
-          ESTIMATE_INCLUDE_COMPANY_SIGNATURE: "false",
+          ESTIMATE_INCLUDE_COMPANY_SIGNATURE: "true",
         }),
       },
       LoggingConfig: {
