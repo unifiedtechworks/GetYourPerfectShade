@@ -4,6 +4,7 @@
 
 .backLink {
   display: inline-flex;
+  min-height: 44px;
   gap: 8px;
   align-items: center;
   border-radius: 999px;
@@ -84,7 +85,7 @@
 }
 
 .header h1:focus {
-  outline: 3px solid rgba(185, 111, 100, 0.42);
+  outline: 3px solid var(--color-terracotta);
   outline-offset: 6px;
   border-radius: 4px;
 }

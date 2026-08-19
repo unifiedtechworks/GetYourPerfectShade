@@ -145,7 +145,7 @@
   box-shadow: 0 14px 30px rgba(19, 35, 63, 0.12);
 }
 
-@media (max-width: 760px) {
+@media (max-width: 820px) {
   .inner {
     display: grid;
     grid-template-columns: 1fr auto;
@@ -199,6 +199,6 @@
 
 @media (max-width: 360px) {
   .nav {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    font-size: 0.82rem;
   }
 }

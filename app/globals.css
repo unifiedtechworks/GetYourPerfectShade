@@ -1,7 +1,7 @@
 :root {
   --color-navy: #13233f;
   --color-navy-soft: #203455;
-  --color-terracotta: #b96f64;
+  --color-terracotta: #a25a50;
   --color-rose: #d9aaa4;
   --color-blush: #f4dfdc;
   --color-cream: #fbf5ea;
@@ -169,7 +169,7 @@ h1 {
 
 .button:focus-visible,
 a:focus-visible {
-  outline: 3px solid rgba(185, 111, 100, 0.42);
+  outline: 3px solid var(--color-terracotta);
   outline-offset: 4px;
 }
 
@@ -180,7 +180,7 @@ a:focus-visible {
 }
 
 .buttonPrimary:hover {
-  background: #c47a6f;
+  background: #934e45;
   box-shadow: 0 16px 30px rgba(185, 111, 100, 0.28);
 }
 

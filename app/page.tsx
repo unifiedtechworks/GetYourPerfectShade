@@ -22,7 +22,15 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Custom Window Coverings in Hermiston, Oregon | Perfect Shade",
     description,
-    url: "/"
+    url: "/",
+    images: [
+      {
+        url: "/images/perfect-shade/window-coverings.jpg",
+        width: 1448,
+        height: 1086,
+        alt: "Elegant living room with custom drapery and a light-filtering shade"
+      }
+    ]
   }
 };
 

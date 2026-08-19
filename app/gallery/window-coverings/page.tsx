@@ -15,7 +15,15 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Window Covering Products | Perfect Shade",
     description,
-    url: "/gallery/window-coverings"
+    url: "/gallery/window-coverings",
+    images: [
+      {
+        url: "/images/perfect-shade/products/roller-shades.jpg",
+        width: 1448,
+        height: 1086,
+        alt: "Living room with custom roller shades filtering natural light"
+      }
+    ]
   }
 };
 

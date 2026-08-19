@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef } from "react";
+import { businessInfo } from "@/data/business";
 import { productOfferings, type Service } from "@/data/services";
 import styles from "./ProductDetailPage.module.css";
 
@@ -141,9 +142,9 @@ export function ProductDetailPage({ service }: { service: Service }) {
             <Link className="button buttonPrimary" href="/contact">
               Request a Consultation
             </Link>
-            <Link className="button buttonLight" href="tel:5415714675">
-              Call 541-571-4675
-            </Link>
+            <a className="button buttonLight" href={businessInfo.phoneHref}>
+              Call {businessInfo.phone}
+            </a>
           </div>
         </section>
       </div>

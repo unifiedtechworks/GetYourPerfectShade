@@ -14,7 +14,15 @@ export const metadata: Metadata = {
   openGraph: {
     title: "About Perfect Shade",
     description,
-    url: "/about"
+    url: "/about",
+    images: [
+      {
+        url: "/images/perfect-shade/window-coverings.jpg",
+        width: 1448,
+        height: 1086,
+        alt: "Elegant living room with custom drapery and a light-filtering shade"
+      }
+    ]
   }
 };
 

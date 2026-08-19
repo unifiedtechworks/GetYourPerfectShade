@@ -36,8 +36,9 @@
 }
 
 .footer a {
-  display: block;
-  margin: 7px 0;
+  display: flex;
+  min-height: 44px;
+  align-items: center;
   color: var(--color-cream);
   transition: color 180ms ease, transform 180ms ease;
 }

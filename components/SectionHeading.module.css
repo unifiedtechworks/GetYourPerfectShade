@@ -19,3 +19,9 @@
   color: var(--color-muted);
   font-size: 1.04rem;
 }
+
+.heading :global(.eyebrow) {
+  margin-bottom: 10px;
+  color: var(--color-terracotta);
+  font-size: 0.78rem;
+}

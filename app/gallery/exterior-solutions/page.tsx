@@ -15,7 +15,15 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Exterior Shade Solutions | Perfect Shade",
     description,
-    url: "/gallery/exterior-solutions"
+    url: "/gallery/exterior-solutions",
+    images: [
+      {
+        url: "/images/perfect-shade/products/exterior-shades.jpg",
+        width: 1448,
+        height: 1086,
+        alt: "Covered patio with exterior shades for sun control and comfort"
+      }
+    ]
   }
 };
 
