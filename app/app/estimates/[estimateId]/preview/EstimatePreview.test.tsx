@@ -79,8 +79,37 @@ describe("protected saved-draft estimate preview", () => {
     );
     expect(css).toContain("@media print");
     expect(css).toContain("@page");
-    expect(css).toMatch(/\.actions\s*\{\s*display:\s*none;/);
-    expect(css).toContain("break-inside: avoid");
+    expect(css).toContain("size: Letter portrait");
+    expect(css).toMatch(/\.actions,\s*\.printButton\s*\{\s*display:\s*none !important;/);
+    expect(css).toMatch(/\.draftBanner\s*\{\s*display:\s*none !important;/);
+    expect(css).toContain("print-color-adjust: exact");
+    expect(css).toContain("break-after: avoid-page");
+    expect(css).toMatch(/\.pricingTable tr,\s*\.pricingTable tfoot\s*\{[^}]*break-inside:\s*avoid-page/s);
+    expect(css).toMatch(/\.authorizationSection,\s*\.signatureColumns\s*\{[^}]*break-inside:\s*avoid-page !important/s);
+    expect(css).not.toContain(".document section, .document table { break-inside: avoid; }");
+  });
+
+  it("scopes standalone printing to the preview and removes protected application chrome", () => {
+    const appCss = readFileSync(
+      join(process.cwd(), "app", "app", "app.module.css"),
+      "utf8",
+    );
+    const pageSource = readFileSync(
+      join(
+        process.cwd(),
+        "app",
+        "app",
+        "estimates",
+        "[estimateId]",
+        "preview",
+        "page.tsx",
+      ),
+      "utf8",
+    );
+    expect(pageSource).toContain("data-estimate-print-preview");
+    expect(appCss).toMatch(/@media print[\s\S]*\.shell:has\(\[data-estimate-print-preview\]\)/);
+    expect(appCss).toMatch(/\.shell:has\(\[data-estimate-print-preview\]\) \.sidebar\s*\{\s*display:\s*none !important;/);
+    expect(appCss).toMatch(/\.shell:has\(\[data-estimate-print-preview\]\) \.content\s*\{[^}]*padding:\s*0;[^}]*overflow:\s*visible;/s);
   });
 
   it("labels the preview as a draft and excludes internal actor and row-version data", () => {
@@ -149,6 +178,7 @@ describe("protected saved-draft estimate preview", () => {
     expect(markup).toContain("Required Deposit");
     expect(markup).toContain("Balance Due");
     expect(markup).toContain("Authorization and Acceptance");
+    expect(markup).toContain("authorizationSection");
     expect(markup).toContain("Perfect Shade Authorized Signature");
     expect(markup).toContain("Authorized Signature");
     expect(markup).toContain("Perfect Shade LLC | Bid Proposal");

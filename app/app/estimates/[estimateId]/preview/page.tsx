@@ -21,7 +21,7 @@ export default async function EstimatePreviewPage({
     const { createdBy: _createdBy, updatedBy: _updatedBy, ...previewEstimate } =
       result.data;
     return (
-      <>
+      <div data-estimate-print-preview>
         <nav aria-label="Estimate preview actions" className={styles.actions}>
           <Link href={`/app/estimates/${encodeURIComponent(estimateId)}`}>
             Back to editor
@@ -29,7 +29,7 @@ export default async function EstimatePreviewPage({
           <PrintPreviewButton />
         </nav>
         <EstimatePreview estimate={previewEstimate} />
-      </>
+      </div>
     );
   } catch (error) {
     if (error instanceof EstimateApiError && error.status === 404) notFound();

@@ -155,7 +155,7 @@ export function EstimatePreview({ estimate }: { estimate: PreviewEstimate }) {
         <section><h2>Project Notes</h2><p>Project Notes: {estimate.projectNotes}</p></section>
       )}
 
-      <section>
+      <section className={styles.authorizationSection}>
         <h2>Authorization and Acceptance</h2>
         <p>By signing below, the client acknowledges acceptance of the scope, pricing, and terms described in this proposal.</p>
         <div className={styles.signatureColumns}>

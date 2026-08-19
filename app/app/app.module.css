@@ -20,3 +20,21 @@
   .sidebar { gap: 1rem; }
   .nav { grid-template-columns: repeat(2, 1fr); }
 }
+
+@media print {
+  .shell:has([data-estimate-print-preview]) {
+    display: block;
+    min-height: 0;
+    background: #fff;
+    color: #111;
+  }
+
+  .shell:has([data-estimate-print-preview]) .sidebar {
+    display: none !important;
+  }
+
+  .shell:has([data-estimate-print-preview]) .content {
+    padding: 0;
+    overflow: visible;
+  }
+}
