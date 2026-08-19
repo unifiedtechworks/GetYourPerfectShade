@@ -83,7 +83,16 @@ export class S3EstimateDocumentStorage implements EstimateDocumentStorage {
       const status = (error as { $metadata?: { httpStatusCode?: number } }).$metadata
         ?.httpStatusCode;
       const name = (error as { name?: string }).name;
-      if (status === 404 || name === "NotFound" || name === "NoSuchKey") return null;
+      // S3 deliberately returns 403 for a missing key when the caller has
+      // GetObject but not ListBucket. The estimate role omits ListBucket by
+      // design, so an AccessDenied HEAD is the expected "not stored yet"
+      // response before the first PutObject.
+      if (
+        status === 404
+        || name === "NotFound"
+        || name === "NoSuchKey"
+        || status === 403
+      ) return null;
       throw error;
     }
   }

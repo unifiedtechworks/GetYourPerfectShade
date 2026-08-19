@@ -68,6 +68,21 @@ describe("S3 estimate document adapter", () => {
     ).head("trusted/missing.pdf")).resolves.toBeNull();
   });
 
+  it("treats S3's least-privilege missing-key response as absent", async () => {
+    const sender = new Sender();
+    sender.send = vi.fn(async () => {
+      throw Object.assign(new Error("access denied"), {
+        name: "Forbidden",
+        $metadata: { httpStatusCode: 403 },
+      });
+    });
+
+    await expect(new S3EstimateDocumentStorage(
+      "placeholder-private-bucket",
+      sender as unknown as S3Client,
+    ).head("trusted/not-stored-yet.pdf")).resolves.toBeNull();
+  });
+
   it("creates a five-minute attachment URL without exposing signing configuration", async () => {
     const sender = new Sender();
     const signer = vi.fn(async (
