@@ -515,8 +515,8 @@ function documentChildren(
   const sections = new Set(visibleProposalSections(estimate));
   const projectName = estimate.projectName.trim() || "this project";
   const scopeItems = nonblankRows(estimate.scopeItems);
-  const pricingLines = nonblankRows(estimate.pricingLines);
-  const alternatePricingLines = nonblankRows(estimate.alternatePricingLines);
+  const pricingLines = estimate.pricingLines;
+  const alternatePricingLines = estimate.alternatePricingLines;
   const addenda = nonblankRows(estimate.addenda);
   const additionalTerms = nonblankRows(estimate.terms);
   const taxRows = BigInt(estimate.totals.salesTaxMinor) !== 0n
@@ -988,8 +988,8 @@ function pdfSignatureBlock(
 export function buildEstimatePdfText(estimate: EstimateDetail): readonly string[] {
   const sections = new Set(visibleProposalSections(estimate));
   const scopeItems = nonblankRows(estimate.scopeItems);
-  const pricingLines = nonblankRows(estimate.pricingLines);
-  const alternatePricingLines = nonblankRows(estimate.alternatePricingLines);
+  const pricingLines = estimate.pricingLines;
+  const alternatePricingLines = estimate.alternatePricingLines;
   const addenda = nonblankRows(estimate.addenda);
   const additionalTerms = nonblankRows(estimate.terms);
   return [
@@ -1096,8 +1096,8 @@ export async function generateEstimatePdf(
   let context = newPdfPage({ document, regular, bold, italic, boldItalic });
   const sections = new Set(visibleProposalSections(estimate));
   const scopeItems = nonblankRows(estimate.scopeItems);
-  const pricingLines = nonblankRows(estimate.pricingLines);
-  const alternatePricingLines = nonblankRows(estimate.alternatePricingLines);
+  const pricingLines = estimate.pricingLines;
+  const alternatePricingLines = estimate.alternatePricingLines;
   const addenda = nonblankRows(estimate.addenda);
   const additionalTerms = nonblankRows(estimate.terms);
 

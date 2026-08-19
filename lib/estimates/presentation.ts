@@ -72,7 +72,7 @@ export function visibleProposalSections(
     }
     if (section === "alternates") {
       return estimate.includeAlternatePricing
-        && estimate.alternatePricingLines.some((item) => Boolean(item.description.trim()));
+        && estimate.alternatePricingLines.length > 0;
     }
     if (section === "additionalTerms") {
       return estimate.terms.some((item) => Boolean(item.description.trim()));

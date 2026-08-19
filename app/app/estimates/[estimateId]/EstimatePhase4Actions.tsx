@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import type {
   EstimateDocumentRecord,
   EstimateDocumentType,
@@ -15,6 +15,7 @@ import {
   issueEstimateAction,
   type EstimateCommandResult,
 } from "../phase4-actions";
+import { createEstimateCommandKeyTracker } from "@/lib/estimates/idempotency";
 import styles from "../estimates.module.css";
 
 function hasUnsavedEditorChanges(): boolean {
@@ -38,10 +39,13 @@ export function EstimatePhase4Actions({
   const [pending, startTransition] = useTransition();
   const [active, setActive] = useState("");
   const [result, setResult] = useState<EstimateCommandResult | null>(null);
+  const commandKeys = useRef(
+    createEstimateCommandKeyTracker(() => crypto.randomUUID()),
+  );
 
   function run(
     label: string,
-    operation: () => Promise<EstimateCommandResult>,
+    operation: (idempotencyKey: string) => Promise<EstimateCommandResult>,
     options: Readonly<{ confirm?: string; requireSavedDraft?: boolean; navigate?: boolean }> = {},
   ) {
     if (options.requireSavedDraft && hasUnsavedEditorChanges()) {
@@ -51,10 +55,12 @@ export function EstimatePhase4Actions({
     if (options.confirm && !window.confirm(options.confirm)) return;
     setActive(label);
     setResult(null);
+    const idempotencyKey = commandKeys.current.keyFor(label);
     startTransition(async () => {
-      const next = await operation();
+      const next = await operation(idempotencyKey);
       setResult(next);
       setActive("");
+      if (next.ok || next.newRequestRequired) commandKeys.current.clear(label);
       if (next.ok && options.navigate && next.estimateId) {
         router.push(`/app/estimates/${encodeURIComponent(next.estimateId)}`);
         return;
@@ -70,7 +76,8 @@ export function EstimatePhase4Actions({
   function generate(type: EstimateDocumentType) {
     run(
       `generate-${type}`,
-      () => generateEstimateDocumentAction(estimateId, type),
+      (idempotencyKey) =>
+        generateEstimateDocumentAction(estimateId, type, idempotencyKey),
       { requireSavedDraft: status === "draft" },
     );
   }
@@ -115,7 +122,8 @@ export function EstimatePhase4Actions({
             disabled={pending}
             onClick={() => run(
               "duplicate",
-              () => duplicateEstimateAction(estimateId),
+              (idempotencyKey) =>
+                duplicateEstimateAction(estimateId, idempotencyKey),
               {
                 confirm: "Create an independent draft copy? Its estimate number will be blank and generated documents will not be copied.",
                 navigate: true,
@@ -132,7 +140,8 @@ export function EstimatePhase4Actions({
               disabled={pending}
               onClick={() => run(
                 "issue",
-                () => issueEstimateAction(estimateId),
+                (idempotencyKey) =>
+                  issueEstimateAction(estimateId, idempotencyKey),
                 {
                   confirm: "Issue this estimate? This revision will become read-only and cannot be edited.",
                   requireSavedDraft: true,
@@ -148,7 +157,8 @@ export function EstimatePhase4Actions({
               disabled={pending}
               onClick={() => run(
                 "revision",
-                () => createRevisionAction(estimateId),
+                (idempotencyKey) =>
+                  createRevisionAction(estimateId, idempotencyKey),
                 {
                   confirm: "Create the next editable revision from this issued estimate?",
                   navigate: true,

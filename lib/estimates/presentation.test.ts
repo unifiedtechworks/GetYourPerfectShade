@@ -147,7 +147,7 @@ describe("desktop-aligned proposal presentation", () => {
     ]);
   });
 
-  it("does not show blank-looking optional sections", () => {
+  it("does not show blank-looking text sections but preserves valid amount-only alternates", () => {
     expect(visibleProposalSections(detail({
       addenda: [{ sortOrder: 0, description: "  " }],
       terms: [{ sortOrder: 0, description: "" }],
@@ -157,9 +157,14 @@ describe("desktop-aligned proposal presentation", () => {
       prevailingWageStatement: "  ",
     }))).not.toEqual(expect.arrayContaining([
       "addenda",
-      "alternates",
       "additionalTerms",
       "prevailingWage",
     ]));
+    expect(visibleProposalSections(detail({
+      includeAlternatePricing: true,
+      alternatePricingLines: [
+        { sortOrder: 0, description: "  ", amountMinor: "0" },
+      ],
+    }))).toContain("alternates");
   });
 });

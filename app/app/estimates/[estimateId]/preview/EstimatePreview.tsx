@@ -26,8 +26,8 @@ export function EstimatePreview({ estimate }: { estimate: PreviewEstimate }) {
   const scopeItems = nonblank(estimate.scopeItems);
   const addenda = nonblank(estimate.addenda);
   const terms = nonblank(estimate.terms);
-  const pricingLines = nonblank(estimate.pricingLines);
-  const alternatePricingLines = nonblank(estimate.alternatePricingLines);
+  const pricingLines = estimate.pricingLines;
+  const alternatePricingLines = estimate.alternatePricingLines;
   const hasSalesTax = BigInt(estimate.totals.salesTaxMinor) !== 0n;
 
   return (

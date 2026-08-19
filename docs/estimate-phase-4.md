@@ -245,6 +245,12 @@ Writes require the existing `Idempotency-Key` header. All routes use Cognito JWT
 claims, database-resolved active membership, explicit organization predicates,
 forced RLS, secret-safe errors, and no caller-controlled tenant path.
 
+The protected UI retains one idempotency key for each in-flight command attempt
+and reuses it after an ambiguous failure. It rotates the key only after success
+or a response that requires a new document/storage request. Draft creation uses
+the same form-scoped strategy, so browser retries can reach the server's
+existing replay behavior instead of accidentally creating a second record.
+
 Chat 5 must add these route keys to API Gateway and confirm Lambda S3
 `PutObject`, `GetObject`, `HeadObject`, and presigning permissions. Phase 4 does
 not change CDK or deploy them.

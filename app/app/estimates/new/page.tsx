@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import Link from "next/link";
 import { requireEstimateApiIdentity } from "@/lib/aws/api/estimate-identity";
 import { CreateEstimateForm } from "./CreateEstimateForm";
@@ -15,7 +16,7 @@ export default async function NewEstimatePage() {
         Start a protected draft with the same required project and Architect
         fields as the desktop Bid Generator.
       </p>
-      <CreateEstimateForm />
+      <CreateEstimateForm idempotencyKey={randomUUID()} />
     </>
   );
 }

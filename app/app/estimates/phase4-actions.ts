@@ -1,6 +1,5 @@
 "use server";
 
-import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import {
   createEstimateApiClient,
@@ -14,11 +13,23 @@ export type EstimateCommandResult = Readonly<{
   message: string;
   estimateId?: string;
   downloadUrl?: string;
+  newRequestRequired?: boolean;
 }>;
+
+const NEW_REQUEST_REQUIRED_CODES = new Set([
+  "document_generation_failed",
+  "document_storage_conflict",
+  "document_storage_unavailable",
+  "idempotency_conflict",
+]);
 
 function failure(error: unknown, fallback: string): EstimateCommandResult {
   if (error instanceof EstimateApiError) {
-    return { ok: false, message: error.message };
+    return {
+      ok: false,
+      message: error.message,
+      newRequestRequired: NEW_REQUEST_REQUIRED_CODES.has(error.code),
+    };
   }
   return { ok: false, message: fallback };
 }
@@ -30,9 +41,10 @@ async function client() {
 
 export async function issueEstimateAction(
   estimateId: string,
+  idempotencyKey: string,
 ): Promise<EstimateCommandResult> {
   try {
-    await (await client()).issue(estimateId, randomUUID());
+    await (await client()).issue(estimateId, idempotencyKey);
     revalidatePath("/app/estimates");
     revalidatePath(`/app/estimates/${estimateId}`);
     revalidatePath(`/app/estimates/${estimateId}/preview`);
@@ -44,9 +56,10 @@ export async function issueEstimateAction(
 
 export async function duplicateEstimateAction(
   estimateId: string,
+  idempotencyKey: string,
 ): Promise<EstimateCommandResult> {
   try {
-    const result = await (await client()).duplicate(estimateId, randomUUID());
+    const result = await (await client()).duplicate(estimateId, idempotencyKey);
     revalidatePath("/app/estimates");
     return {
       ok: true,
@@ -60,9 +73,10 @@ export async function duplicateEstimateAction(
 
 export async function createRevisionAction(
   estimateId: string,
+  idempotencyKey: string,
 ): Promise<EstimateCommandResult> {
   try {
-    const result = await (await client()).createRevision(estimateId, randomUUID());
+    const result = await (await client()).createRevision(estimateId, idempotencyKey);
     revalidatePath("/app/estimates");
     return {
       ok: true,
@@ -77,12 +91,13 @@ export async function createRevisionAction(
 export async function generateEstimateDocumentAction(
   estimateId: string,
   type: EstimateDocumentType,
+  idempotencyKey: string,
 ): Promise<EstimateCommandResult> {
   try {
     const result = await (await client()).generateDocument(
       estimateId,
       type,
-      randomUUID(),
+      idempotencyKey,
     );
     revalidatePath(`/app/estimates/${estimateId}`);
     return {

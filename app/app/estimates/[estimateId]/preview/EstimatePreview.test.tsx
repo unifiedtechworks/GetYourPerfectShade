@@ -168,6 +168,29 @@ describe("protected saved-draft estimate preview", () => {
     );
   });
 
+  it("renders valid amount-only base and alternate pricing rows", () => {
+    const markup = previewMarkup(estimate({
+      includeAlternatePricing: true,
+      pricingLines: [
+        { sortOrder: 0, description: "", amountMinor: "12345" },
+      ],
+      alternatePricingLines: [
+        { sortOrder: 0, description: "", amountMinor: "6789" },
+      ],
+      totals: {
+        subtotalMinor: "12345",
+        salesTaxMinor: "0",
+        totalMinor: "12345",
+        requiredDepositMinor: "6173",
+        remainingBalanceMinor: "6172",
+        alternateTotalMinor: "6789",
+      },
+    }));
+    expect(markup).toContain("$123.45");
+    expect(markup).toContain("Alternate Pricing");
+    expect(markup).toContain("$67.89");
+  });
+
   it("matches the bid header, information, pricing, authorization, and footer hierarchy", () => {
     const markup = previewMarkup(estimate());
     expect(markup).toContain("PERFECT SHADE LLC");

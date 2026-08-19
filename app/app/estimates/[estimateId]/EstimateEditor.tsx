@@ -551,6 +551,7 @@ export function EstimateEditor({ estimate }: { estimate: EstimateEditorEstimate 
                 />
               </label>
               <button
+                aria-label={`Remove scope item ${index + 1}`}
                 className={styles.removeButton}
                 onClick={() => removeScopeRow(index)}
                 type="button"
@@ -626,6 +627,7 @@ export function EstimateEditor({ estimate }: { estimate: EstimateEditorEstimate 
                 />
               </label>
               <button
+                aria-label={`Remove pricing line ${index + 1}`}
                 className={styles.removeButton}
                 onClick={() => removePricingRow("base", index)}
                 type="button"
@@ -720,6 +722,7 @@ export function EstimateEditor({ estimate }: { estimate: EstimateEditorEstimate 
                       />
                     </label>
                     <button
+                      aria-label={`Remove alternate pricing line ${index + 1}`}
                       className={styles.removeButton}
                       onClick={() => removePricingRow("alternate", index)}
                       type="button"
@@ -843,18 +846,21 @@ export function EstimateEditor({ estimate }: { estimate: EstimateEditorEstimate 
               </label>
               <div className={styles.rowActions}>
                 <button
+                  aria-label={`Move addendum ${index + 1} up`}
                   className={styles.secondaryButton}
                   disabled={index === 0}
                   onClick={() => moveTextRow("addendum", index, -1)}
                   type="button"
                 >Up</button>
                 <button
+                  aria-label={`Move addendum ${index + 1} down`}
                   className={styles.secondaryButton}
                   disabled={index === addenda.length - 1}
                   onClick={() => moveTextRow("addendum", index, 1)}
                   type="button"
                 >Down</button>
                 <button
+                  aria-label={`Remove addendum ${index + 1}`}
                   className={styles.removeButton}
                   onClick={() => removeTextRow("addendum", index)}
                   type="button"
@@ -968,18 +974,21 @@ export function EstimateEditor({ estimate }: { estimate: EstimateEditorEstimate 
                 </label>
                 <div className={styles.rowActions}>
                   <button
+                    aria-label={`Move term or exclusion ${index + 1} up`}
                     className={styles.secondaryButton}
                     disabled={index === 0}
                     onClick={() => moveTextRow("term", index, -1)}
                     type="button"
                   >Up</button>
                   <button
+                    aria-label={`Move term or exclusion ${index + 1} down`}
                     className={styles.secondaryButton}
                     disabled={index === terms.length - 1}
                     onClick={() => moveTextRow("term", index, 1)}
                     type="button"
                   >Down</button>
                   <button
+                    aria-label={`Remove term or exclusion ${index + 1}`}
                     className={styles.removeButton}
                     onClick={() => removeTextRow("term", index)}
                     type="button"

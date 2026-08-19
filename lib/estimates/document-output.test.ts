@@ -183,6 +183,35 @@ describe("Phase 4 DOCX and PDF generation", () => {
     expect(withoutOptional).not.toContain("Project Notes");
   });
 
+  it("keeps valid amount-only pricing rows in DOCX and PDF output", async () => {
+    const amountOnly = estimate({
+      pricingLines: [
+        { sortOrder: 0, description: "", amountMinor: "12345" },
+      ],
+      alternatePricingLines: [
+        { sortOrder: 0, description: "", amountMinor: "6789" },
+      ],
+      totals: {
+        subtotalMinor: "12345",
+        salesTaxMinor: "0",
+        totalMinor: "12345",
+        requiredDepositMinor: "6173",
+        remainingBalanceMinor: "6172",
+        alternateTotalMinor: "6789",
+      },
+    });
+
+    const text = buildEstimatePdfText(amountOnly);
+    expect(text).toContain("$123.45");
+    expect(text).toContain("Alternate Pricing");
+    expect(text).toContain("$67.89");
+
+    const docx = Buffer.from(await generateEstimateDocx(amountOnly)).toString(
+      "latin1",
+    );
+    expect(docx).toContain("word/document.xml");
+  });
+
   it("preserves the reference header, bid-information, pricing, authorization, and footer content", () => {
     const text = buildEstimatePdfText(estimate());
     const ordered = [

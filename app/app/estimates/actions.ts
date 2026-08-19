@@ -22,6 +22,7 @@ import {
   type EstimateEditorTextRow,
   validateEstimateEditor,
 } from "@/lib/estimates/editor";
+import { resolveIdempotencyKey } from "@/lib/estimates/idempotency";
 import type { CreateEstimateState, SaveEstimateState } from "./types";
 
 function field(formData: FormData, name: string): string {
@@ -47,6 +48,10 @@ export async function createEstimate(
       ? field(formData, "depositPercent")
       : DEFAULT_DEPOSIT_PERCENT,
   };
+  const idempotencyKey = resolveIdempotencyKey(
+    formData.get("idempotencyKey"),
+    randomUUID,
+  );
 
   if (!fields.customerName) {
     return { message: "Customer Name is required.", fields };
@@ -99,12 +104,15 @@ export async function createEstimate(
         pricingAmountMinor: totals.totalMinor.toString(),
         depositPercent: decimalToString(depositPercent),
       },
-      randomUUID(),
+      idempotencyKey,
     );
     estimateId = result.data.estimateId;
-  } catch {
+  } catch (error) {
     return {
-      message: "The draft could not be created. Please try again.",
+      message:
+        error instanceof EstimateApiError
+          ? error.message
+          : "The draft could not be created. Please try again.",
       fields,
     };
   }

@@ -18,11 +18,14 @@ function SubmitButton() {
   );
 }
 
-export function CreateEstimateForm() {
+export function CreateEstimateForm({
+  idempotencyKey,
+}: Readonly<{ idempotencyKey: string }>) {
   const [state, action] = useActionState(createEstimate, INITIAL_STATE);
   const values = state.fields ?? {};
   return (
     <form action={action} className={styles.form}>
+      <input name="idempotencyKey" type="hidden" value={idempotencyKey} />
       {state.message && (
         <p className={styles.error} role="alert">
           {state.message}
