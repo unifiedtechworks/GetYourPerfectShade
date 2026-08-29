@@ -1,10 +1,10 @@
 import type { App } from "aws-cdk-lib";
 
-export type MfaMode = "off" | "optional";
+export type MfaMode = "off" | "optional" | "required";
 export type EmailSenderMode = "cognito" | "ses";
 
-export interface PerfectShadeDevelopmentConfig {
-  readonly environmentName: "development";
+export interface PerfectShadeApplicationConfig {
+  readonly environmentName: "development" | "production";
   readonly region: "us-west-2";
   readonly resourcePrefix: string;
   readonly callbackUrls: string[];
@@ -21,6 +21,10 @@ export interface PerfectShadeDevelopmentConfig {
   readonly enableBudget: boolean;
   readonly monthlyBudgetUsd: number;
   readonly budgetNotificationEmail?: string;
+}
+
+export interface PerfectShadeDevelopmentConfig extends PerfectShadeApplicationConfig {
+  readonly environmentName: "development";
 }
 
 function csv(value: unknown, fallback: string[]): string[] {

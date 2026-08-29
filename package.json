@@ -2,6 +2,7 @@
   "name": "getyourperfectshade",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@11.9.0",
   "engines": {
     "node": ">=22.12.0"
   },
@@ -12,6 +13,7 @@
     "bootstrap:owner": "node --experimental-strip-types backend/admin/bootstrap-owner.mts",
     "lint": "tsc --noEmit",
     "test": "vitest run",
+    "validate:amplify-environment": "node scripts/validate-amplify-environment.mjs",
     "migration:status": "node infra/database/runner/cli.mjs status",
     "migration:plan": "node infra/database/runner/cli.mjs plan",
     "migration:apply": "node infra/database/runner/cli.mjs apply",

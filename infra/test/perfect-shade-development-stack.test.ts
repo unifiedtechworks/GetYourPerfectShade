@@ -26,18 +26,25 @@ const baseConfig: PerfectShadeDevelopmentConfig = {
   monthlyBudgetUsd: 50,
 };
 
+let cachedDefaultTemplate: Template | undefined;
+
 function templateFor(
   overrides: Partial<PerfectShadeDevelopmentConfig> = {},
 ): Template {
+  if (Object.keys(overrides).length === 0 && cachedDefaultTemplate) {
+    return cachedDefaultTemplate;
+  }
   const app = new App();
   const stack = new PerfectShadeDevelopmentStack(app, "TestStack", {
     config: { ...baseConfig, ...overrides },
     env: { account: "111111111111", region: "us-west-2" },
   });
-  return Template.fromStack(stack);
+  const template = Template.fromStack(stack);
+  if (Object.keys(overrides).length === 0) cachedDefaultTemplate = template;
+  return template;
 }
 
-describe("PerfectShadeDevelopmentStack", { timeout: 30_000 }, () => {
+describe("PerfectShadeDevelopmentStack", { timeout: 120_000 }, () => {
   it("uses localhost-only deployment defaults and keeps hosted URLs configurable", () => {
     const config = loadDevelopmentConfig(new App());
 

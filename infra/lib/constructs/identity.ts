@@ -1,10 +1,10 @@
 import { Aws, Duration, RemovalPolicy } from "aws-cdk-lib";
 import * as cognito from "aws-cdk-lib/aws-cognito";
 import { Construct } from "constructs";
-import type { PerfectShadeDevelopmentConfig } from "../config";
+import type { PerfectShadeApplicationConfig } from "../config";
 
 export interface IdentityConstructProps {
-  readonly config: PerfectShadeDevelopmentConfig;
+  readonly config: PerfectShadeApplicationConfig;
 }
 
 export class IdentityConstruct extends Construct {
@@ -34,7 +34,11 @@ export class IdentityConstruct extends Construct {
       autoVerify: { email: true },
       accountRecovery: cognito.AccountRecovery.EMAIL_ONLY,
       email,
-      mfa: config.mfaMode === "optional" ? cognito.Mfa.OPTIONAL : cognito.Mfa.OFF,
+      mfa: config.mfaMode === "required"
+        ? cognito.Mfa.REQUIRED
+        : config.mfaMode === "optional"
+          ? cognito.Mfa.OPTIONAL
+          : cognito.Mfa.OFF,
       mfaSecondFactor: { otp: true, sms: false },
       passwordPolicy: {
         minLength: 12,
@@ -47,8 +51,10 @@ export class IdentityConstruct extends Construct {
       standardAttributes: {
         email: { required: true, mutable: true },
       },
-      deletionProtection: false,
-      removalPolicy: RemovalPolicy.DESTROY,
+      deletionProtection: config.environmentName === "production",
+      removalPolicy: config.environmentName === "production"
+        ? RemovalPolicy.RETAIN
+        : RemovalPolicy.DESTROY,
     });
 
     this.userPoolDomain = this.userPool.addDomain("HostedDomain", {

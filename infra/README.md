@@ -1,6 +1,7 @@
 # Perfect Shade AWS Infrastructure
 
-This package defines the AWS-native **development** backend foundation described in
+This package defines the AWS-native development backend and a separately guarded,
+not-yet-authorized production design described in
 [`docs/aws-backend-architecture.md`](../docs/aws-backend-architecture.md). It does not contain
 application authentication flows or estimate business logic.
 
@@ -9,8 +10,10 @@ application authentication flows or estimate business logic.
 ```text
 infra/
   bin/perfect-shade.ts                 CDK entry point
-  lib/config.ts                        development-only context contract
+  lib/config.ts                        shared/development context contract
+  lib/production-config.ts             guarded production context contract
   lib/perfect-shade-development-stack.ts
+  lib/perfect-shade-production-stack.ts
   lib/constructs/
     identity.ts                        Cognito User Pool and app client
     data.ts                            private Aurora Serverless v2 and Data API
@@ -91,6 +94,47 @@ release includes the patched bundle.
 
 Do not store an account ID, AWS credentials, passwords, tokens, customer data, or unapproved
 notification email in `cdk.json`.
+
+## Production synthesis (no deployment authority)
+
+Production has no committed recipient or domain defaults. Use review-only placeholder values
+for credential-disabled synthesis; real approved values must be supplied only at the separately
+authorized deployment review:
+
+```powershell
+npm run synth -- PerfectShadeProduction `
+  --context perfectShadeEnvironment=production `
+  --context confirmProductionSynthesis=true `
+  --context callbackUrls=https://www.getyourperfectshade.com/auth/callback `
+  --context logoutUrls=https://www.getyourperfectshade.com/sign-in `
+  --context allowedCorsOrigins=https://www.getyourperfectshade.com `
+  --context sesFromEmail=no-reply@example.invalid `
+  --context sesVerifiedDomain=example.invalid `
+  --context operationsNotificationEmail=operations@example.invalid `
+  --context budgetNotificationEmail=budget@example.invalid
+```
+
+This produces `PerfectShadeProduction` only. It does not include or update
+`PerfectShadeDevelopment`. Never run `cdk deploy` or `cdk bootstrap` from this example.
+
+Production settings are intentionally fixed or guarded: PostgreSQL 16.14, 0.5–4 ACU, no
+auto-pause, 35-day backup retention, deletion protection, retained secrets/buckets, required
+TOTP MFA, SES sender mode, and a USD 200 budget definition. `cloudTrailDataEventsEnabled=true`
+is optional because S3 object-level events can materially increase CloudTrail cost.
+
+The production runtime secret is distinct from the admin/migration secret. A reviewed operator
+step must activate/rotate the restricted database login after migrations; application Lambdas
+must never receive the admin secret. See
+[`docs/aws-production-readiness.md`](../docs/aws-production-readiness.md).
+
+The root [`amplify.yml`](../amplify.yml) pins pnpm and runs
+`pnpm validate:amplify-environment`. Amplify `main` fails unless branch-specific production
+values include `PERFECT_SHADE_DEPLOYMENT_ENVIRONMENT=production` and the release-time
+`PERFECT_SHADE_PRODUCTION_RELEASE_APPROVED=true` marker. Production-only expected-value
+overrides for the API URL, user-pool ID, and client ID must exactly match their public values,
+so app-level development values cannot pass accidentally. Remove the release marker after the
+approved job. The current development values must not remain as app-level defaults when
+production hosting is enabled.
 
 ## Application handler ownership
 

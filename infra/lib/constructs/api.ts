@@ -9,17 +9,19 @@ import * as lambdaNodejs from "aws-cdk-lib/aws-lambda-nodejs";
 import * as logs from "aws-cdk-lib/aws-logs";
 import type * as rds from "aws-cdk-lib/aws-rds";
 import type * as s3 from "aws-cdk-lib/aws-s3";
+import type * as secretsmanager from "aws-cdk-lib/aws-secretsmanager";
 import type * as cognito from "aws-cdk-lib/aws-cognito";
 import { Construct } from "constructs";
-import type { PerfectShadeDevelopmentConfig } from "../config";
+import type { PerfectShadeApplicationConfig } from "../config";
 
 export interface ApiConstructProps {
-  readonly config: PerfectShadeDevelopmentConfig;
+  readonly config: PerfectShadeApplicationConfig;
   readonly userPool: cognito.UserPool;
   readonly userPoolClient: cognito.UserPoolClient;
   readonly cluster: rds.DatabaseCluster;
   readonly databaseName: string;
   readonly documentBucket: s3.Bucket;
+  readonly databaseRuntimeSecret?: secretsmanager.ISecret;
 }
 
 interface ApplicationFunctionOptions {
@@ -41,7 +43,8 @@ export class ApiConstruct extends Construct {
       APP_ENVIRONMENT: props.config.environmentName,
       AWS_REGION_NAME: props.config.region,
       DATABASE_CLUSTER_ARN: props.cluster.clusterArn,
-      DATABASE_SECRET_ARN: props.cluster.secret?.secretArn ?? "",
+      DATABASE_SECRET_ARN:
+        props.databaseRuntimeSecret?.secretArn ?? props.cluster.secret?.secretArn ?? "",
       DATABASE_NAME: props.databaseName,
       DATABASE_RUNTIME_ROLE: "perfect_shade_app_runtime",
     };
@@ -74,7 +77,7 @@ export class ApiConstruct extends Construct {
 
     for (const fn of [this.accountFunction, this.estimateFunction]) {
       props.cluster.grantDataApiAccess(fn);
-      props.cluster.secret?.grantRead(fn);
+      (props.databaseRuntimeSecret ?? props.cluster.secret)?.grantRead(fn);
     }
     this.estimateFunction.addToRolePolicy(new iam.PolicyStatement({
       effect: iam.Effect.ALLOW,
@@ -93,13 +96,17 @@ export class ApiConstruct extends Construct {
 
     this.accessLogGroup = new logs.LogGroup(this, "ApiAccessLogs", {
       logGroupName: `/aws/apigateway/${props.config.resourcePrefix}`,
-      retention: logs.RetentionDays.ONE_WEEK,
-      removalPolicy: RemovalPolicy.DESTROY,
+      retention: props.config.environmentName === "production"
+        ? logs.RetentionDays.ONE_MONTH
+        : logs.RetentionDays.ONE_WEEK,
+      removalPolicy: props.config.environmentName === "production"
+        ? RemovalPolicy.RETAIN
+        : RemovalPolicy.DESTROY,
     });
 
     this.api = new apigwv2.HttpApi(this, "HttpApi", {
       apiName: `${props.config.resourcePrefix}-api`,
-      description: "Perfect Shade development account and estimate API",
+      description: `Perfect Shade ${props.config.environmentName} account and estimate API`,
       corsPreflight: {
         allowCredentials: true,
         allowHeaders: ["authorization", "content-type", "idempotency-key"],
@@ -240,6 +247,13 @@ export class ApiConstruct extends Construct {
         integrationError: "$context.integrationErrorMessage",
       }),
     };
+    if (props.config.environmentName === "production") {
+      defaultStage.defaultRouteSettings = {
+        detailedMetricsEnabled: true,
+        throttlingBurstLimit: 40,
+        throttlingRateLimit: 20,
+      };
+    }
     this.accessLogGroup.grantWrite(new iam.ServicePrincipal("apigateway.amazonaws.com"));
   }
 
@@ -253,8 +267,12 @@ export class ApiConstruct extends Construct {
     const projectRoot = path.join(__dirname, "../../..");
     const logGroup = new logs.LogGroup(this, `${id}Logs`, {
       logGroupName: `/aws/lambda/${functionName}`,
-      retention: logs.RetentionDays.ONE_WEEK,
-      removalPolicy: RemovalPolicy.DESTROY,
+      retention: environment.APP_ENVIRONMENT === "production"
+        ? logs.RetentionDays.ONE_MONTH
+        : logs.RetentionDays.ONE_WEEK,
+      removalPolicy: environment.APP_ENVIRONMENT === "production"
+        ? RemovalPolicy.RETAIN
+        : RemovalPolicy.DESTROY,
     });
 
     return new lambdaNodejs.NodejsFunction(this, id, {

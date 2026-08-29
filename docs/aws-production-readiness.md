@@ -7,11 +7,10 @@ development environment and defines the recommended production design. It does
 not authorize production provisioning, data migration, DNS changes, SES
 verification, user creation, or a production launch.
 
-Production is **not ready to provision** from the current CDK application. The
-application deliberately accepts only the `development` environment and uses
-development removal, backup, logging, email, and identity settings. Production
-must be implemented as a separate stack and configuration with separate data,
-identity, secrets, storage, budgets, and Amplify variables.
+Production is **not authorized to provision**. The repository now contains a
+separately selectable `PerfectShadeProduction` stack and guarded production
+configuration, but synthesis is readiness evidence only. Provisioning remains
+blocked on the owner approvals and external prerequisites listed below.
 
 The owner has approved the exact verified Sheri Brannan signature asset for
 development-generated DOCX and PDF bids. Development uses
@@ -45,8 +44,39 @@ showing zero is not evidence of zero spend because its tag filter is not active.
 
 ## Production environment design
 
-Create a new CDK application path or generalized environment stack; do not
-rename or mutate `PerfectShadeDevelopment` into production.
+The repository implements a separate CDK application path; it does not rename
+or mutate `PerfectShadeDevelopment` into production. Production synthesis
+requires both `perfectShadeEnvironment=production` and the explicit
+`confirmProductionSynthesis=true` context guard. That guard does not authorize
+bootstrap or deployment.
+
+### Repository readiness implemented 2026-08-29
+
+- `PerfectShadeProduction` has separate production resource names, SSM prefix,
+  outputs, VPC, Aurora cluster, secrets, user pool/client, API, Lambdas, roles,
+  document bucket, audit bucket, alarms, SNS topic, and budget definition.
+- The production Lambda environment receives only the restricted runtime-secret
+  ARN. The admin/migration secret is retained separately and is not granted to
+  application Lambdas.
+- Production requires administrator-created users, TOTP MFA, SES mode, and
+  production-only callback/logout/CORS values. Localhost and Amplify development
+  URLs fail production configuration validation.
+- Aurora synthesizes at PostgreSQL 16.14, 0.5–4 ACU, no auto-pause, 35-day PITR,
+  deletion protection, private isolated networking, Data API, encryption,
+  retained admin secret, snapshot-on-removal, and Performance Insights.
+- The document bucket synthesizes with SSE-S3, versioning, TLS enforcement,
+  Block Public Access, `RETAIN`, and no automatic object deletion.
+- Production alarms publish alarm and recovery notifications to a configurable
+  SNS email subscription. CloudTrail records multi-region management events to
+  a separate retained bucket; document-bucket data events remain an explicit
+  cost-controlled context option.
+- A USD 200 production budget is defined with actual 50/80/100 percent and
+  forecast 80/100 percent alerts, but is created only when the production stack
+  is separately deployed.
+- The committed Amplify build file pins pnpm and runs a branch-aware environment
+  validator. `main` fails closed unless production branch overrides and an
+  explicit release-approval marker are present. Server-side expected API and
+  Cognito values must exactly match the public build values.
 
 | Component | Recommended production baseline |
 | --- | --- |
@@ -58,7 +88,7 @@ rename or mutate `PerfectShadeDevelopment` into production.
 | Aurora | Separate PostgreSQL 16.14 Serverless v2 cluster; 0.5 ACU minimum and 4 ACU initial maximum; no auto-pause; Data API; encryption; Performance Insights; tune after observed load |
 | Aurora protection | Deletion protection enabled, 35-day automated backup retention, copy tags to snapshots, retained/final snapshot removal policy, maintenance/backup windows documented |
 | Database identities | Separate Secrets Manager credentials for restricted application runtime and privileged migrations; never give Lambdas the migration/admin credential |
-| S3 | Separate private bucket, versioning, TLS-only policy, full Block Public Access, `RETAIN`, no auto-delete; prefer SSE-KMS with bucket keys after cost/key-recovery review |
+| S3 | Separate private SSE-S3 bucket, versioning, TLS-only policy, full Block Public Access, `RETAIN`, no auto-delete; move to SSE-KMS only after key ownership/recovery approval |
 | Cognito | Separate staff pool and client, public signup disabled, deletion protection active, retained on stack removal, verified email, TOTP MFA required |
 | API | Separate HTTP API and JWT authorizer using only the production pool/client; exact production CORS origin; stage throttles enabled |
 | Lambdas | Separate roles, log groups, configuration, reserved concurrency guardrails, and production backend outputs |
@@ -87,10 +117,33 @@ needed at the IAM boundary. Before production, create a restricted database
 login/secret that can assume only `perfect_shade_app_runtime`; reserve the
 administrative secret for migrations and recovery operators.
 
+The production template now creates the separate runtime secret and wires only
+that secret to Lambdas. A controlled activation step still must create or rotate
+the `perfect_shade_app_login` database login from the generated secret after the
+foundation migrations establish roles. That runtime contract must be reviewed
+with the database/runtime owner before deployment; do not add a deploy-time
+custom resource that mutates schema or credentials implicitly.
+
+Do not enable generic Secrets Manager rotation until the runtime-login contract
+has an idempotent rotation Lambda or operator tool that updates PostgreSQL and
+the secret as one reviewed workflow. The rotation runbook must test the pending
+version, promote it only after a Data API probe under the restricted role, keep
+the prior version for rollback, and prove Lambdas recover without receiving the
+admin credential. Rotate the admin secret separately during a maintenance
+window after migration tooling is validated against the new version.
+
 Production backups should retain 35 days of PITR and use deletion protection.
 An optional AWS Backup copy or cross-region copy is a later owner decision based
 on outage tolerance and cost; it does not replace native PITR. Complete at
 least one restore drill before launch.
+
+For the initial single-region, 24-hour business-continuity target, Aurora native
+35-day PITR plus retained/versioned S3 objects is sufficient and is the
+implemented baseline. AWS Backup materially helps only when the owner approves
+central policy enforcement, cross-account/cross-region copies, vault lock, or
+longer independent retention. Those features add recovery copies, transfer and
+storage cost, and vault/key operations; add them after a documented resilience
+decision rather than duplicating backups by default.
 
 ### S3 documents
 
@@ -105,6 +158,14 @@ Five-minute presigned downloads are appropriate. Keep S3 keys server-derived,
 avoid `ListBucket`, prohibit public policies/ACLs, and alarm on denied or failed
 document writes using application metrics rather than S3 access-log contents.
 
+SSE-S3 is the implemented launch default because it provides encryption at rest
+without a customer-managed-key monthly charge, per-request KMS charges, key
+policy failure mode, or separate key-recovery obligation. SSE-KMS with bucket
+keys adds key-level audit/control and can reduce KMS request costs, but losing or
+disabling the key makes retained documents unavailable. Adopt it only after the
+owner approves key administrators, deletion protection, rotation, incident
+recovery, and its continuing cost.
+
 ### Cognito and MFA
 
 Use a separate retained production pool. TOTP MFA should be **required for all
@@ -112,6 +173,12 @@ staff**, which necessarily protects owner and admin accounts and avoids fragile
 role-dependent enforcement after token issuance. SMS MFA is not recommended.
 If launch readiness makes pool-wide MFA impossible, production must not proceed
 until an explicitly reviewed privileged-user enforcement design exists.
+
+The current application does not implement Cognito `MFA_SETUP`, software-token
+association/verification, or `SOFTWARE_TOKEN_MFA` challenge handling. Chat 2
+must implement and test enrollment, sign-in challenge, recovery, and safe
+redirect behavior before the required-MFA production pool can be used. This is
+a launch blocker, not a reason to weaken the production pool to optional MFA.
 
 Cognito passwords, MFA seeds, and active sessions cannot be backed up or
 restored. Recovery recreates the pool and administrator-provisioned identities,
@@ -136,6 +203,12 @@ Before production:
 
 No production identity or DNS record should be created until the owner approves
 the sender domain, address, recipients, and operational mailbox.
+
+The production template defines the SES domain identity and alarms on account
+bounce/complaint reputation metrics. Deployment still requires externally
+published DKIM/SPF/DMARC records, confirmed SES production access, SNS/event
+handling for individual bounce/complaint events, and a monitored suppression
+and reply workflow.
 
 ### API and Lambda
 
@@ -363,6 +436,24 @@ RPO for retained versions. Tighten targets after two successful drills.
 
 ## Production acceptance and go-live checklist
 
+Before checking recovery acceptance, run a drill that records owners, start/end
+times, chosen recovery point, actual RTO/RPO, and cleanup authorization:
+
+- [ ] Restore Aurora PITR to a new isolated cluster and run migration `status`.
+- [ ] Validate tenant/RLS, owner membership, estimates, revisions, document
+  metadata, and issued immutability using aggregate or synthetic checks.
+- [ ] Restore a prior S3 object version without making the bucket public.
+- [ ] Reconcile restored database metadata with retained S3 versions.
+- [ ] Rehearse Cognito pool recreation, user relinking, password reset, and TOTP
+  reenrollment without duplicating owner membership.
+- [ ] Redeploy the accepted CDK/application commit to the recovery target and
+  rotate compromised/test credentials.
+- [ ] Validate generated Amplify hosting before any DNS restoration.
+- [ ] Exercise alarm delivery, operator acknowledgement, escalation, and the
+  Wix DNS rollback record set.
+- [ ] Demonstrate recovery within four hours before launch; record why any miss
+  remains acceptable or repeat the drill.
+
 - [ ] Separate production stack/configuration is reviewed and authorized.
 - [ ] CDK diff creates no development changes or persistent replacements.
 - [ ] Runtime database credential is separated from the migration/admin secret.
@@ -394,40 +485,46 @@ RPO for retained versions. Tighten targets after two successful drills.
 
 ### Blocking production provisioning
 
-1. No production CDK stack/configuration exists; the application rejects any
-   environment other than development.
-2. Production retention values and final S3 encryption/key decision require
-   owner approval.
-3. A restricted production runtime database identity/secret is not implemented.
-4. Production budget/notification recipients and activated cost tags are not
-   established.
+1. Owner approval is still required for the production AWS account, region,
+   canonical URLs, sender domain/address, operations recipient, budget recipient,
+   and whether SSE-S3 remains the launch encryption choice.
+2. The restricted runtime secret is defined, but the controlled database-login
+   activation/rotation contract must be reviewed with the runtime/database owner.
+3. SES domain verification/DKIM, production sending access, and monitored
+   bounce/complaint handling are not complete.
+4. The `Project` cost-allocation tag must be activated and shown to produce
+   attributable costs before the filtered production budget is trusted.
+5. The account-level impact/cost of CloudTrail ownership, optional S3 data
+   events, Cost Anomaly Detection, AWS Config, and GuardDuty needs approval.
 
 ### Blocking production launch
 
-1. No production Cognito pool/MFA recovery drill or SES production sender.
-2. No CloudTrail trail and no alarm notification actions.
+1. No production Cognito/MFA recovery drill or verified SES production sender.
+2. CloudTrail and SNS alarm actions are defined but have not been provisioned,
+   subscription-confirmed, or tested.
 3. No tested Aurora/S3/Cognito recovery exercise.
-4. `main` auto-deploys without a documented release gate, pinned pnpm version,
-   production backend variables, or custom domain, and currently inherits the
-   development backend mapping from Amplify app-level variables.
+4. The repository release gate and pnpm pin are defined, but Amplify `main`
+   still needs production-only branch variables, protected/manual release
+   settings, accepted build-spec ownership, and a custom domain before launch.
 5. Public DNS still targets Wix and no Amplify domain association exists.
 6. Application-handled failures lack safe structured error signals.
 7. Dependency advisories listed below remain unresolved.
 
 ### Dependency and CDK advisories
 
-The audit found these transitive production advisories:
+The 2026-08-29 audit found these transitive production advisories:
 
 - `sharp` below 0.35.0 through Next.js: high-severity inherited libvips
   advisories;
-- `postcss` 8.4.31 through Next.js: multiple file-read/path-traversal
-  advisories; and
-- `nanoid` 3.3.16 through Next.js/PostCSS: zero-size custom-generator denial
-  of service.
+- `postcss` through Next.js: two high file-read/path-traversal advisories and
+  two moderate follow-on/XSS advisories; patched targets now extend through
+  8.5.23; and
+- `nanoid` through Next.js/PostCSS: zero-size custom-generator denial of
+  service, patched in 3.3.18.
 
-The infrastructure lockfile reports a high-severity `brace-expansion`
-advisory through `aws-cdk-lib`; the full development audit also reports the
-transitive `nanoid` advisory. Do not run a breaking automatic audit fix. Create
+The infrastructure production lockfile reports one high-severity
+`brace-expansion` advisory through `aws-cdk-lib`. Do not run a breaking or
+unreviewed automatic audit fix. Create
 a separate dependency update branch, update Next.js/CDK within supported
 compatible releases, review lockfile paths, run the full application and CDK
 suite, synthesize, and inspect an account-aware diff.
@@ -442,8 +539,8 @@ database diff remains empty.
 ## Readiness recommendation
 
 Continue development operation with the existing cost-conscious posture and
-the approved private signature. Do not provision production yet. The system has
-a sound AWS-native application foundation, but production requires a separate
-protected stack, credential separation, observable incident response, tested
-recovery, SES/MFA readiness, release controls, cost attribution, dependency
-remediation, and an approved DNS cutover.
+the approved private signature. Do not provision production yet. Repository
+infrastructure is now synthesizable and isolated, but go-live still requires
+owner approvals, runtime-login activation, SES/MFA readiness, confirmed alarm
+delivery, recovery drills, Amplify branch isolation, cost attribution,
+dependency remediation, and an approved DNS cutover.
