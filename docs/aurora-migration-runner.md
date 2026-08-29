@@ -76,6 +76,8 @@ table if necessary, then applies:
 4. `0004_staff_account_management.sql`
 5. `0005_estimate_phase_2.sql`
 6. `0006_estimate_phase_3.sql`
+7. `0007_estimate_phase_4.sql`
+8. `0008_identity_recovery.sql`
 
 Files are ordered deterministically by filename. A malformed `.sql` filename or duplicate
 numeric version stops every command before migration SQL runs.
@@ -144,11 +146,13 @@ Every step requires the separate deployment authorization described in
    credential resolution.
 4. Run `pnpm migration:status`.
 5. Run `pnpm migration:plan` and review the exact filenames/checksums.
-6. Run `pnpm migration:apply` to apply `0001`, `0002`, and `0003` in order.
+6. Run `pnpm migration:apply` to apply every reviewed pending migration in numeric order (currently
+   `0001` through `0008`).
 7. Run `pnpm migration:status` again and confirm no migrations remain pending.
 8. Run the owner-bootstrap `--dry-run` documented in `initial-owner-bootstrap.md`.
 9. Run the authorized owner bootstrap.
-10. Complete the Cognito permanent-password challenge for the new staff owner.
+10. Complete the Cognito permanent-password challenge for the new staff owner; in a pool with
+    required MFA, complete TOTP enrollment immediately afterward.
 11. Map the recorded stack outputs into the application and Amplify environment configuration.
 12. Perform live account, tenant-isolation, and estimate API validation.
 

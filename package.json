@@ -11,6 +11,7 @@
     "build": "next build",
     "start": "next start",
     "bootstrap:owner": "node --experimental-strip-types backend/admin/bootstrap-owner.mts",
+    "recover:identity": "node --experimental-strip-types backend/admin/relink-identity.mts",
     "lint": "tsc --noEmit",
     "test": "vitest run",
     "validate:amplify-environment": "node scripts/validate-amplify-environment.mjs",

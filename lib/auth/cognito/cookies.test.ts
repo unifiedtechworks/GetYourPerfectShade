@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   AUTH_COOKIES,
   clearAuthCookies,
+  createChallenge,
   decodeChallenge,
   encodeChallenge,
   setSessionCookies,
@@ -11,12 +12,28 @@ afterEach(() => vi.unstubAllEnvs());
 
 describe("administrator-created user challenge state", () => {
   it("round-trips the short-lived Cognito challenge", () => {
-    const challenge = { username: "staff@example.com", session: "opaque-session", next: "/app" };
-    expect(decodeChallenge(encodeChallenge(challenge))).toEqual(challenge);
+    const now = Date.parse("2026-08-29T12:00:00Z");
+    const challenge = createChallenge({
+      kind: "mfa-setup",
+      username: "staff@example.com",
+      session: "opaque-session",
+      next: "/app",
+    }, now);
+    expect(decodeChallenge(encodeChallenge(challenge), now)).toEqual(challenge);
   });
 
-  it("rejects malformed challenge state", () => {
+  it("rejects missing, malformed, expired, and future challenge state", () => {
+    const now = Date.parse("2026-08-29T12:00:00Z");
+    const challenge = createChallenge({
+      kind: "software-token-mfa",
+      username: "staff@example.com",
+      session: "opaque-session",
+      next: "/app",
+    }, now);
+    expect(decodeChallenge(undefined, now)).toBeNull();
     expect(decodeChallenge("not-json")).toBeNull();
+    expect(decodeChallenge(encodeChallenge(challenge), now + 10 * 60 * 1_000 + 1)).toBeNull();
+    expect(decodeChallenge(encodeChallenge(challenge), now - 5_001)).toBeNull();
   });
 });
 

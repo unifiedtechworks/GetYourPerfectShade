@@ -7,6 +7,7 @@ import { authenticateWithPassword } from "@/lib/auth/cognito/client";
 import {
   AUTH_COOKIES,
   challengeCookieOptions,
+  createChallenge,
   encodeChallenge,
   setSessionCookies,
 } from "@/lib/auth/cognito/cookies";
@@ -23,10 +24,30 @@ export async function signIn(formData: FormData) {
     const cookieStore = await cookies();
     cookieStore.set(
       AUTH_COOKIES.challenge,
-      encodeChallenge({ username: result.username, session: result.session, next }),
+      encodeChallenge(createChallenge({
+        kind: "new-password",
+        username: result.username,
+        session: result.session,
+        next,
+      })),
       challengeCookieOptions(),
     );
     redirect("/auth/new-password");
+  }
+  if (result.status === "mfa-setup-required" || result.status === "mfa-code-required") {
+    const cookieStore = await cookies();
+    const setup = result.status === "mfa-setup-required";
+    cookieStore.set(
+      AUTH_COOKIES.challenge,
+      encodeChallenge(createChallenge({
+        kind: setup ? "mfa-setup" : "software-token-mfa",
+        username: result.username,
+        session: result.session,
+        next,
+      })),
+      challengeCookieOptions(),
+    );
+    redirect(setup ? "/auth/mfa/setup" : "/auth/mfa/verify");
   }
   if (result.status !== "authenticated") {
     const error = result.status === "unsupported-challenge" ? "challenge" : "credentials";

@@ -5,7 +5,10 @@ import { redirect } from "next/navigation";
 import { completeNewPassword } from "@/lib/auth/cognito/client";
 import {
   AUTH_COOKIES,
+  challengeCookieOptions,
+  createChallenge,
   decodeChallenge,
+  encodeChallenge,
   setSessionCookies,
 } from "@/lib/auth/cognito/cookies";
 import { validateStaffPassword } from "@/lib/auth/password-policy";
@@ -21,7 +24,9 @@ export async function setInitialPassword(formData: FormData) {
 
   const cookieStore = await cookies();
   const challenge = decodeChallenge(cookieStore.get(AUTH_COOKIES.challenge)?.value);
-  if (!challenge) redirect("/sign-in?error=challenge");
+  if (!challenge || challenge.kind !== "new-password") {
+    redirect("/sign-in?error=challenge");
+  }
 
   const result = await completeNewPassword(
     challenge.username,
@@ -29,6 +34,20 @@ export async function setInitialPassword(formData: FormData) {
     password,
   );
   if (result.status !== "authenticated") {
+    if (result.status === "mfa-setup-required" || result.status === "mfa-code-required") {
+      const setup = result.status === "mfa-setup-required";
+      cookieStore.set(
+        AUTH_COOKIES.challenge,
+        encodeChallenge(createChallenge({
+          kind: setup ? "mfa-setup" : "software-token-mfa",
+          username: result.username,
+          session: result.session,
+          next: challenge.next,
+        })),
+        challengeCookieOptions(),
+      );
+      redirect(setup ? "/auth/mfa/setup" : "/auth/mfa/verify");
+    }
     const error = result.status === "configuration-error" ? "configuration" : "challenge";
     redirect(`/auth/new-password?error=${error}`);
   }

@@ -38,14 +38,32 @@ export function loadProductionConfig(app: App): PerfectShadeProductionConfig {
   );
   const budgetNotificationEmail = requiredContext(app, "budgetNotificationEmail");
 
-  for (const [name, values] of [
-    ["callbackUrls", callbackUrls],
-    ["logoutUrls", logoutUrls],
-    ["allowedCorsOrigins", allowedCorsOrigins],
+  for (const [name, values, expected] of [
+    [
+      "callbackUrls",
+      callbackUrls,
+      "https://www.getyourperfectshade.com/auth/callback",
+    ],
+    [
+      "logoutUrls",
+      logoutUrls,
+      "https://www.getyourperfectshade.com/sign-in",
+    ],
+    [
+      "allowedCorsOrigins",
+      allowedCorsOrigins,
+      "https://www.getyourperfectshade.com",
+    ],
   ] as const) {
-    if (values.some((value) => value.includes("localhost") || value.includes("amplifyapp.com"))) {
-      throw new Error(`${name} must contain production-only URLs.`);
+    if (values.length !== 1 || values[0] !== expected) {
+      throw new Error(`${name} must contain the exact canonical production URL.`);
     }
+  }
+  if (
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(sesFromEmail) ||
+    sesFromEmail.toLowerCase().split("@")[1] !== sesSenderDomain.toLowerCase()
+  ) {
+    throw new Error("sesFromEmail must belong to the verified SES domain.");
   }
 
   return {

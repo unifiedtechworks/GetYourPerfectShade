@@ -7,6 +7,14 @@ export const AUTH_COOKIES = {
   challenge: "ps_cognito_challenge",
 } as const;
 
+export const AUTH_CHALLENGE_MAX_AGE_SECONDS = 10 * 60;
+
+export type AuthChallengeKind =
+  | "new-password"
+  | "mfa-setup"
+  | "mfa-setup-verification"
+  | "software-token-mfa";
+
 type CookieOptions = {
   httpOnly: boolean;
   sameSite: "lax";
@@ -49,22 +57,51 @@ export function clearAuthCookies(writer: CookieWriter) {
   Object.values(AUTH_COOKIES).forEach((name) => writer.set(name, "", options(0)));
 }
 
-export type NewPasswordChallenge = { username: string; session: string; next: string };
+export type AuthChallenge = {
+  version: 1;
+  kind: AuthChallengeKind;
+  username: string;
+  session: string;
+  next: string;
+  issuedAt: number;
+};
 
-export function encodeChallenge(value: NewPasswordChallenge) {
+export function createChallenge(
+  value: Omit<AuthChallenge, "version" | "issuedAt">,
+  now = Date.now(),
+): AuthChallenge {
+  return { version: 1, ...value, issuedAt: now };
+}
+
+export function encodeChallenge(value: AuthChallenge) {
   return Buffer.from(JSON.stringify(value), "utf8").toString("base64url");
 }
 
-export function decodeChallenge(value: string | undefined): NewPasswordChallenge | null {
+export function decodeChallenge(
+  value: string | undefined,
+  now = Date.now(),
+): AuthChallenge | null {
   if (!value) return null;
   try {
     const parsed = JSON.parse(Buffer.from(value, "base64url").toString("utf8")) as unknown;
     if (
       typeof parsed === "object" && parsed !== null &&
-      typeof (parsed as NewPasswordChallenge).username === "string" &&
-      typeof (parsed as NewPasswordChallenge).session === "string" &&
-      typeof (parsed as NewPasswordChallenge).next === "string"
-    ) return parsed as NewPasswordChallenge;
+      (parsed as AuthChallenge).version === 1 &&
+      ["new-password", "mfa-setup", "mfa-setup-verification", "software-token-mfa"]
+        .includes((parsed as AuthChallenge).kind) &&
+      typeof (parsed as AuthChallenge).username === "string" &&
+      (parsed as AuthChallenge).username.length > 0 &&
+      typeof (parsed as AuthChallenge).session === "string" &&
+      (parsed as AuthChallenge).session.length > 0 &&
+      typeof (parsed as AuthChallenge).next === "string" &&
+      (parsed as AuthChallenge).next.startsWith("/") &&
+      !(parsed as AuthChallenge).next.startsWith("//") &&
+      !(parsed as AuthChallenge).next.includes("\\") &&
+      typeof (parsed as AuthChallenge).issuedAt === "number" &&
+      Number.isFinite((parsed as AuthChallenge).issuedAt) &&
+      (parsed as AuthChallenge).issuedAt <= now + 5_000 &&
+      now - (parsed as AuthChallenge).issuedAt <= AUTH_CHALLENGE_MAX_AGE_SECONDS * 1_000
+    ) return parsed as AuthChallenge;
   } catch {
     // Treat malformed or stale challenge cookies as absent.
   }
@@ -72,5 +109,5 @@ export function decodeChallenge(value: string | undefined): NewPasswordChallenge
 }
 
 export function challengeCookieOptions() {
-  return options(10 * 60);
+  return options(AUTH_CHALLENGE_MAX_AGE_SECONDS);
 }

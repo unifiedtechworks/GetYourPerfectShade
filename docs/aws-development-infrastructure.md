@@ -190,8 +190,9 @@ no verified SES identity was provided. Before production—and preferably before
 validation—verify an approved SES domain/email in `us-west-2` and pass the documented context.
 
 MFA defaults to off because it is deferred. The construct accepts `mfaMode=optional` so TOTP can
-be introduced later without replacing the identity architecture. Chat 2 owns the application
-challenge/enrollment flows.
+be tested in development without replacing the identity architecture. Production separately
+requires `mfaMode=required`; the application challenge/enrollment flows are implemented and
+documented in `docs/production-identity-readiness.md`.
 
 ## Aurora migrations
 
@@ -205,6 +206,7 @@ deterministic and must be applied in this order:
 5. `infra/database/migrations/0005_estimate_phase_2.sql`
 6. `infra/database/migrations/0006_estimate_phase_3.sql`
 7. `infra/database/migrations/0007_estimate_phase_4.sql`
+8. `infra/database/migrations/0008_identity_recovery.sql`
 
 A controlled RDS Data API runner is implemented under `infra/database/runner`. It uses an
 approved administrative migration identity—not the normal Lambda runtime role—and exposes:

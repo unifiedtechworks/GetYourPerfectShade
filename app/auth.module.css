@@ -10,3 +10,5 @@
 .message { padding: .75rem; border-radius: .4rem; background: #f6e7df; }
 .links { display: flex; justify-content: space-between; gap: 1rem; margin-top: 1.25rem; }
 .links a { color: #354f40; }
+.setupSecret { display: grid; gap: .45rem; }
+.setupSecret code { padding: .75rem; border: 1px solid #a9aa9f; border-radius: .45rem; background: #f5f5f1; font-size: .9rem; overflow-wrap: anywhere; user-select: all; }

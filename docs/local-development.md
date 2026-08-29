@@ -14,6 +14,7 @@ closed until Cognito configuration is present. No live AWS validation is implied
 Copy `.env.example` to `.env.local` and populate Chat 5's non-secret development outputs:
 
 ```dotenv
+NEXT_PUBLIC_PERFECT_SHADE_ENVIRONMENT=development
 NEXT_PUBLIC_AWS_REGION=us-west-2
 NEXT_PUBLIC_COGNITO_USER_POOL_ID=us-west-2_example
 NEXT_PUBLIC_COGNITO_USER_POOL_CLIENT_ID=example
@@ -72,9 +73,11 @@ routes remain available. With the development stack deployed, additionally verif
 
 ## AWS Amplify
 
-Set the five environment values per Amplify branch/environment. Development and production must
+Set all six environment values per Amplify branch/environment. Development and production must
 use separate Cognito and API resources. Production is not authorized by this application change.
 Use an approved SES sender before production invitations or password recovery.
+Production rejects missing, local, or non-HTTPS API/site values. See
+[`production-identity-readiness.md`](./production-identity-readiness.md).
 
 ## Database migration order
 
@@ -88,6 +91,7 @@ identity applies these files in order:
 5. `infra/database/migrations/0005_estimate_phase_2.sql`
 6. `infra/database/migrations/0006_estimate_phase_3.sql`
 7. `infra/database/migrations/0007_estimate_phase_4.sql`
+8. `infra/database/migrations/0008_identity_recovery.sql`
 
 Ordinary Lambda cold starts, Amplify builds, and CDK synthesis never apply migrations. The
 application contains no active Supabase runtime, environment variable, package, or migration

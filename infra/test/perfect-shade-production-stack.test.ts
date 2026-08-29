@@ -54,7 +54,29 @@ describe("PerfectShadeProductionStack", { timeout: 120_000 }, () => {
       sesVerifiedDomain: "example.invalid",
       operationsNotificationEmail: "operations@example.invalid",
       budgetNotificationEmail: "budget@example.invalid",
-    } }))).toThrow(/production-only URLs/);
+    } }))).toThrow(/exact canonical production URL/);
+
+    expect(() => loadProductionConfig(new App({ context: {
+      confirmProductionSynthesis: "true",
+      callbackUrls: "https://other.example.invalid/auth/callback",
+      logoutUrls: "https://www.getyourperfectshade.com/sign-in",
+      allowedCorsOrigins: "https://www.getyourperfectshade.com",
+      sesFromEmail: "no-reply@example.invalid",
+      sesVerifiedDomain: "example.invalid",
+      operationsNotificationEmail: "operations@example.invalid",
+      budgetNotificationEmail: "budget@example.invalid",
+    } }))).toThrow(/exact canonical production URL/);
+
+    expect(() => loadProductionConfig(new App({ context: {
+      confirmProductionSynthesis: "true",
+      callbackUrls: "https://www.getyourperfectshade.com/auth/callback",
+      logoutUrls: "https://www.getyourperfectshade.com/sign-in",
+      allowedCorsOrigins: "https://www.getyourperfectshade.com",
+      sesFromEmail: "no-reply@other.example.invalid",
+      sesVerifiedDomain: "example.invalid",
+      operationsNotificationEmail: "operations@example.invalid",
+      budgetNotificationEmail: "budget@example.invalid",
+    } }))).toThrow(/verified SES domain/);
   });
 
   it("isolates production names, URLs, Cognito, and required TOTP MFA", () => {

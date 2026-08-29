@@ -54,10 +54,11 @@ This project uses standard Next.js scripts and should be suitable for AWS Amplif
 Configure AWS Amplify to use Node.js 22.12 or newer, as required by the authentication and
 test dependencies.
 
-Set the AWS region, Cognito User Pool/client, API base URL, and site URL described in
+Set the environment name, AWS region, Cognito User Pool/client, API base URL, and site URL described in
 [`docs/local-development.md`](docs/local-development.md) per Amplify environment. Architecture
 and authorization decisions are documented in
-[`docs/account-architecture.md`](docs/account-architecture.md).
+[`docs/account-architecture.md`](docs/account-architecture.md); production identity isolation is
+documented in [`docs/production-identity-readiness.md`](docs/production-identity-readiness.md).
 
 ## Updating Business Info
 

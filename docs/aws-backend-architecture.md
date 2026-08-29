@@ -827,9 +827,14 @@ deployment. This document does not authorize resource provisioning or production
 - Internal staff accounts only; Cognito public signup is disabled.
 - Administrators provision users.
 - Use email/password authentication with verified email and password recovery.
-- MFA is deferred, but Cognito and the application flow must preserve a future path to add it.
+- Development may keep MFA off or optional. Production requires Cognito TOTP MFA for every staff
+  role; SMS MFA is not required.
 - Use a verified Perfect Shade or Unified Techworks Amazon SES sender identity for invitations
   and recovery.
+
+The repository-side production identity contract and application MFA flow are defined in
+[`production-identity-readiness.md`](./production-identity-readiness.md). Production provisioning
+and SES remain separately authorized infrastructure work.
 
 ### Approved Decision 5: Membership permissions
 

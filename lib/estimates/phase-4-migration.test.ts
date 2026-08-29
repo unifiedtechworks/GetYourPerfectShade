@@ -15,6 +15,7 @@ describe("Aurora estimate Phase 4 migration", () => {
       "0005_estimate_phase_2.sql",
       "0006_estimate_phase_3.sql",
       "0007_estimate_phase_4.sql",
+      "0008_identity_recovery.sql",
     ]);
   });
 

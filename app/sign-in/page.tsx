@@ -9,7 +9,7 @@ export default async function SignInPage({ searchParams }: Props) {
   const message = error === "configuration"
     ? "Authentication has not been configured for this environment."
     : error === "challenge"
-      ? "This account requires an authentication step that is not enabled yet. Contact an administrator."
+      ? "The authentication step could not be completed. Restart sign in or contact an administrator."
     : error
       ? "The email or password was not accepted."
       : null;
