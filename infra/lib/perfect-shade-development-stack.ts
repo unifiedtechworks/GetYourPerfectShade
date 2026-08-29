@@ -11,6 +11,7 @@ import { ApiConstruct } from "./constructs/api";
 import { DataConstruct } from "./constructs/data";
 import { IdentityConstruct } from "./constructs/identity";
 import { ObservabilityConstruct } from "./constructs/observability";
+import { RuntimeDatabaseCredentialsConstruct } from "./constructs/runtime-database-credentials";
 import { StorageConstruct } from "./constructs/storage";
 
 export interface PerfectShadeDevelopmentStackProps extends StackProps {
@@ -38,14 +39,30 @@ export class PerfectShadeDevelopmentStack extends Stack {
     const identity = new IdentityConstruct(this, "Identity", { config });
     const data = new DataConstruct(this, "Data", { config });
     const storage = new StorageConstruct(this, "Storage", { config });
+    if (!data.cluster.secret) {
+      throw new Error("Aurora administrative credentials were not created.");
+    }
+    const runtimeCredentials = new RuntimeDatabaseCredentialsConstruct(
+      this,
+      "RuntimeDatabaseCredentials",
+      {
+        config,
+        cluster: data.cluster,
+        databaseName: data.databaseName,
+        adminSecret: data.cluster.secret,
+      },
+    );
     const api = new ApiConstruct(this, "Api", {
       config,
       userPool: identity.userPool,
       userPoolClient: identity.userPoolClient,
       cluster: data.cluster,
       databaseName: data.databaseName,
+      databaseRuntimeSecret: runtimeCredentials.runtimeSecret,
       documentBucket: storage.documentBucket,
     });
+    api.accountFunction.node.addDependency(runtimeCredentials.resource);
+    api.estimateFunction.node.addDependency(runtimeCredentials.resource);
     new ObservabilityConstruct(this, "Observability", {
       config,
       api: api.api,
@@ -87,6 +104,8 @@ export class PerfectShadeDevelopmentStack extends Stack {
     );
     this.output("AuroraClusterArn", data.cluster.clusterArn);
     this.output("AuroraSecretArn", data.cluster.secret?.secretArn ?? "not-created");
+    this.output("AuroraAdminSecretArn", data.cluster.secret.secretArn);
+    this.output("AuroraRuntimeSecretArn", runtimeCredentials.runtimeSecret.secretArn);
     this.output("AuroraDatabaseName", data.databaseName);
     this.output("DocumentBucketName", storage.documentBucket.bucketName);
     this.output(

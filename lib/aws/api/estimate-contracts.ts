@@ -156,6 +156,7 @@ export type EstimateDocumentRecord = Readonly<{
   checksumSha256: string | null;
   generatedAt: string | null;
   createdAt: string;
+  isStale: boolean;
 }>;
 
 export type GenerateEstimateDocumentRequest = Readonly<{

@@ -269,6 +269,12 @@ not change CDK or deploy them.
 - Existing forced RLS, restricted runtime grants, child-row controls, and
   append-only audit history remain intact.
 
+Pending document history older than the configured 15-minute default is now
+identified without mutating the immutable history row. The protected UI labels
+it `pending (stale)`, guides staff to start a new generation request, and emits
+low-cardinality count/age metrics when document history is read. See
+[`runtime-operational-hardening.md`](./runtime-operational-hardening.md).
+
 ## Deferred work
 
 - customer e-signature/acceptance, payment, email delivery, accepted/declined/

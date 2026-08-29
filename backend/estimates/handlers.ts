@@ -3,6 +3,7 @@ import type { EstimateDocumentStorage } from "./document-storage";
 import { EstimateServiceError } from "./errors";
 import {
   EstimatePhase4Service,
+  pendingDocumentStaleAfterMsFromEnvironment,
   type EstimateDocumentGenerator,
 } from "./phase4-service";
 import { EstimateService } from "./service";
@@ -95,6 +96,7 @@ export function createEstimateHandlers(
   database: EstimateDatabase,
   documentStorage?: EstimateDocumentStorage,
   documentGenerator?: EstimateDocumentGenerator,
+  options: Readonly<{ pendingDocumentStaleAfterMs?: number }> = {},
 ): Readonly<{
   createDraft: Handler;
   createRevision: Handler;
@@ -119,6 +121,8 @@ export function createEstimateHandlers(
     undefined,
     undefined,
     documentGenerator,
+    options.pendingDocumentStaleAfterMs ??
+      pendingDocumentStaleAfterMsFromEnvironment(),
   );
   return {
     async createDraft(event) {

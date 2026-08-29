@@ -42,6 +42,7 @@ export function EstimatePhase4Actions({
   const commandKeys = useRef(
     createEstimateCommandKeyTracker(() => crypto.randomUUID()),
   );
+  const staleDocuments = documents.filter((document) => document.isStale);
 
   function run(
     label: string,
@@ -179,6 +180,13 @@ export function EstimatePhase4Actions({
       )}
 
       <h3>Generated documents</h3>
+      {staleDocuments.length > 0 && (
+        <p className={styles.warning} role="alert">
+          {staleDocuments.length === 1
+            ? "One document generation did not finish. Generate a new file to retry; the pending history record will remain unchanged."
+            : `${staleDocuments.length} document generations did not finish. Generate new files to retry; the pending history records will remain unchanged.`}
+        </p>
+      )}
       {documentsUnavailable ? (
         <p className={styles.warning} role="alert">
           Document history is temporarily unavailable.
@@ -202,7 +210,9 @@ export function EstimatePhase4Actions({
                 <tr key={item.id}>
                   <td>{item.filename}</td>
                   <td>{item.revisionNumber}</td>
-                  <td className={styles.status}>{item.state}</td>
+                  <td className={styles.status}>
+                    {item.isStale ? "pending (stale)" : item.state}
+                  </td>
                   <td>{item.generatedAt ? new Date(item.generatedAt).toLocaleString() : "-"}</td>
                   <td>
                     {item.state === "ready" ? (

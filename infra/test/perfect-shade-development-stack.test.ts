@@ -116,6 +116,22 @@ describe("PerfectShadeDevelopmentStack", { timeout: 120_000 }, () => {
       PubliclyAccessible: false,
     });
     template.resourceCountIs("AWS::EC2::NatGateway", 0);
+    template.hasResourceProperties("AWS::SecretsManager::Secret", {
+      Name: "perfect-shade-development/aurora/runtime",
+      Description:
+        "Restricted Perfect Shade application runtime database login; never used for migrations",
+      GenerateSecretString: Match.objectLike({
+        GenerateStringKey: "password",
+        PasswordLength: 40,
+        SecretStringTemplate: JSON.stringify({
+          username: "perfect_shade_app_runtime",
+        }),
+      }),
+    });
+    template.resourceCountIs(
+      "Custom::PerfectShadeRuntimeDatabaseCredentials",
+      1,
+    );
   });
 
   it("defines a private encrypted versioned development document bucket", () => {
@@ -212,7 +228,8 @@ describe("PerfectShadeDevelopmentStack", { timeout: 120_000 }, () => {
       },
       Environment: {
         Variables: Match.objectLike({
-          DATABASE_RUNTIME_ROLE: "perfect_shade_app_runtime",
+          DATABASE_RUNTIME_SECRET_ARN: Match.anyValue(),
+          DOCUMENT_PENDING_STALE_MINUTES: "15",
           COGNITO_USER_POOL_ID: Match.anyValue(),
         }),
       },
@@ -226,6 +243,8 @@ describe("PerfectShadeDevelopmentStack", { timeout: 120_000 }, () => {
       EphemeralStorage: { Size: 1024 },
       Environment: {
         Variables: Match.objectLike({
+          DATABASE_RUNTIME_SECRET_ARN: Match.anyValue(),
+          DOCUMENT_PENDING_STALE_MINUTES: "15",
           DOCUMENT_BUCKET_NAME: Match.anyValue(),
           DOCUMENT_KEY_PREFIX: "organizations/",
           ESTIMATE_INCLUDE_COMPANY_SIGNATURE: "true",
@@ -264,6 +283,25 @@ describe("PerfectShadeDevelopmentStack", { timeout: 120_000 }, () => {
     expect(serializedEstimatePolicy).toContain("/organizations/*");
     expect(serializedEstimatePolicy).not.toContain("s3:ListBucket");
     expect(serializedEstimatePolicy).not.toContain("s3:DeleteObject");
+    expect(serializedEstimatePolicy).toContain(
+      "RuntimeDatabaseCredentialsRuntimeDatabaseSecret",
+    );
+    expect(serializedEstimatePolicy).not.toContain("DataDatabaseSecretAttachment");
+
+    const functions = template.findResources("AWS::Lambda::Function");
+    for (const functionName of [
+      "perfect-shade-development-account",
+      "perfect-shade-development-estimates",
+    ]) {
+      const applicationFunction = Object.values(functions).find((resource) =>
+        resource.Properties?.FunctionName === functionName,
+      );
+      const serialized = JSON.stringify(applicationFunction);
+      expect(serialized).toContain("DATABASE_RUNTIME_SECRET_ARN");
+      expect(serialized).not.toContain("DATABASE_ADMIN_SECRET_ARN");
+      expect(serialized).not.toContain("DATABASE_SECRET_ARN");
+      expect(serialized).not.toContain("DATABASE_RUNTIME_ROLE");
+    }
 
     const accountPolicy = Object.values(policies).find((policy) =>
       JSON.stringify(policy).includes("ApiAccountFunctionServiceRole"),
@@ -275,6 +313,22 @@ describe("PerfectShadeDevelopmentStack", { timeout: 120_000 }, () => {
     expect(serializedAccountPolicy).toContain("cognito-idp:ListUsers");
     expect(serializedAccountPolicy).not.toContain("cognito-idp:AdminDeleteUser");
     expect(serializedAccountPolicy).not.toContain("s3:");
+    expect(serializedAccountPolicy).toContain(
+      "RuntimeDatabaseCredentialsRuntimeDatabaseSecret",
+    );
+    expect(serializedAccountPolicy).not.toContain("DataDatabaseSecretAttachment");
+
+    const provisionerPolicy = Object.values(policies).find((policy) =>
+      JSON.stringify(policy).includes(
+        "RuntimeDatabaseCredentialsProvisionerServiceRole",
+      ),
+    );
+    expect(provisionerPolicy).toBeDefined();
+    const serializedProvisionerPolicy = JSON.stringify(provisionerPolicy);
+    expect(serializedProvisionerPolicy).toContain(
+      "RuntimeDatabaseCredentialsRuntimeDatabaseSecret",
+    );
+    expect(serializedProvisionerPolicy).toContain("DataDatabaseSecretAttachment");
   });
 
   it("alarms on Lambda throttles and slow estimate execution", () => {
@@ -354,6 +408,8 @@ describe("PerfectShadeDevelopmentStack", { timeout: 120_000 }, () => {
       "CognitoIssuer",
       "AuroraClusterArn",
       "AuroraSecretArn",
+      "AuroraAdminSecretArn",
+      "AuroraRuntimeSecretArn",
       "AuroraDatabaseName",
       "DocumentBucketName",
       "SesSenderStatus",

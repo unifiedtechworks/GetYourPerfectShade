@@ -7,7 +7,10 @@ import type {
   StoreEstimateDocumentInput,
   StoredEstimateDocument,
 } from "./document-storage";
-import { EstimatePhase4Service } from "./phase4-service";
+import {
+  EstimatePhase4Service,
+  pendingDocumentStaleAfterMsFromEnvironment,
+} from "./phase4-service";
 
 const ORGANIZATION_ID = "11111111-1111-4111-8111-111111111111";
 const ESTIMATE_ID = "22222222-2222-4222-8222-222222222222";
@@ -182,6 +185,7 @@ function service(
   database: FakeDatabase,
   storage = new FakeStorage(),
   firstId = NEW_ESTIMATE_ID,
+  pendingDocumentStaleAfterMs = 15 * 60 * 1000,
 ) {
   return new EstimatePhase4Service(
     database,
@@ -192,6 +196,7 @@ function service(
     })(),
     () => new Date("2026-08-09T12:00:00.000Z"),
     async (_estimate: EstimateDetail, _type, _date) => GENERATED,
+    pendingDocumentStaleAfterMs,
   );
 }
 
@@ -282,6 +287,32 @@ describe("Phase 4 revision and duplication", () => {
 });
 
 describe("Phase 4 generated document recovery and download", () => {
+  it("flags old pending history without mutating it or hiding recent work", async () => {
+    const database = new FakeDatabase();
+    database.listDocumentRows = [
+      pendingDocument({ created_at: "2026-08-09T11:30:00.000Z" }),
+      pendingDocument({
+        id: "99999999-9999-4999-8999-999999999999",
+        created_at: "2026-08-09T11:50:00.000Z",
+      }),
+      pendingDocument({
+        id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        state: "ready",
+        created_at: "2026-08-09T11:00:00.000Z",
+        generated_at: "2026-08-09T11:00:00.000Z",
+      }),
+    ];
+    const result = await service(database).listDocuments("subject", ESTIMATE_ID);
+    expect(result.data.map((document) => document.isStale)).toEqual([
+      true,
+      false,
+      false,
+    ]);
+    expect(database.statements.some((statement) =>
+      statement.sql.includes("set state = 'failed'"),
+    )).toBe(false);
+  });
+
   it("stores under the trusted tenant key, finalizes metadata, and audits", async () => {
     const database = new FakeDatabase();
     const storage = new FakeStorage();
@@ -341,5 +372,18 @@ describe("Phase 4 generated document recovery and download", () => {
     denied.downloadRows = [];
     await expect(service(denied).download("subject", ESTIMATE_ID, DOCUMENT_ID))
       .rejects.toMatchObject({ code: "document_not_found", status: 404 });
+  });
+});
+
+describe("pending-document runtime configuration", () => {
+  it("uses a bounded minute threshold", () => {
+    expect(pendingDocumentStaleAfterMsFromEnvironment(undefined)).toBe(900_000);
+    expect(pendingDocumentStaleAfterMsFromEnvironment("30")).toBe(1_800_000);
+    expect(() => pendingDocumentStaleAfterMsFromEnvironment("0")).toThrow(
+      "Pending-document configuration is invalid.",
+    );
+    expect(() => pendingDocumentStaleAfterMsFromEnvironment("1.5")).toThrow(
+      "Pending-document configuration is invalid.",
+    );
   });
 });

@@ -17,6 +17,7 @@ infra/
   lib/constructs/
     identity.ts                        Cognito User Pool and app client
     data.ts                            private Aurora Serverless v2 and Data API
+    runtime-database-credentials.ts   shared restricted login secret/provisioner
     storage.ts                         private versioned document bucket
     api.ts                             HTTP API, JWT authorizer, application Lambdas
     observability.ts                   logs, alarms, dashboard, optional budget
@@ -122,9 +123,10 @@ auto-pause, 35-day backup retention, deletion protection, retained secrets/bucke
 TOTP MFA, SES sender mode, and a USD 200 budget definition. `cloudTrailDataEventsEnabled=true`
 is optional because S3 object-level events can materially increase CloudTrail cost.
 
-The production runtime secret is distinct from the admin/migration secret. A reviewed operator
-step must activate/rotate the restricted database login after migrations; application Lambdas
-must never receive the admin secret. See
+The production runtime secret is distinct from the admin/migration secret. The same shared
+credential construct used by development transactionally synchronizes the restricted
+`perfect_shade_app_runtime` login and gates application Lambda updates. Application Lambdas
+never receive the admin secret. Rotation remains a separately reviewed operation. See
 [`docs/aws-production-readiness.md`](../docs/aws-production-readiness.md).
 
 The root [`amplify.yml`](../amplify.yml) pins pnpm and runs

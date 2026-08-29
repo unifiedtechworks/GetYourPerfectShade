@@ -328,19 +328,48 @@ function requestHash(command: string, estimateId: string): string {
   return createHash("sha256").update(JSON.stringify([command, estimateId])).digest("hex");
 }
 
-function documentRecord(row: SqlRow): EstimateDocumentRecord {
+export const DEFAULT_PENDING_DOCUMENT_STALE_AFTER_MS = 15 * 60 * 1000;
+
+export function pendingDocumentStaleAfterMsFromEnvironment(
+  value = process.env.DOCUMENT_PENDING_STALE_MINUTES,
+): number {
+  const minutes = value === undefined ? 15 : Number(value);
+  if (!Number.isInteger(minutes) || minutes < 1 || minutes > 1440) {
+    throw new Error("Pending-document configuration is invalid.");
+  }
+  return minutes * 60 * 1000;
+}
+
+function documentRecord(
+  row: SqlRow,
+  now: Date,
+  pendingStaleAfterMs: number,
+): EstimateDocumentRecord {
+  const state = required(row, "state") as EstimateDocumentRecord["state"];
+  const createdAt = required(row, "created_at");
+  const createdAtMs = Date.parse(createdAt);
+  if (!Number.isFinite(createdAtMs)) {
+    throw new EstimateServiceError(
+      "database_contract_error",
+      "The estimate data contract is invalid.",
+      500,
+    );
+  }
   return {
     id: required(row, "id"),
     estimateId: required(row, "estimate_id"),
     revisionNumber: required(row, "estimate_revision"),
     type: required(row, "document_type") as EstimateDocumentType,
-    state: required(row, "state") as EstimateDocumentRecord["state"],
+    state,
     filename: required(row, "original_filename"),
     contentType: required(row, "content_type"),
     byteSize: row.byte_size ?? null,
     checksumSha256: row.checksum_sha256 ?? null,
     generatedAt: row.generated_at ?? null,
-    createdAt: required(row, "created_at"),
+    createdAt,
+    isStale:
+      state === "pending" &&
+      now.getTime() - createdAtMs >= pendingStaleAfterMs,
   };
 }
 
@@ -357,6 +386,8 @@ export class EstimatePhase4Service {
     private readonly idFactory: () => string = randomUUID,
     private readonly clock: () => Date = () => new Date(),
     private readonly generator: EstimateDocumentGenerator = generateEstimateDocument,
+    private readonly pendingDocumentStaleAfterMs =
+      DEFAULT_PENDING_DOCUMENT_STALE_AFTER_MS,
   ) {}
 
   private async establishContext(transactionId: string, subject: string): Promise<Membership> {
@@ -749,7 +780,16 @@ export class EstimatePhase4Service {
     }
 
     if (required(reservation, "state") === "ready") {
-      return { data: { ...documentRecord(reservation), replayed: true } };
+      return {
+        data: {
+          ...documentRecord(
+            reservation,
+            this.clock(),
+            this.pendingDocumentStaleAfterMs,
+          ),
+          replayed: true,
+        },
+      };
     }
     if (required(reservation, "state") === "failed") {
       throw new EstimateServiceError("document_generation_failed", "That document attempt failed. Start a new generation request.", 409);
@@ -813,7 +853,16 @@ export class EstimatePhase4Service {
         byteSize: String(stored.byteSize),
       });
       await this.database.commitTransaction(finalizeTransactionId);
-      return { data: { ...documentRecord(finalized[0]), replayed } };
+      return {
+        data: {
+          ...documentRecord(
+            finalized[0],
+            this.clock(),
+            this.pendingDocumentStaleAfterMs,
+          ),
+          replayed,
+        },
+      };
     } catch (error) {
       await this.rollback(finalizeTransactionId);
       throw error;
@@ -836,7 +885,14 @@ export class EstimatePhase4Service {
         transactionId,
       });
       await this.database.commitTransaction(transactionId);
-      return { data: rows.map(documentRecord) };
+      const now = this.clock();
+      return {
+        data: rows.map((row) => documentRecord(
+          row,
+          now,
+          this.pendingDocumentStaleAfterMs,
+        )),
+      };
     } catch (error) {
       await this.rollback(transactionId);
       throw error;

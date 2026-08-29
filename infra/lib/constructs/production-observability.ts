@@ -123,38 +123,93 @@ export class ProductionObservabilityConstruct extends Construct {
       }));
     }
 
-    const appMetric = (name: string, statistic = "Sum") => new cloudwatch.Metric({
-      namespace: "PerfectShade/Production",
-      metricName: name,
+    const appMetric = (
+      metricName: string,
+      dimensionsMap: Record<string, string>,
+      statistic = "Sum",
+    ) => new cloudwatch.Metric({
+      namespace: "PerfectShade/Application",
+      metricName,
+      dimensionsMap,
       statistic,
       period: Duration.minutes(5),
     });
-    for (const [idSuffix, metricName, threshold] of [
-      ["DocumentFailure", "DocumentGenerationFailures", 1],
-      ["DocumentStorageFailure", "DocumentStorageFailures", 1],
-      ["PendingDocument", "StalePendingDocuments", 1],
-      ["WorkflowFailure", "EstimateWorkflowFailures", 1],
-    ] as const) {
-      attach(new cloudwatch.Alarm(this, `${idSuffix}Alarm`, {
-        alarmName: `${config.resourcePrefix}-${metricName}`,
-        metric: appMetric(metricName),
-        threshold,
+    for (const service of ["account", "estimate"] as const) {
+      attach(new cloudwatch.Alarm(this, `${service}UnexpectedHandlerAlarm`, {
+        alarmName: `${config.resourcePrefix}-${service}-unexpected-handler`,
+        metric: appMetric("UnexpectedHandlerError", { Service: service }),
+        threshold: 1,
         evaluationPeriods: 1,
         treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
       }));
     }
-    attach(new cloudwatch.Alarm(this, "DocumentDurationAlarm", {
-      alarmName: `${config.resourcePrefix}-document-duration`,
-      metric: appMetric("DocumentGenerationDuration", "p95"),
-      threshold: 55_000,
-      evaluationPeriods: 2,
+
+    for (const documentType of ["docx", "pdf", "json"] as const) {
+      const dimensions = {
+        Service: "estimate",
+        Operation: "generate_document",
+        DocumentType: documentType,
+      };
+      attach(new cloudwatch.Alarm(this, `${documentType}GenerationFailureAlarm`, {
+        alarmName: `${config.resourcePrefix}-${documentType}-generation-failure`,
+        metric: appMetric("DocumentGenerationFailure", dimensions),
+        threshold: 1,
+        evaluationPeriods: 1,
+        treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+      }));
+      attach(new cloudwatch.Alarm(this, `${documentType}GenerationDurationAlarm`, {
+        alarmName: `${config.resourcePrefix}-${documentType}-generation-duration`,
+        metric: appMetric(
+          "DocumentGenerationDurationMs",
+          dimensions,
+          "p95",
+        ),
+        threshold: 55_000,
+        evaluationPeriods: 2,
+        treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+      }));
+    }
+
+    for (const [id, metricName, operation] of [
+      ["IssueFailure", "IssueFailure", "issue_estimate"],
+      ["RevisionFailure", "RevisionFailure", "create_revision"],
+      ["DuplicateFailure", "DuplicateFailure", "duplicate_estimate"],
+    ] as const) {
+      attach(new cloudwatch.Alarm(this, `${id}Alarm`, {
+        alarmName: `${config.resourcePrefix}-${metricName}`,
+        metric: appMetric(metricName, {
+          Service: "estimate",
+          Operation: operation,
+        }),
+        threshold: 1,
+        evaluationPeriods: 1,
+        treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+      }));
+    }
+
+    const stalePendingDocuments = appMetric("StalePendingDocumentCount", {
+      Service: "estimate",
+      Operation: "list_documents",
+    }, "Maximum");
+    attach(new cloudwatch.Alarm(this, "StalePendingDocumentAlarm", {
+      alarmName: `${config.resourcePrefix}-stale-pending-documents`,
+      metric: stalePendingDocuments,
+      threshold: 1,
+      evaluationPeriods: 1,
       treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
     }));
 
     dashboard.addWidgets(new cloudwatch.GraphWidget({
       title: "API, Aurora, and document workflow health",
-      left: [apiErrors, appMetric("DocumentGenerationFailures")],
-      right: [acu, appMetric("DocumentGenerationDuration", "p95")],
+      left: [apiErrors, stalePendingDocuments],
+      right: [
+        acu,
+        appMetric("DocumentGenerationDurationMs", {
+          Service: "estimate",
+          Operation: "generate_document",
+          DocumentType: "pdf",
+        }, "p95"),
+      ],
     }));
 
     new budgets.CfnBudget(this, "ProductionBudget", {

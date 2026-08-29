@@ -58,6 +58,10 @@ bootstrap or deployment.
 - The production Lambda environment receives only the restricted runtime-secret
   ARN. The admin/migration secret is retained separately and is not granted to
   application Lambdas.
+- Development and production use the same shared runtime-credential construct.
+  It generates the environment-specific `perfect_shade_app_runtime` secret and
+  transactionally synchronizes that login through a deployment-only provisioner
+  before either application Lambda is updated.
 - Production requires administrator-created users, TOTP MFA, SES mode, and
   production-only callback/logout/CORS values. Localhost and Amplify development
   URLs fail production configuration validation.
@@ -111,18 +115,15 @@ generation should not inherit resume latency. Begin at 0.5–4 ACU, alarm on
 sustained ACU utilization, connections, Data API errors, storage, and failover,
 then adjust from observed workload. Keep the NAT-free Data API architecture.
 
-The normal Lambda role currently retrieves the generated Aurora administrative
-secret and lowers database privileges using `SET ROLE`. This is stronger than
-needed at the IAM boundary. Before production, create a restricted database
-login/secret that can assume only `perfect_shade_app_runtime`; reserve the
-administrative secret for migrations and recovery operators.
-
-The production template now creates the separate runtime secret and wires only
-that secret to Lambdas. A controlled activation step still must create or rotate
-the `perfect_shade_app_login` database login from the generated secret after the
-foundation migrations establish roles. That runtime contract must be reviewed
-with the database/runtime owner before deployment; do not add a deploy-time
-custom resource that mutates schema or credentials implicitly.
+The application Lambdas now use the separate restricted runtime secret directly;
+they do not receive the Aurora administrative secret and no `SET LOCAL ROLE`
+workaround remains. A shared development/production deployment-only custom
+resource uses the admin identity only to transactionally create or constrain
+`perfect_shade_app_runtime` and synchronize its generated password. It commits
+only on success, rolls back on failure, performs no destructive delete action,
+and is an explicit dependency of both application Lambdas. Migrations continue
+to own RLS, grants, tenant constraints, and schema; the provisioner owns only
+database-login credential state.
 
 Do not enable generic Secrets Manager rotation until the runtime-login contract
 has an idempotent rotation Lambda or operator tool that updates PostgreSQL and
@@ -223,13 +224,14 @@ are reasonable launch values. Alarm before the timeout, measure DOCX/PDF p95 and
 p99 separately, and add reserved concurrency only after measuring document
 generation. Keep the pure-JavaScript document stack and backend-only signature.
 
-Unknown application exceptions are currently converted to generic HTTP 500
-responses without emitting a safe structured error. Lambda platform metrics can
-therefore show success while API Gateway reports 500. Before production, log a
-request ID, operation, safe error class/code, and failure stage without request
-bodies, customer fields, document bytes, S3 keys, secrets, or presigned URLs.
-Emit custom metrics for document generation success/failure/duration, S3 write
-failure, database finalization failure, and idempotent recovery.
+Known and unexpected application failures now emit allow-listed structured logs
+with request ID, operation, route template, safe error category/code, duration,
+outcome, and status. They do not accept raw exceptions, request bodies, customer
+fields, document bytes, S3 keys, SQL, credentials, ARNs, or presigned URLs.
+`PerfectShade/Application` EMF covers handler errors, operation and document
+duration, document generation, lifecycle failures, and pending/stale-pending
+documents. Production alarms consume that exact namespace and finite dimension
+contract rather than defining a parallel application metric vocabulary.
 
 ### CloudWatch and audit services
 
@@ -457,6 +459,11 @@ times, chosen recovery point, actual RTO/RPO, and cleanup authorization:
 - [ ] Separate production stack/configuration is reviewed and authorized.
 - [ ] CDK diff creates no development changes or persistent replacements.
 - [ ] Runtime database credential is separated from the migration/admin secret.
+- [ ] Runtime-login provisioning order, direct runtime Data API identity, denied
+  DDL/role operations, and admin-secret absence from application IAM are proven
+  in the production CDK diff and smoke test.
+- [ ] `PerfectShade/Application` EMF metrics, stale-document warning, production
+  log retention, and operational alarm routing are verified.
 - [ ] Aurora deletion protection, 35-day PITR, retained snapshots, and restore
   drill are verified.
 - [ ] S3 uses `RETAIN`, no auto-delete, versioning, encryption, Block Public
@@ -488,8 +495,8 @@ times, chosen recovery point, actual RTO/RPO, and cleanup authorization:
 1. Owner approval is still required for the production AWS account, region,
    canonical URLs, sender domain/address, operations recipient, budget recipient,
    and whether SSE-S3 remains the launch encryption choice.
-2. The restricted runtime secret is defined, but the controlled database-login
-   activation/rotation contract must be reviewed with the runtime/database owner.
+2. The shared runtime-login provisioner and rotation procedure must be reviewed
+   with the runtime/database owner and proven first in non-production.
 3. SES domain verification/DKIM, production sending access, and monitored
    bounce/complaint handling are not complete.
 4. The `Project` cost-allocation tag must be activated and shown to produce
@@ -507,8 +514,7 @@ times, chosen recovery point, actual RTO/RPO, and cleanup authorization:
    still needs production-only branch variables, protected/manual release
    settings, accepted build-spec ownership, and a custom domain before launch.
 5. Public DNS still targets Wix and no Amplify domain association exists.
-6. Application-handled failures lack safe structured error signals.
-7. Dependency advisories listed below remain unresolved.
+6. Dependency advisories listed below remain unresolved.
 
 ### Dependency and CDK advisories
 

@@ -4,6 +4,10 @@ import {
   type StaffIdentityDirectory,
 } from "./cognito-admin";
 import { AccountService, AccountServiceError } from "./service";
+import {
+  CloudWatchOperationalTelemetry,
+  type OperationalTelemetry,
+} from "../shared/operational-telemetry";
 import { TeamService } from "./team-service";
 
 export type AccountHttpApiEvent = Readonly<{
@@ -131,9 +135,24 @@ function displayName(value: unknown): string {
   return name;
 }
 
+function accountOperation(routeKey: string): string {
+  const operations: Readonly<Record<string, string>> = {
+    "GET /v1/account": "get_account",
+    "GET /v1/account/team": "list_team",
+    "POST /v1/account/team/invitations": "invite_team_member",
+    "POST /v1/account/team/{membershipId}/role": "change_team_role",
+    "POST /v1/account/team/{membershipId}/disable": "disable_team_member",
+    "POST /v1/account/team/{membershipId}/enable": "enable_team_member",
+    "POST /v1/account/team/{membershipId}/remove": "remove_team_member",
+    "POST /v1/account/profile": "update_profile",
+  };
+  return operations[routeKey] ?? "unknown_account_route";
+}
+
 export function createAccountHandler(
   database: TransactionDatabase,
   directory: StaffIdentityDirectory = new CognitoStaffIdentityDirectory(),
+  telemetry: OperationalTelemetry = new CloudWatchOperationalTelemetry("account"),
 ) {
   const service = new AccountService(database);
   const team = new TeamService(database, directory);
@@ -141,9 +160,11 @@ export function createAccountHandler(
     event: AccountHttpApiEvent,
   ): Promise<AccountHttpApiResponse> {
     const requestId = event.requestContext.requestId;
-    try {
+    const routeKey = event.routeKey ?? "GET /v1/account";
+    const operation = accountOperation(routeKey);
+    const startedAt = Date.now();
+    const dispatch = async (): Promise<AccountHttpApiResponse> => {
       const actorSubject = subject(event);
-      const routeKey = event.routeKey ?? "GET /v1/account";
       if (routeKey === "GET /v1/account") {
         return response(200, await service.getAccount(actorSubject));
       }
@@ -208,8 +229,39 @@ export function createAccountHandler(
           requestId,
         },
       });
+    };
+    try {
+      const result = await dispatch();
+      const failed = result.statusCode >= 400;
+      telemetry.recordOperation({
+        operation,
+        route: routeKey,
+        requestId,
+        durationMs: Date.now() - startedAt,
+        statusCode: result.statusCode,
+        outcome: failed ? "failure" : "success",
+        ...(failed
+          ? { errorCode: "route_not_found", errorCategory: "handled" as const }
+          : {}),
+      });
+      return result;
     } catch (error) {
-      return errorResponse(error, requestId);
+      const result = errorResponse(error, requestId);
+      telemetry.recordOperation({
+        operation,
+        route: routeKey,
+        requestId,
+        durationMs: Date.now() - startedAt,
+        statusCode: result.statusCode,
+        outcome: "failure",
+        errorCode: error instanceof AccountServiceError
+          ? error.code
+          : "internal_error",
+        errorCategory: error instanceof AccountServiceError
+          ? "handled"
+          : "unexpected",
+      });
+      return result;
     }
   };
 }

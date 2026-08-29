@@ -21,7 +21,7 @@ export interface ApiConstructProps {
   readonly cluster: rds.DatabaseCluster;
   readonly databaseName: string;
   readonly documentBucket: s3.Bucket;
-  readonly databaseRuntimeSecret?: secretsmanager.ISecret;
+  readonly databaseRuntimeSecret: secretsmanager.ISecret;
 }
 
 interface ApplicationFunctionOptions {
@@ -43,10 +43,9 @@ export class ApiConstruct extends Construct {
       APP_ENVIRONMENT: props.config.environmentName,
       AWS_REGION_NAME: props.config.region,
       DATABASE_CLUSTER_ARN: props.cluster.clusterArn,
-      DATABASE_SECRET_ARN:
-        props.databaseRuntimeSecret?.secretArn ?? props.cluster.secret?.secretArn ?? "",
+      DATABASE_RUNTIME_SECRET_ARN: props.databaseRuntimeSecret.secretArn,
       DATABASE_NAME: props.databaseName,
-      DATABASE_RUNTIME_ROLE: "perfect_shade_app_runtime",
+      DOCUMENT_PENDING_STALE_MINUTES: "15",
     };
 
     this.accountFunction = this.createApplicationFunction(
@@ -76,8 +75,17 @@ export class ApiConstruct extends Construct {
     );
 
     for (const fn of [this.accountFunction, this.estimateFunction]) {
-      props.cluster.grantDataApiAccess(fn);
-      (props.databaseRuntimeSecret ?? props.cluster.secret)?.grantRead(fn);
+      fn.addToRolePolicy(new iam.PolicyStatement({
+        effect: iam.Effect.ALLOW,
+        actions: [
+          "rds-data:BeginTransaction",
+          "rds-data:CommitTransaction",
+          "rds-data:ExecuteStatement",
+          "rds-data:RollbackTransaction",
+        ],
+        resources: [props.cluster.clusterArn],
+      }));
+      props.databaseRuntimeSecret.grantRead(fn);
     }
     this.estimateFunction.addToRolePolicy(new iam.PolicyStatement({
       effect: iam.Effect.ALLOW,

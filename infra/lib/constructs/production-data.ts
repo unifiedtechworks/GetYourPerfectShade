@@ -2,14 +2,12 @@ import { Duration, RemovalPolicy } from "aws-cdk-lib";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as logs from "aws-cdk-lib/aws-logs";
 import * as rds from "aws-cdk-lib/aws-rds";
-import * as secretsmanager from "aws-cdk-lib/aws-secretsmanager";
 import { Construct } from "constructs";
 import type { PerfectShadeProductionConfig } from "../production-config";
 
 export class ProductionDataConstruct extends Construct {
   readonly vpc: ec2.Vpc;
   readonly cluster: rds.DatabaseCluster;
-  readonly runtimeSecret: secretsmanager.Secret;
   readonly databaseName = "perfectshade";
 
   constructor(scope: Construct, id: string, config: PerfectShadeProductionConfig) {
@@ -63,17 +61,5 @@ export class ProductionDataConstruct extends Construct {
       removalPolicy: RemovalPolicy.SNAPSHOT,
     });
     this.cluster.secret?.applyRemovalPolicy(RemovalPolicy.RETAIN);
-
-    this.runtimeSecret = new secretsmanager.Secret(this, "RuntimeDatabaseSecret", {
-      secretName: `${config.resourcePrefix}/aurora/runtime`,
-      description: "Restricted Perfect Shade application database login; never used for migrations",
-      generateSecretString: {
-        secretStringTemplate: JSON.stringify({ username: "perfect_shade_app_login" }),
-        generateStringKey: "password",
-        excludePunctuation: true,
-        passwordLength: 40,
-      },
-    });
-    this.runtimeSecret.applyRemovalPolicy(RemovalPolicy.RETAIN);
   }
 }

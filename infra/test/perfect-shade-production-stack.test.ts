@@ -97,14 +97,69 @@ describe("PerfectShadeProductionStack", { timeout: 120_000 }, () => {
     template.resourceCountIs("AWS::SecretsManager::Secret", 2);
     template.hasResourceProperties("AWS::SecretsManager::Secret", {
       Name: "perfect-shade-production/aurora/runtime",
-      GenerateSecretString: Match.objectLike({ GenerateStringKey: "password" }),
+      Description:
+        "Restricted Perfect Shade application runtime database login; never used for migrations",
+      GenerateSecretString: Match.objectLike({
+        GenerateStringKey: "password",
+        PasswordLength: 40,
+        SecretStringTemplate: JSON.stringify({
+          username: "perfect_shade_app_runtime",
+        }),
+      }),
     });
+    template.resourceCountIs(
+      "Custom::PerfectShadeRuntimeDatabaseCredentials",
+      1,
+    );
     template.hasResourceProperties("AWS::Lambda::Function", {
       Environment: { Variables: Match.objectLike({
         APP_ENVIRONMENT: "production",
-        DATABASE_SECRET_ARN: Match.objectLike({ Ref: Match.stringLikeRegexp("RuntimeDatabaseSecret") }),
+        DATABASE_RUNTIME_SECRET_ARN: Match.objectLike({
+          Ref: Match.stringLikeRegexp("RuntimeDatabaseSecret"),
+        }),
+        DOCUMENT_PENDING_STALE_MINUTES: "15",
       }) },
     });
+
+    const functions = template.findResources("AWS::Lambda::Function");
+    for (const functionName of [
+      "perfect-shade-production-account",
+      "perfect-shade-production-estimates",
+    ]) {
+      const applicationFunction = Object.values(functions).find((resource) =>
+        resource.Properties?.FunctionName === functionName,
+      );
+      const serialized = JSON.stringify(applicationFunction);
+      expect(serialized).toContain("DATABASE_RUNTIME_SECRET_ARN");
+      expect(serialized).not.toContain("DATABASE_ADMIN_SECRET_ARN");
+      expect(serialized).not.toContain("DATABASE_SECRET_ARN");
+      expect(serialized).not.toContain("DATABASE_RUNTIME_ROLE");
+    }
+
+    const policies = template.findResources("AWS::IAM::Policy");
+    for (const roleName of [
+      "ApiAccountFunctionServiceRole",
+      "ApiEstimateFunctionServiceRole",
+    ]) {
+      const policy = Object.values(policies).find((resource) =>
+        JSON.stringify(resource).includes(roleName),
+      );
+      expect(policy).toBeDefined();
+      const serialized = JSON.stringify(policy);
+      expect(serialized).toContain("RuntimeDatabaseCredentialsRuntimeDatabaseSecret");
+      expect(serialized).not.toContain("DataDatabaseSecretAttachment");
+    }
+    const provisionerPolicy = Object.values(policies).find((resource) =>
+      JSON.stringify(resource).includes(
+        "RuntimeDatabaseCredentialsProvisionerServiceRole",
+      ),
+    );
+    expect(provisionerPolicy).toBeDefined();
+    const serializedProvisionerPolicy = JSON.stringify(provisionerPolicy);
+    expect(serializedProvisionerPolicy).toContain(
+      "RuntimeDatabaseCredentialsRuntimeDatabaseSecret",
+    );
+    expect(serializedProvisionerPolicy).toContain("DataDatabaseSecretAttachment");
   });
 
   it("retains private versioned document and audit buckets", () => {
@@ -140,9 +195,27 @@ describe("PerfectShadeProductionStack", { timeout: 120_000 }, () => {
       EnableLogFileValidation: true,
     });
     template.hasResourceProperties("AWS::CloudWatch::Alarm", {
-      MetricName: "StalePendingDocuments",
-      Namespace: "PerfectShade/Production",
+      MetricName: "StalePendingDocumentCount",
+      Namespace: "PerfectShade/Application",
+      Dimensions: Match.arrayWith([
+        { Name: "Operation", Value: "list_documents" },
+        { Name: "Service", Value: "estimate" },
+      ]),
       AlarmActions: Match.anyValue(),
+    });
+    template.hasResourceProperties("AWS::CloudWatch::Alarm", {
+      MetricName: "UnexpectedHandlerError",
+      Namespace: "PerfectShade/Application",
+      Dimensions: [{ Name: "Service", Value: "estimate" }],
+    });
+    template.hasResourceProperties("AWS::CloudWatch::Alarm", {
+      MetricName: "DocumentGenerationFailure",
+      Namespace: "PerfectShade/Application",
+      Dimensions: Match.arrayWith([
+        { Name: "DocumentType", Value: "pdf" },
+        { Name: "Operation", Value: "generate_document" },
+        { Name: "Service", Value: "estimate" },
+      ]),
     });
     template.hasResourceProperties("AWS::Budgets::Budget", {
       Budget: Match.objectLike({
@@ -163,6 +236,7 @@ describe("PerfectShadeProductionStack", { timeout: 120_000 }, () => {
       "CognitoUserPoolId",
       "AuroraAdminSecretArn",
       "AuroraRuntimeSecretArn",
+      "AuroraSecretArn",
       "DocumentBucketName",
       "OperationsAlarmTopicArn",
       "SesSenderDomain",

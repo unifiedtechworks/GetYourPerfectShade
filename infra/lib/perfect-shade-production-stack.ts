@@ -8,6 +8,7 @@ import { ProductionAuditConstruct } from "./constructs/production-audit";
 import { ProductionDataConstruct } from "./constructs/production-data";
 import { ProductionObservabilityConstruct } from "./constructs/production-observability";
 import { ProductionStorageConstruct } from "./constructs/production-storage";
+import { RuntimeDatabaseCredentialsConstruct } from "./constructs/runtime-database-credentials";
 import type { PerfectShadeProductionConfig } from "./production-config";
 
 export interface PerfectShadeProductionStackProps extends StackProps {
@@ -35,6 +36,19 @@ export class PerfectShadeProductionStack extends Stack {
     identity.userPool.node.addDependency(senderIdentity);
     const data = new ProductionDataConstruct(this, "Data", config);
     const storage = new ProductionStorageConstruct(this, "Storage", config);
+    if (!data.cluster.secret) {
+      throw new Error("Aurora administrative credentials were not created.");
+    }
+    const runtimeCredentials = new RuntimeDatabaseCredentialsConstruct(
+      this,
+      "RuntimeDatabaseCredentials",
+      {
+        config,
+        cluster: data.cluster,
+        databaseName: data.databaseName,
+        adminSecret: data.cluster.secret,
+      },
+    );
     const api = new ApiConstruct(this, "Api", {
       config,
       userPool: identity.userPool,
@@ -42,8 +56,10 @@ export class PerfectShadeProductionStack extends Stack {
       cluster: data.cluster,
       databaseName: data.databaseName,
       documentBucket: storage.documentBucket,
-      databaseRuntimeSecret: data.runtimeSecret,
+      databaseRuntimeSecret: runtimeCredentials.runtimeSecret,
     });
+    api.accountFunction.node.addDependency(runtimeCredentials.resource);
+    api.estimateFunction.node.addDependency(runtimeCredentials.resource);
     const observability = new ProductionObservabilityConstruct(this, "Observability", {
       config,
       api: api.api,
@@ -79,8 +95,9 @@ export class PerfectShadeProductionStack extends Stack {
     this.output("CognitoHostedUiDomain", identity.userPoolDomain.domainName);
     this.output("CognitoIssuer", `https://cognito-idp.${config.region}.amazonaws.com/${identity.userPool.userPoolId}`);
     this.output("AuroraClusterArn", data.cluster.clusterArn);
-    this.output("AuroraAdminSecretArn", data.cluster.secret?.secretArn ?? "not-created");
-    this.output("AuroraRuntimeSecretArn", data.runtimeSecret.secretArn);
+    this.output("AuroraSecretArn", data.cluster.secret.secretArn);
+    this.output("AuroraAdminSecretArn", data.cluster.secret.secretArn);
+    this.output("AuroraRuntimeSecretArn", runtimeCredentials.runtimeSecret.secretArn);
     this.output("AuroraDatabaseName", data.databaseName);
     this.output("DocumentBucketName", storage.documentBucket.bucketName);
     this.output("OperationsAlarmTopicArn", observability.alarmTopic.topicArn);

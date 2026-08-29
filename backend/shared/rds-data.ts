@@ -18,9 +18,8 @@ type DataApiClient = Readonly<{
 
 export type RdsDataConfiguration = Readonly<{
   resourceArn: string;
-  secretArn: string;
+  runtimeSecretArn: string;
   database: string;
-  runtimeRole: string;
 }>;
 
 function requiredEnvironment(name: string): string {
@@ -30,15 +29,10 @@ function requiredEnvironment(name: string): string {
 }
 
 export function rdsDataConfigurationFromEnvironment(): RdsDataConfiguration {
-  const runtimeRole = requiredEnvironment("DATABASE_RUNTIME_ROLE");
-  if (!/^[a-z_][a-z0-9_]*$/.test(runtimeRole)) {
-    throw new Error("Database runtime-role configuration is invalid.");
-  }
   return {
     resourceArn: requiredEnvironment("DATABASE_CLUSTER_ARN"),
-    secretArn: requiredEnvironment("DATABASE_SECRET_ARN"),
+    runtimeSecretArn: requiredEnvironment("DATABASE_RUNTIME_SECRET_ARN"),
     database: requiredEnvironment("DATABASE_NAME"),
-    runtimeRole,
   };
 }
 
@@ -68,27 +62,20 @@ export class RdsDataDatabase implements TransactionDatabase {
   async beginTransaction(): Promise<string> {
     const response = await this.client.send(new BeginTransactionCommand({
       resourceArn: this.configuration.resourceArn,
-      secretArn: this.configuration.secretArn,
+      secretArn: this.configuration.runtimeSecretArn,
       database: this.configuration.database,
     })) as { transactionId?: string };
     if (!response.transactionId) {
       throw new Error("The database did not start a transaction.");
     }
 
-    await this.client.send(new ExecuteStatementCommand({
-      resourceArn: this.configuration.resourceArn,
-      secretArn: this.configuration.secretArn,
-      database: this.configuration.database,
-      transactionId: response.transactionId,
-      sql: `set local role ${this.configuration.runtimeRole}`,
-    }));
     return response.transactionId;
   }
 
   async execute(statement: SqlStatement): Promise<readonly SqlRow[]> {
     const response = await this.client.send(new ExecuteStatementCommand({
       resourceArn: this.configuration.resourceArn,
-      secretArn: this.configuration.secretArn,
+      secretArn: this.configuration.runtimeSecretArn,
       database: this.configuration.database,
       transactionId: statement.transactionId,
       sql: statement.sql,
@@ -114,7 +101,7 @@ export class RdsDataDatabase implements TransactionDatabase {
   async commitTransaction(transactionId: string): Promise<void> {
     await this.client.send(new CommitTransactionCommand({
       resourceArn: this.configuration.resourceArn,
-      secretArn: this.configuration.secretArn,
+      secretArn: this.configuration.runtimeSecretArn,
       transactionId,
     }));
   }
@@ -122,7 +109,7 @@ export class RdsDataDatabase implements TransactionDatabase {
   async rollbackTransaction(transactionId: string): Promise<void> {
     await this.client.send(new RollbackTransactionCommand({
       resourceArn: this.configuration.resourceArn,
-      secretArn: this.configuration.secretArn,
+      secretArn: this.configuration.runtimeSecretArn,
       transactionId,
     }));
   }

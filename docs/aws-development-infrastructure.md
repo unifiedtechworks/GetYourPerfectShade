@@ -23,15 +23,17 @@ The `PerfectShadeDevelopment` stack defines:
 - A staff-only Cognito User Pool with public signup disabled, email sign-in, verified-email
   recovery, a no-secret Next.js app client, and configurable callbacks/logout URLs.
 - A NAT-free VPC with isolated subnets and no public database route.
-- An encrypted Aurora PostgreSQL Serverless v2 writer with Data API enabled, a generated Secrets
-  Manager credential, a one-day development backup, 0–1 ACU scaling, and 15-minute auto-pause.
+- An encrypted Aurora PostgreSQL Serverless v2 writer with Data API enabled, separate generated
+  administrative and restricted runtime Secrets Manager credentials, a one-day development
+  backup, 0–1 ACU scaling, and 15-minute auto-pause.
 - A private, encrypted, versioned S3 document bucket with blocked public access and development
   cleanup rules.
 - An API Gateway HTTP API with Cognito JWT authorization and protected account and estimate
   routes wired to stable application-owned handlers.
-- Two bundled ARM64 Node.js Lambdas with JSON logging. They share the constrained RDS Data API
-  adapter; only the estimate Lambda has document-bucket read/upload access, with no object-delete
-  grant.
+- Two bundled ARM64 Node.js application Lambdas with secret-safe JSON/EMF telemetry. They use the
+  restricted runtime database secret directly; only the estimate Lambda has document-bucket
+  read/upload access, with no object-delete grant. A deployment-only provisioner synchronizes the
+  runtime login without exposing the admin secret to application functions.
 - One-week development log retention, Lambda/API/Aurora alarms, and an operations dashboard.
 - Optional, context-gated AWS Budget alerts. No budget or email subscription exists by default.
 - Five non-secret SSM parameters and CloudFormation outputs for application integration.
@@ -151,7 +153,9 @@ Never deploy this development stack with production data or secrets.
 | `CognitoHostedUiDomain` | Cognito authorization/logout endpoint construction | Public identifier |
 | `CognitoIssuer` | Server/API token validation configuration | Public identifier |
 | `AuroraClusterArn` | Lambda/CDK integration only | Server-side configuration |
-| `AuroraSecretArn` | Lambda/migration role reference only | Sensitive reference; never client-side |
+| `AuroraAdminSecretArn` | Migration/bootstrap and deployment-only provisioner | Sensitive reference; never application or client-side |
+| `AuroraRuntimeSecretArn` | Account/estimate Lambda Data API login | Sensitive reference; never client-side |
+| `AuroraSecretArn` | Compatibility alias for the admin secret | Temporary deployment-script transition only |
 | `AuroraDatabaseName` | Migration/Lambda configuration | Server-side configuration |
 | `DocumentBucketName` | Lambda/CDK integration only | Server-side configuration |
 | `SesSenderStatus` | Deployment readiness check | Non-secret status |
@@ -160,6 +164,10 @@ Never deploy this development stack with production data or secrets.
 Equivalent non-secret values are published under `/perfect-shade/development/` in Parameter
 Store. Secrets Manager owns the generated database password. Do not copy the password into
 Amplify variables, local files, logs, or client code.
+
+See [`runtime-operational-hardening.md`](./runtime-operational-hardening.md) for the exact
+environment names, deployment ordering, credential rotation limitation, telemetry schema,
+pending-document policy, and Chat 5 verification sequence.
 
 ## Cognito and SES
 
