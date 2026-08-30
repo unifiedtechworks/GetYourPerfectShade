@@ -48,6 +48,13 @@ describe("runtime database credential provisioner", () => {
         .join("\n");
       expect(serializedSql).not.toContain(password);
       expect(serializedSql).toContain("perfect_shade_app_runtime");
+      expect(serializedSql).toContain("runtime_database_role_attributes_invalid");
+      expect(serializedSql).not.toContain(
+        "alter role perfect_shade_app_runtime\n      login noinherit",
+      );
+      expect(serializedSql).not.toContain(
+        "alter role perfect_shade_app_runtime nobypassrls",
+      );
       const parameterCommand = rds.commands[1] as {
         input: { parameters: readonly { value: { stringValue: string } }[] };
       };

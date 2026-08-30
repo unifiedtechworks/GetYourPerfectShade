@@ -104,6 +104,19 @@ does not look up or create AWS resources.
 
 Only after every provisioning gate is satisfied:
 
+> **Development drift warning:** A default-context CDK diff is not an
+> authoritative comparison with the deployed development stack. Every future
+> account-aware `diff` or `deploy` must pass the complete, currently approved
+> deployed context: localhost plus the hosted Amplify callback URLs; localhost
+> plus the hosted Amplify logout URLs; localhost plus the hosted Amplify CORS
+> origins; `emailSenderMode=cognito`; `enableBudget=true`;
+> `monthlyBudgetUsd=50`; and the current approved
+> `budgetNotificationEmail`. Resolve the exact hosted URLs and private
+> notification recipient from the deployed stack and approved operator record;
+> do not replace them with the committed localhost-only defaults or place the
+> recipient in source control. Omitting any of these values can incorrectly
+> propose removing hosted URL configuration or the active development budget.
+
 ```powershell
 cd infra
 npm run diff -- --profile '<approved-profile>' `

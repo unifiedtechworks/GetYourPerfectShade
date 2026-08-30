@@ -30,6 +30,7 @@ const PROVISION_RUNTIME_ROLE_SQL = `
 do $runtime_credentials$
 declare
   runtime_password text := current_setting('perfect_shade.runtime_password');
+  runtime_role record;
 begin
   if runtime_password is null or length(runtime_password) < 20 then
     raise exception 'runtime_database_password_invalid';
@@ -40,10 +41,23 @@ begin
     where rolname = 'perfect_shade_app_runtime'
   ) then
     create role perfect_shade_app_runtime
-      login noinherit nosuperuser nocreatedb nocreaterole noreplication nobypassrls;
-  else
-    alter role perfect_shade_app_runtime
-      login noinherit nosuperuser nocreatedb nocreaterole noreplication nobypassrls;
+      login noinherit;
+  end if;
+
+  select rolsuper, rolcreaterole, rolcreatedb, rolcanlogin,
+         rolreplication, rolbypassrls, rolinherit
+  into strict runtime_role
+  from pg_catalog.pg_roles
+  where rolname = 'perfect_shade_app_runtime';
+
+  if runtime_role.rolsuper
+    or runtime_role.rolcreaterole
+    or runtime_role.rolcreatedb
+    or not runtime_role.rolcanlogin
+    or runtime_role.rolreplication
+    or runtime_role.rolbypassrls
+    or runtime_role.rolinherit then
+    raise exception 'runtime_database_role_attributes_invalid';
   end if;
 
   execute format(
