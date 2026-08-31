@@ -1,4 +1,5 @@
 const REQUIRED_PUBLIC_VALUES = [
+  "NEXT_PUBLIC_PERFECT_SHADE_ENVIRONMENT",
   "NEXT_PUBLIC_AWS_REGION",
   "NEXT_PUBLIC_COGNITO_USER_POOL_ID",
   "NEXT_PUBLIC_COGNITO_USER_POOL_CLIENT_ID",
@@ -23,6 +24,11 @@ export function validateAmplifyEnvironment(env) {
   }
   for (const key of REQUIRED_PUBLIC_VALUES) {
     if (!env[key]) throw new Error(`Amplify main is missing ${key}.`);
+  }
+  if (env.NEXT_PUBLIC_PERFECT_SHADE_ENVIRONMENT !== "production") {
+    throw new Error(
+      "Amplify main requires NEXT_PUBLIC_PERFECT_SHADE_ENVIRONMENT=production.",
+    );
   }
   for (const [expectedKey, publicKey] of [
     ["PERFECT_SHADE_EXPECTED_API_BASE_URL", "NEXT_PUBLIC_API_BASE_URL"],

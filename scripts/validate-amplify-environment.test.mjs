@@ -5,6 +5,7 @@ const production = {
   AWS_BRANCH: "main",
   PERFECT_SHADE_DEPLOYMENT_ENVIRONMENT: "production",
   PERFECT_SHADE_PRODUCTION_RELEASE_APPROVED: "true",
+  NEXT_PUBLIC_PERFECT_SHADE_ENVIRONMENT: "production",
   NEXT_PUBLIC_AWS_REGION: "us-west-2",
   NEXT_PUBLIC_COGNITO_USER_POOL_ID: "us-west-2_production",
   NEXT_PUBLIC_COGNITO_USER_POOL_CLIENT_ID: "production-client",
@@ -26,6 +27,17 @@ describe("Amplify environment isolation", () => {
       PERFECT_SHADE_DEPLOYMENT_ENVIRONMENT: undefined,
       NEXT_PUBLIC_SITE_URL: "http://localhost:3000",
     })).toThrow(/production-only branch override/);
+  });
+
+  it("rejects a missing or development-compatible public environment marker", () => {
+    expect(() => validateAmplifyEnvironment({
+      ...production,
+      NEXT_PUBLIC_PERFECT_SHADE_ENVIRONMENT: undefined,
+    })).toThrow(/missing NEXT_PUBLIC_PERFECT_SHADE_ENVIRONMENT/);
+    expect(() => validateAmplifyEnvironment({
+      ...production,
+      NEXT_PUBLIC_PERFECT_SHADE_ENVIRONMENT: "development",
+    })).toThrow(/NEXT_PUBLIC_PERFECT_SHADE_ENVIRONMENT=production/);
   });
 
   it("rejects development hosts and production markers on non-main branches", () => {
