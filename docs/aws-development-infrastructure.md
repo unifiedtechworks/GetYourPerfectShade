@@ -207,6 +207,7 @@ deterministic and must be applied in this order:
 6. `infra/database/migrations/0006_estimate_phase_3.sql`
 7. `infra/database/migrations/0007_estimate_phase_4.sql`
 8. `infra/database/migrations/0008_identity_recovery.sql`
+9. `infra/database/migrations/0009_additional_owner_provisioning.sql`
 
 A controlled RDS Data API runner is implemented under `infra/database/runner`. It uses an
 approved administrative migration identity—not the normal Lambda runtime role—and exposes:

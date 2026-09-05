@@ -89,9 +89,11 @@ The account Lambda derives actor, organization, and current role from the valida
 while Aurora migration `0004_staff_account_management.sql` enforces task-specific membership
 commands, soft status changes, owner/self protections, tenant predicates, and audit events.
 
-General provisioning accepts only `admin` and `staff`; owner creation remains exclusive to the
-initial owner bootstrap. Cognito generates and emails temporary passwords, which are never
-accepted or returned by the application. See
+General provisioning accepts only `admin` and `staff`; owner creation remains outside the
+application. The first owner uses the initial bootstrap, while any additional owner requires the
+separate administrative CLI and active-owner authorization documented in
+[`additional-owner-provisioning.md`](./additional-owner-provisioning.md). Cognito generates and
+emails temporary credentials, which are never accepted or returned by the application. See
 [`staff-account-management.md`](./staff-account-management.md) for API contracts, permissions,
 and partial-service recovery.
 

@@ -254,7 +254,7 @@ approved by the owner.
 | Soft-delete/archive eligible operational records | Yes | Yes | No |
 | Invoke owner-controlled hard-deletion process | Restricted | No | No |
 | Manage memberships | Yes | Yes, except owner-only actions | No |
-| Grant/revoke `owner` | Yes | No | No |
+| Authorize controlled additional-owner provisioning | Yes | No | No |
 | Change organization identity | No | No | No |
 | Edit issued estimate in place | No | No | No |
 
@@ -304,6 +304,8 @@ and `updated_at`. Prevent `organization_id` changes with a trigger. Child foreig
 - Membership mutation is exposed only through dedicated commands.
 - Staff cannot call membership commands.
 - Admins cannot create, promote, demote, disable, or delete owners.
+- Owners cannot grant or revoke `owner` through the application. An additional owner requires the
+  administrative CLI, an existing active owner's authorization, and the admin database credential.
 - Owners cannot remove the last active owner without an explicit ownership-transfer workflow.
 - The actor, target membership, current role, requested role, and result are written to an
   append-only audit event.

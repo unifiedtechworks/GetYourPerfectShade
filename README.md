@@ -59,6 +59,8 @@ Set the environment name, AWS region, Cognito User Pool/client, API base URL, an
 and authorization decisions are documented in
 [`docs/account-architecture.md`](docs/account-architecture.md); production identity isolation is
 documented in [`docs/production-identity-readiness.md`](docs/production-identity-readiness.md).
+Controlled post-bootstrap owner access is documented separately in
+[`docs/additional-owner-provisioning.md`](docs/additional-owner-provisioning.md).
 
 ## Updating Business Info
 

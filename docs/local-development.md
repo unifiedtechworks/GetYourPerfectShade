@@ -92,6 +92,7 @@ identity applies these files in order:
 6. `infra/database/migrations/0006_estimate_phase_3.sql`
 7. `infra/database/migrations/0007_estimate_phase_4.sql`
 8. `infra/database/migrations/0008_identity_recovery.sql`
+9. `infra/database/migrations/0009_additional_owner_provisioning.sql`
 
 Ordinary Lambda cold starts, Amplify builds, and CDK synthesis never apply migrations. The
 application contains no active Supabase runtime, environment variable, package, or migration
@@ -99,7 +100,8 @@ path; historical behavior remains available in Git history.
 
 After a separately authorized deployment and migration, follow
 [`initial-owner-bootstrap.md`](./initial-owner-bootstrap.md) to create the first internal staff
-owner. The complete 12-step development activation sequence is documented in
+owner. Use [`additional-owner-provisioning.md`](./additional-owner-provisioning.md) only for a
+separately authorized additional owner after bootstrap. The complete 12-step development activation sequence is documented in
 [`aurora-migration-runner.md`](./aurora-migration-runner.md#initial-development-sequence).
 Repository tests and builds never run those live commands.
 

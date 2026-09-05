@@ -344,7 +344,7 @@ complete.
 8. Record outputs securely; verify deletion/retention/backup policies.
 9. Run migration `status`, then `plan`; review exact filenames/checksums.
 10. Take/verify a recovery point, then apply forward-only migrations in order.
-11. Confirm `0001` through `0008` are applied with no mismatch or gap.
+11. Confirm `0001` through `0009` are applied with no mismatch or gap.
 12. Run owner bootstrap dry-run, then the separately authorized live bootstrap.
 13. Configure production Amplify variables and deploy the approved commit.
 14. Complete authenticated acceptance, MFA enrollment, tenant/RLS, document,
@@ -492,7 +492,8 @@ times, chosen recovery point, actual RTO/RPO, and cleanup authorization:
   anomaly monitor are active.
 - [ ] Dependencies have no unresolved launch-blocking advisories.
 - [ ] Application errors emit safe structured logs/custom metrics.
-- [ ] Migrations `0001`–`0008` and owner bootstrap are verified in production.
+- [ ] Migrations `0001`–`0009`, initial owner bootstrap, and any separately approved additional
+  owner provisioning are verified in production.
 - [ ] Tenant isolation, roles, issued immutability, documents, signature,
   downloads, print, and `/sign-up` absence pass acceptance.
 - [ ] DNS inventory, TTL reduction, Wix rollback values, Amplify certificate,

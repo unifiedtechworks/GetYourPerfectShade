@@ -53,7 +53,8 @@ all deletes remain revoked.
 ## Invitation and temporary-password behavior
 
 Invitation input accepts only an email and target role `admin` or `staff`. `owner` is never an
-accepted target.
+accepted target. Additional-owner provisioning remains a separate administrative process; see
+[`additional-owner-provisioning.md`](./additional-owner-provisioning.md).
 
 The account Lambda:
 
