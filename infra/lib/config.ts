@@ -17,10 +17,12 @@ export interface PerfectShadeApplicationConfig {
   readonly mfaMode: MfaMode;
   readonly emailSenderMode: EmailSenderMode;
   readonly sesFromEmail?: string;
+  readonly sesReplyToEmail?: string;
   readonly sesVerifiedDomain?: string;
   readonly enableBudget: boolean;
   readonly monthlyBudgetUsd: number;
   readonly budgetNotificationEmail?: string;
+  readonly estimateIncludeCompanySignature: boolean;
 }
 
 export interface PerfectShadeDevelopmentConfig extends PerfectShadeApplicationConfig {
@@ -69,6 +71,7 @@ export function loadDevelopmentConfig(app: App): PerfectShadeDevelopmentConfig {
   }
 
   const sesFromEmail = optionalString(app.node.tryGetContext("sesFromEmail"));
+  const sesReplyToEmail = optionalString(app.node.tryGetContext("sesReplyToEmail"));
   const sesVerifiedDomain = optionalString(app.node.tryGetContext("sesVerifiedDomain"));
   if (emailSenderMode === "ses" && (!sesFromEmail || !sesVerifiedDomain)) {
     throw new Error(
@@ -109,9 +112,14 @@ export function loadDevelopmentConfig(app: App): PerfectShadeDevelopmentConfig {
     mfaMode: mfaContext,
     emailSenderMode,
     sesFromEmail,
+    sesReplyToEmail,
     sesVerifiedDomain,
     enableBudget,
     monthlyBudgetUsd: numberValue(app.node.tryGetContext("monthlyBudgetUsd"), 50),
     budgetNotificationEmail,
+    estimateIncludeCompanySignature: booleanValue(
+      app.node.tryGetContext("estimateIncludeCompanySignature"),
+      true,
+    ),
   };
 }

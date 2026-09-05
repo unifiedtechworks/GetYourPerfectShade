@@ -24,6 +24,7 @@ const baseConfig: PerfectShadeDevelopmentConfig = {
   emailSenderMode: "cognito",
   enableBudget: false,
   monthlyBudgetUsd: 50,
+  estimateIncludeCompanySignature: true,
 };
 
 let cachedDefaultTemplate: Template | undefined;

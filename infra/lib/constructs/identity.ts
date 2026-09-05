@@ -5,6 +5,7 @@ import type { PerfectShadeApplicationConfig } from "../config";
 
 export interface IdentityConstructProps {
   readonly config: PerfectShadeApplicationConfig;
+  readonly sesConfigurationSetName?: string;
 }
 
 export class IdentityConstruct extends Construct {
@@ -20,7 +21,8 @@ export class IdentityConstruct extends Construct {
       ? cognito.UserPoolEmail.withSES({
           fromEmail: config.sesFromEmail!,
           fromName: "Perfect Shade",
-          replyTo: config.sesFromEmail!,
+          replyTo: config.sesReplyToEmail ?? config.sesFromEmail!,
+          configurationSetName: props.sesConfigurationSetName,
           sesRegion: config.region,
           sesVerifiedDomain: config.sesVerifiedDomain!,
         })

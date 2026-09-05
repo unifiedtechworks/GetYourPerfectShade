@@ -73,18 +73,13 @@ The authoritative Wix server returned no published records for:
 - `_acme-challenge` TXT; and
 - `_domainconnect` CNAME.
 
-The approved public contact address is `ps.perfectshade@gmail.com`. The absence of apex MX is a
-launch blocker only if the owner expects `getyourperfectshade.com` to receive inbound email or
-provide custom-domain aliases or forwarding. SPF can authorize senders but does not route inbound
-mail, and the observed SPF reference to Google is not evidence that Google Workspace is configured
-for this domain. Do not add or infer Google Workspace MX, DKIM, or any other mail-provider records
-during the website cutover.
-
-Before launch, record whether custom-domain inbound mail is expected. If it is, the authoritative
-mail administrator must identify the actual provider, export the intended provider records and
-aliases, and compare them with the authoritative zone; unresolved missing MX is then a launch hold
-point. If it is not, record that decision and verify the approved Gmail contact remains published
-and functional; missing apex MX is not by itself a web-launch blocker.
+The approved public contact and transactional Reply-To address is
+`ps.getyourperfectshade@gmail.com`. The owner has confirmed that the domain does not need to receive
+inbound mail or provide custom-domain aliases or forwarding. No MX record is required or approved;
+the absence of apex MX is not a web-launch blocker. SPF can authorize senders but does not route
+inbound mail, and the observed SPF reference to Google is not evidence that Google Workspace is
+configured for this domain. Do not add or infer Google Workspace MX, DKIM, or any other
+mail-provider records during the website cutover.
 
 The SPF policy also contains the `a` mechanism. Replacing the apex web target changes the hosts
 that this mechanism resolves to, so SPF authorization semantics can change even when the TXT value
@@ -368,12 +363,10 @@ Record pass/fail, timestamp, tester, device/browser, and evidence for each item.
 
 - [ ] Wix/Route 53 export comparison shows no lost MX, SPF, DKIM, DMARC, verification, forwarding,
   SES, or unrelated service records.
-- [ ] The owner records whether `getyourperfectshade.com` is expected to receive inbound email;
-  no Google Workspace configuration is assumed without authoritative evidence.
-- [ ] If custom-domain email is expected, the authoritative mail administrator confirms the
-  actual provider and exact records, and approved inbound/outbound tests pass with external
-  senders and recipients. Otherwise, the approved `ps.perfectshade@gmail.com` contact remains
-  published and functional.
+- [x] The owner has recorded that `getyourperfectshade.com` is not expected to receive inbound
+  email; no MX or Google Workspace configuration is required.
+- [ ] The approved `ps.getyourperfectshade@gmail.com` public contact and Reply-To remains published
+  and passes an inbound reply test.
 - [ ] Approved administrative aliases and forwarding paths pass without revealing destinations
   in the launch record.
 - [ ] SPF, DKIM, and DMARC evaluation is healthy for each approved sending path.
@@ -396,10 +389,8 @@ The domain is **not yet ready for a controlled cutover**. It becomes ready only 
 are resolved:
 
 1. Export and second-person review of the complete Wix DNS zone.
-2. A recorded owner decision on whether the domain must receive email. If yes, the authoritative
-   mail administrator must resolve missing MX and any required DKIM/provider records and privately
-   verify aliases or forwarding. If no, confirm `ps.perfectshade@gmail.com` remains the approved,
-   working public contact; do not infer Google Workspace from SPF alone.
+2. Confirm `ps.getyourperfectshade@gmail.com` remains the approved, working public contact and
+   Reply-To. The owner has approved no inbound custom-domain mail and no MX records.
 3. Owner decision between the recommended staged Route 53 migration and the Wix-dependent interim
    apex redirect.
 4. Authorized AWS inventory confirming the `GetYourPerfectShade` app, production `main` branch,

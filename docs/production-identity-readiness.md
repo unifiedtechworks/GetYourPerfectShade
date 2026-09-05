@@ -168,8 +168,9 @@ application/identity construct expects:
   procedure that stops invitations/recovery when delivery reputation is unhealthy.
 
 The production identity config requires `emailSenderMode=ses`, `sesVerifiedDomain`, and
-`sesFromEmail`, and rejects a sender outside the verified domain. Cognito uses this sender for
-administrator invitations, verification, and password recovery. Estimate/bid delivery is a
+`sesFromEmail` plus a separately monitored `sesReplyToEmail`, and rejects a sender outside the
+verified domain. Cognito uses the From identity and Reply-To for administrator invitations,
+verification, and password recovery. Estimate/bid delivery is a
 separate transactional mail path and must not reuse Cognito's delivery integration by accident.
 
 No SES SMTP password, AWS key, DKIM private material, message token, or recipient list belongs in

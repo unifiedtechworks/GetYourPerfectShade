@@ -1,5 +1,7 @@
 import { CfnOutput, Stack, Tags, type StackProps } from "aws-cdk-lib";
 import * as ses from "aws-cdk-lib/aws-ses";
+import * as sns from "aws-cdk-lib/aws-sns";
+import * as subscriptions from "aws-cdk-lib/aws-sns-subscriptions";
 import * as ssm from "aws-cdk-lib/aws-ssm";
 import { Construct } from "constructs";
 import { ApiConstruct } from "./constructs/api";
@@ -32,7 +34,30 @@ export class PerfectShadeProductionStack extends Stack {
     const senderIdentity = new ses.EmailIdentity(this, "SenderIdentity", {
       identity: ses.Identity.domain(config.sesSenderDomain),
     });
-    const identity = new IdentityConstruct(this, "Identity", { config });
+    const sesConfigurationSet = new ses.ConfigurationSet(
+      this,
+      "TransactionalMailConfigurationSet",
+      { configurationSetName: `${config.resourcePrefix}-transactional` },
+    );
+    const sesFeedbackTopic = new sns.Topic(this, "SesFeedbackTopic", {
+      topicName: `${config.resourcePrefix}-ses-feedback`,
+      displayName: "Perfect Shade production SES delivery failures",
+    });
+    sesFeedbackTopic.addSubscription(
+      new subscriptions.EmailSubscription(config.operationsNotificationEmail),
+    );
+    sesConfigurationSet.addEventDestination("SesFeedbackEvents", {
+      destination: ses.EventDestination.snsTopic(sesFeedbackTopic),
+      events: [
+        ses.EmailSendingEvent.BOUNCE,
+        ses.EmailSendingEvent.COMPLAINT,
+        ses.EmailSendingEvent.REJECT,
+      ],
+    });
+    const identity = new IdentityConstruct(this, "Identity", {
+      config,
+      sesConfigurationSetName: sesConfigurationSet.configurationSetName,
+    });
     identity.userPool.node.addDependency(senderIdentity);
     const data = new ProductionDataConstruct(this, "Data", config);
     const storage = new ProductionStorageConstruct(this, "Storage", config);
@@ -65,6 +90,7 @@ export class PerfectShadeProductionStack extends Stack {
       api: api.api,
       cluster: data.cluster,
       functions: [api.accountFunction, api.estimateFunction],
+      apiAccessLogGroup: api.accessLogGroup,
     });
     new ProductionAuditConstruct(
       this,
@@ -102,6 +128,8 @@ export class PerfectShadeProductionStack extends Stack {
     this.output("DocumentBucketName", storage.documentBucket.bucketName);
     this.output("OperationsAlarmTopicArn", observability.alarmTopic.topicArn);
     this.output("SesSenderDomain", config.sesSenderDomain);
+    this.output("SesConfigurationSetName", sesConfigurationSet.configurationSetName);
+    this.output("SesFeedbackTopicArn", sesFeedbackTopic.topicArn);
     this.output("BudgetStatus", "configured-on-production-deploy");
 
     Tags.of(this).add("Project", "PerfectShade");

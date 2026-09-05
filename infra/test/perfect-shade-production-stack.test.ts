@@ -21,12 +21,15 @@ const config: PerfectShadeProductionConfig = {
   mfaMode: "required",
   emailSenderMode: "ses",
   sesFromEmail: "no-reply@example.invalid",
+  sesReplyToEmail: "reply@example.invalid",
   sesVerifiedDomain: "example.invalid",
   sesSenderDomain: "example.invalid",
   enableBudget: true,
   monthlyBudgetUsd: 200,
   budgetNotificationEmail: "budget@example.invalid",
   operationsNotificationEmail: "operations@example.invalid",
+  costAnomalyNotificationEmail: "cost@example.invalid",
+  estimateIncludeCompanySignature: true,
   cloudTrailDataEventsEnabled: false,
 };
 
@@ -51,9 +54,12 @@ describe("PerfectShadeProductionStack", { timeout: 120_000 }, () => {
       logoutUrls: "https://www.getyourperfectshade.com/sign-in",
       allowedCorsOrigins: "https://www.getyourperfectshade.com",
       sesFromEmail: "no-reply@example.invalid",
+      sesReplyToEmail: "reply@example.invalid",
       sesVerifiedDomain: "example.invalid",
       operationsNotificationEmail: "operations@example.invalid",
       budgetNotificationEmail: "budget@example.invalid",
+      costAnomalyNotificationEmail: "cost@example.invalid",
+      estimateIncludeCompanySignature: "true",
     } }))).toThrow(/exact canonical production URL/);
 
     expect(() => loadProductionConfig(new App({ context: {
@@ -62,9 +68,12 @@ describe("PerfectShadeProductionStack", { timeout: 120_000 }, () => {
       logoutUrls: "https://www.getyourperfectshade.com/sign-in",
       allowedCorsOrigins: "https://www.getyourperfectshade.com",
       sesFromEmail: "no-reply@example.invalid",
+      sesReplyToEmail: "reply@example.invalid",
       sesVerifiedDomain: "example.invalid",
       operationsNotificationEmail: "operations@example.invalid",
       budgetNotificationEmail: "budget@example.invalid",
+      costAnomalyNotificationEmail: "cost@example.invalid",
+      estimateIncludeCompanySignature: "true",
     } }))).toThrow(/exact canonical production URL/);
 
     expect(() => loadProductionConfig(new App({ context: {
@@ -73,9 +82,12 @@ describe("PerfectShadeProductionStack", { timeout: 120_000 }, () => {
       logoutUrls: "https://www.getyourperfectshade.com/sign-in",
       allowedCorsOrigins: "https://www.getyourperfectshade.com",
       sesFromEmail: "no-reply@other.example.invalid",
+      sesReplyToEmail: "reply@example.invalid",
       sesVerifiedDomain: "example.invalid",
       operationsNotificationEmail: "operations@example.invalid",
       budgetNotificationEmail: "budget@example.invalid",
+      costAnomalyNotificationEmail: "cost@example.invalid",
+      estimateIncludeCompanySignature: "true",
     } }))).toThrow(/verified SES domain/);
   });
 
@@ -88,6 +100,11 @@ describe("PerfectShadeProductionStack", { timeout: 120_000 }, () => {
       EnabledMfas: ["SOFTWARE_TOKEN_MFA"],
       AutoVerifiedAttributes: ["email"],
       DeletionProtection: "ACTIVE",
+      EmailConfiguration: Match.objectLike({
+        From: "Perfect Shade <no-reply@example.invalid>",
+        ReplyToEmailAddress: "reply@example.invalid",
+        ConfigurationSet: Match.anyValue(),
+      }),
     });
     template.hasResourceProperties("AWS::Cognito::UserPoolClient", {
       CallbackURLs: ["https://www.getyourperfectshade.com/auth/callback"],
@@ -209,8 +226,14 @@ describe("PerfectShadeProductionStack", { timeout: 120_000 }, () => {
       AuthorizationType: "JWT",
       AuthorizerId: Match.anyValue(),
     });
-    template.resourceCountIs("AWS::SNS::Topic", 1);
-    template.resourceCountIs("AWS::SNS::Subscription", 1);
+    template.resourceCountIs("AWS::SNS::Topic", 2);
+    template.resourceCountIs("AWS::SNS::Subscription", 2);
+    template.hasResourceProperties("AWS::SES::ConfigurationSetEventDestination", {
+      EventDestination: Match.objectLike({
+        MatchingEventTypes: Match.arrayWith(["bounce", "complaint", "reject"]),
+        SnsDestination: Match.anyValue(),
+      }),
+    });
     template.hasResourceProperties("AWS::CloudTrail::Trail", {
       IsMultiRegionTrail: true,
       IncludeGlobalServiceEvents: true,
@@ -239,6 +262,20 @@ describe("PerfectShadeProductionStack", { timeout: 120_000 }, () => {
         { Name: "Service", Value: "estimate" },
       ]),
     });
+    template.hasResourceProperties("AWS::CloudWatch::Alarm", {
+      MetricName: "Latency",
+      Namespace: "AWS/ApiGateway",
+      ExtendedStatistic: "p95",
+    });
+    for (const status of ["401", "403", "429"]) {
+      template.hasResourceProperties("AWS::Logs::MetricFilter", {
+        MetricTransformations: [Match.objectLike({
+          MetricNamespace: "PerfectShade/Edge",
+          MetricName: `Api${status}Count`,
+        })],
+      });
+    }
+    template.resourceCountIs("AWS::Events::Rule", 1);
     template.hasResourceProperties("AWS::Budgets::Budget", {
       Budget: Match.objectLike({
         BudgetLimit: { Amount: 200, Unit: "USD" },
@@ -247,6 +284,16 @@ describe("PerfectShadeProductionStack", { timeout: 120_000 }, () => {
       NotificationsWithSubscribers: Match.arrayWith([
         Match.objectLike({ Notification: Match.objectLike({ NotificationType: "FORECASTED" }) }),
       ]),
+    });
+    template.hasResourceProperties("AWS::CE::AnomalyMonitor", {
+      MonitorDimension: "TAG",
+      MonitorType: "DIMENSIONAL",
+      MonitorName: "perfect-shade-production-tag-monitor",
+    });
+    template.hasResourceProperties("AWS::CE::AnomalySubscription", {
+      Frequency: "DAILY",
+      SubscriptionName: "perfect-shade-production-daily-anomalies",
+      Subscribers: [{ Address: "cost@example.invalid", Type: "EMAIL" }],
     });
   });
 
@@ -262,6 +309,8 @@ describe("PerfectShadeProductionStack", { timeout: 120_000 }, () => {
       "DocumentBucketName",
       "OperationsAlarmTopicArn",
       "SesSenderDomain",
+      "SesConfigurationSetName",
+      "SesFeedbackTopicArn",
     ]) {
       template.hasOutput(output, {});
     }

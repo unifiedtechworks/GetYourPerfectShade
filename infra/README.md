@@ -62,10 +62,12 @@ The committed defaults are development-only and use `us-west-2`:
 | `mfaMode` | `off` | May later be changed to `optional` without redesigning constructs |
 | `emailSenderMode` | `cognito` | Development sender; set to `ses` only with an approved verified identity |
 | `sesFromEmail` | unset | Verified SES sender email; required with `sesVerifiedDomain` when mode is `ses` |
+| `sesReplyToEmail` | unset | Monitored Reply-To; production requires this separately from the send-only From address |
 | `sesVerifiedDomain` | unset | Verified SES domain |
 | `enableBudget` | `false` | Budget resources are opt-in and require an approved recipient |
 | `monthlyBudgetUsd` | `50` | Suggested small-development starting value, not approved for deployment |
 | `budgetNotificationEmail` | unset | Required before `enableBudget=true` |
+| `estimateIncludeCompanySignature` | `true` | Backend-only generated DOCX/PDF signature toggle; production must pass an explicit reviewed value |
 
 Example synth with non-secret overrides:
 
@@ -110,9 +112,12 @@ npm run synth -- PerfectShadeProduction `
   --context logoutUrls=https://www.getyourperfectshade.com/sign-in `
   --context allowedCorsOrigins=https://www.getyourperfectshade.com `
   --context sesFromEmail=no-reply@example.invalid `
+  --context sesReplyToEmail=reply-to@example.invalid `
   --context sesVerifiedDomain=example.invalid `
   --context operationsNotificationEmail=operations@example.invalid `
-  --context budgetNotificationEmail=budget@example.invalid
+  --context budgetNotificationEmail=budget@example.invalid `
+  --context costAnomalyNotificationEmail=cost@example.invalid `
+  --context estimateIncludeCompanySignature=true
 ```
 
 This produces `PerfectShadeProduction` only. It does not include or update

@@ -74,9 +74,18 @@ bootstrap or deployment.
   SNS email subscription. CloudTrail records multi-region management events to
   a separate retained bucket; document-bucket data events remain an explicit
   cost-controlled context option.
+- Production API latency and low-cardinality 401/403/429 alarms use the existing
+  access-log group. Aurora deadlock/low-memory alarms and failure/failover event
+  routing extend the existing capacity/connection coverage without logging data.
+- Cognito uses independently configured SES From and Reply-To addresses through
+  a production configuration set. Bounce, complaint, and reject events publish
+  to a dedicated SNS feedback topic.
 - A USD 200 production budget is defined with actual 50/80/100 percent and
   forecast 80/100 percent alerts, but is created only when the production stack
   is separately deployed.
+- A tag-scoped Cost Anomaly Monitor and daily email subscription are defined for
+  `Project=PerfectShade`; the user-defined cost-allocation tag must still be
+  activated before those filtered controls can be trusted.
 - The committed Amplify build file pins pnpm and runs a branch-aware environment
   validator. `main` fails closed unless production branch overrides and an
   explicit release-approval marker are present. Server-side expected API and
@@ -503,8 +512,9 @@ times, chosen recovery point, actual RTO/RPO, and cleanup authorization:
    bounce/complaint handling are not complete.
 4. The `Project` cost-allocation tag must be activated and shown to produce
    attributable costs before the filtered production budget is trusted.
-5. The account-level impact/cost of CloudTrail ownership, optional S3 data
-   events, Cost Anomaly Detection, AWS Config, and GuardDuty needs approval.
+5. The account-level impact/cost of optional S3 data events, AWS Config, and
+   GuardDuty needs approval. Management-event CloudTrail remains required;
+   initial S3 data events remain disabled.
 
 ### Blocking production launch
 

@@ -4,6 +4,7 @@ import type { PerfectShadeApplicationConfig } from "./config";
 export interface PerfectShadeProductionConfig extends PerfectShadeApplicationConfig {
   readonly environmentName: "production";
   readonly operationsNotificationEmail: string;
+  readonly costAnomalyNotificationEmail: string;
   readonly sesSenderDomain: string;
   readonly cloudTrailDataEventsEnabled: boolean;
 }
@@ -20,6 +21,14 @@ function csv(value: string): string[] {
   return value.split(",").map((item) => item.trim()).filter(Boolean);
 }
 
+function requiredBooleanContext(app: App, key: string): boolean {
+  const value = requiredContext(app, key);
+  if (value !== "true" && value !== "false") {
+    throw new Error(`${key} must be true or false.`);
+  }
+  return value === "true";
+}
+
 export function loadProductionConfig(app: App): PerfectShadeProductionConfig {
   if (app.node.tryGetContext("confirmProductionSynthesis") !== "true") {
     throw new Error(
@@ -31,12 +40,17 @@ export function loadProductionConfig(app: App): PerfectShadeProductionConfig {
   const logoutUrls = csv(requiredContext(app, "logoutUrls"));
   const allowedCorsOrigins = csv(requiredContext(app, "allowedCorsOrigins"));
   const sesFromEmail = requiredContext(app, "sesFromEmail");
+  const sesReplyToEmail = requiredContext(app, "sesReplyToEmail");
   const sesSenderDomain = requiredContext(app, "sesVerifiedDomain");
   const operationsNotificationEmail = requiredContext(
     app,
     "operationsNotificationEmail",
   );
   const budgetNotificationEmail = requiredContext(app, "budgetNotificationEmail");
+  const costAnomalyNotificationEmail = requiredContext(
+    app,
+    "costAnomalyNotificationEmail",
+  );
 
   for (const [name, values, expected] of [
     [
@@ -65,6 +79,9 @@ export function loadProductionConfig(app: App): PerfectShadeProductionConfig {
   ) {
     throw new Error("sesFromEmail must belong to the verified SES domain.");
   }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(sesReplyToEmail)) {
+    throw new Error("sesReplyToEmail must be a valid monitored email address.");
+  }
 
   return {
     environmentName: "production",
@@ -80,12 +97,18 @@ export function loadProductionConfig(app: App): PerfectShadeProductionConfig {
     mfaMode: "required",
     emailSenderMode: "ses",
     sesFromEmail,
+    sesReplyToEmail,
     sesVerifiedDomain: sesSenderDomain,
     sesSenderDomain,
     enableBudget: true,
     monthlyBudgetUsd: 200,
     budgetNotificationEmail,
     operationsNotificationEmail,
+    costAnomalyNotificationEmail,
+    estimateIncludeCompanySignature: requiredBooleanContext(
+      app,
+      "estimateIncludeCompanySignature",
+    ),
     cloudTrailDataEventsEnabled:
       app.node.tryGetContext("cloudTrailDataEventsEnabled") === "true",
   };

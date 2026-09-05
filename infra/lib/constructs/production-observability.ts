@@ -1,12 +1,16 @@
 import { Duration } from "aws-cdk-lib";
 import * as budgets from "aws-cdk-lib/aws-budgets";
+import * as ce from "aws-cdk-lib/aws-ce";
 import * as cloudwatch from "aws-cdk-lib/aws-cloudwatch";
 import * as actions from "aws-cdk-lib/aws-cloudwatch-actions";
+import * as events from "aws-cdk-lib/aws-events";
+import * as eventTargets from "aws-cdk-lib/aws-events-targets";
 import type * as lambda from "aws-cdk-lib/aws-lambda";
 import type * as apigwv2 from "aws-cdk-lib/aws-apigatewayv2";
 import type * as rds from "aws-cdk-lib/aws-rds";
 import * as sns from "aws-cdk-lib/aws-sns";
 import * as subscriptions from "aws-cdk-lib/aws-sns-subscriptions";
+import * as logs from "aws-cdk-lib/aws-logs";
 import { Construct } from "constructs";
 import type { PerfectShadeProductionConfig } from "../production-config";
 
@@ -15,6 +19,7 @@ export interface ProductionObservabilityProps {
   readonly api: apigwv2.HttpApi;
   readonly cluster: rds.DatabaseCluster;
   readonly functions: lambda.Function[];
+  readonly apiAccessLogGroup: logs.ILogGroup;
 }
 
 export class ProductionObservabilityConstruct extends Construct {
@@ -76,6 +81,37 @@ export class ProductionObservabilityConstruct extends Construct {
       evaluationPeriods: 1,
       treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
     }));
+    attach(new cloudwatch.Alarm(this, "ApiLatencyAlarm", {
+      alarmName: `${config.resourcePrefix}-api-latency`,
+      metric: new cloudwatch.Metric({
+        namespace: "AWS/ApiGateway",
+        metricName: "Latency",
+        dimensionsMap: { ApiId: props.api.apiId },
+        statistic: "p95",
+        period: Duration.minutes(5),
+      }),
+      threshold: 5_000,
+      evaluationPeriods: 2,
+      treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+    }));
+
+    for (const [status, threshold] of [["401", 20], ["403", 10], ["429", 5]] as const) {
+      const filter = new logs.MetricFilter(this, `Api${status}MetricFilter`, {
+        logGroup: props.apiAccessLogGroup,
+        filterPattern: logs.FilterPattern.stringValue("$.status", "=", status),
+        metricNamespace: "PerfectShade/Edge",
+        metricName: `Api${status}Count`,
+        metricValue: "1",
+        defaultValue: 0,
+      });
+      attach(new cloudwatch.Alarm(this, `Api${status}Alarm`, {
+        alarmName: `${config.resourcePrefix}-api-${status}`,
+        metric: filter.metric({ statistic: "Sum", period: Duration.minutes(5) }),
+        threshold,
+        evaluationPeriods: 1,
+        treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+      }));
+    }
 
     const acu = new cloudwatch.Metric({
       namespace: "AWS/RDS",
@@ -104,6 +140,46 @@ export class ProductionObservabilityConstruct extends Construct {
       evaluationPeriods: 3,
       treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
     }));
+    attach(new cloudwatch.Alarm(this, "DatabaseDeadlocksAlarm", {
+      alarmName: `${config.resourcePrefix}-aurora-deadlocks`,
+      metric: new cloudwatch.Metric({
+        namespace: "AWS/RDS",
+        metricName: "Deadlocks",
+        dimensionsMap: { DBClusterIdentifier: props.cluster.clusterIdentifier },
+        statistic: "Sum",
+        period: Duration.minutes(5),
+      }),
+      threshold: 1,
+      evaluationPeriods: 1,
+      treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+    }));
+    attach(new cloudwatch.Alarm(this, "DatabaseFreeableMemoryAlarm", {
+      alarmName: `${config.resourcePrefix}-aurora-low-memory`,
+      metric: new cloudwatch.Metric({
+        namespace: "AWS/RDS",
+        metricName: "FreeableMemory",
+        dimensionsMap: { DBClusterIdentifier: props.cluster.clusterIdentifier },
+        statistic: "Average",
+        period: Duration.minutes(5),
+      }),
+      comparisonOperator: cloudwatch.ComparisonOperator.LESS_THAN_THRESHOLD,
+      threshold: 256 * 1024 * 1024,
+      evaluationPeriods: 3,
+      treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+    }));
+
+    new events.Rule(this, "DatabaseFailureEvents", {
+      description: "Routes production Aurora failure and failover events to operations",
+      eventPattern: {
+        source: ["aws.rds"],
+        detailType: ["RDS DB Cluster Event"],
+        detail: {
+          SourceIdentifier: [props.cluster.clusterIdentifier],
+          EventCategories: ["failure", "failover"],
+        },
+      },
+      targets: [new eventTargets.SnsTopic(this.alarmTopic)],
+    });
 
     for (const [idSuffix, metricName, threshold] of [
       ["SesBounce", "Reputation.BounceRate", 0.05],
@@ -246,6 +322,46 @@ export class ProductionObservabilityConstruct extends Construct {
           }],
         })),
       ],
+    });
+
+    const anomalyMonitor = new ce.CfnAnomalyMonitor(this, "CostAnomalyMonitor", {
+      monitorName: `${config.resourcePrefix}-tag-monitor`,
+      monitorType: "DIMENSIONAL",
+      monitorDimension: "TAG",
+      monitorSpecification: JSON.stringify({
+        Tags: {
+          Key: "Project",
+          MatchOptions: ["EQUALS"],
+          Values: ["PerfectShade"],
+        },
+      }),
+    });
+    new ce.CfnAnomalySubscription(this, "CostAnomalySubscription", {
+      subscriptionName: `${config.resourcePrefix}-daily-anomalies`,
+      frequency: "DAILY",
+      monitorArnList: [anomalyMonitor.attrMonitorArn],
+      subscribers: [{
+        address: config.costAnomalyNotificationEmail,
+        type: "EMAIL",
+      }],
+      thresholdExpression: JSON.stringify({
+        And: [
+          {
+            Dimensions: {
+              Key: "ANOMALY_TOTAL_IMPACT_ABSOLUTE",
+              MatchOptions: ["GREATER_THAN_OR_EQUAL"],
+              Values: ["10"],
+            },
+          },
+          {
+            Dimensions: {
+              Key: "ANOMALY_TOTAL_IMPACT_PERCENTAGE",
+              MatchOptions: ["GREATER_THAN_OR_EQUAL"],
+              Values: ["20"],
+            },
+          },
+        ],
+      }),
     });
   }
 }

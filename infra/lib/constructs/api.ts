@@ -65,7 +65,9 @@ export class ApiConstruct extends Construct {
         ...commonEnvironment,
         DOCUMENT_BUCKET_NAME: props.documentBucket.bucketName,
         DOCUMENT_KEY_PREFIX: "organizations/",
-        ESTIMATE_INCLUDE_COMPANY_SIGNATURE: "true",
+        ESTIMATE_INCLUDE_COMPANY_SIGNATURE: String(
+          props.config.estimateIncludeCompanySignature,
+        ),
       },
       {
         memorySize: 1024,
