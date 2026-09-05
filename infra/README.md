@@ -81,19 +81,17 @@ The local URLs are safe committed defaults. No hosted development domain is assu
 future Amplify URL or approved custom domain through these comma-separated context values.
 
 AWS RDS currently lists Aurora PostgreSQL 16.14 as available in `us-west-2`. The CloudFormation
-validation schema bundled with `aws-cdk-lib` 2.263.0 predates that release and emits a synthesis
-warning even though the generated template correctly requests 16.14. Reconfirm regional
-availability immediately before deployment and remove this note after CDK's schema catches up.
+validation schema bundled with `aws-cdk-lib` 2.268.0 recognizes that engine version, so synthesis
+no longer emits the earlier validator warning. Reconfirm regional availability immediately before
+deployment because regional service availability remains an operational prerequisite.
 
 ## Dependency advisory
 
-`npm audit` currently reports GHSA-rgw5-rvv9-x895 in `brace-expansion` 5.0.8. The affected copy
-is bundled by `aws-cdk-lib` 2.263.0 through its bundled `minimatch` dependency. It is used by
-local CDK build/synthesis tooling and is not included in the Next.js application or Lambda
-runtime bundles. The patched `brace-expansion` release is 5.0.9, but 2.263.0 is currently the
-latest compatible `aws-cdk-lib` release and npm cannot override or repair its bundled copy.
-Do not use untrusted glob patterns in infrastructure tooling; upgrade CDK when an upstream
-release includes the patched bundle.
+`aws-cdk-lib` 2.268.0 bundles the patched `brace-expansion` 5.0.9 release, resolving
+GHSA-rgw5-rvv9-x895 without a package override. CDK and its validation dependencies remain local
+build, synthesis, diff, and deployment tooling; they are not included in the Next.js application
+or Lambda runtime bundles. Continue to use only trusted infrastructure inputs and review future
+CDK upgrades with synthesis and account-aware diff checks.
 
 Do not store an account ID, AWS credentials, passwords, tokens, customer data, or unapproved
 notification email in `cdk.json`.

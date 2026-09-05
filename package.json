@@ -29,7 +29,7 @@
     "@aws-sdk/s3-request-presigner": "^3.1106.0",
     "docx": "^9.7.1",
     "jose": "^6.2.6",
-    "next": "16.2.12",
+    "next": "16.3.3",
     "pdf-lib": "^1.17.1",
     "react": "latest",
     "react-dom": "latest"
@@ -38,7 +38,7 @@
     "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
-    "esbuild": "^0.25.0",
+    "esbuild": "^0.28.2",
     "typescript": "5.9.3",
     "vitest": "^4.1.10"
   }
