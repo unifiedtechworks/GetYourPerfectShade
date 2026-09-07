@@ -195,6 +195,8 @@ describe("protected saved-draft estimate preview", () => {
     const markup = previewMarkup(estimate());
     expect(markup).toContain("PERFECT SHADE LLC");
     expect(markup).toContain("BID PROPOSAL");
+    expect(markup).toContain("ps.getyourperfectshade@gmail.com");
+    expect(markup).not.toContain("ps.perfectshade@gmail.com");
     for (const label of ["Bid No.", "Prepared", "Valid Through", "Bid Due", "Project", "Location", "Architect", "Owner"]) {
       expect(markup).toContain(label);
     }

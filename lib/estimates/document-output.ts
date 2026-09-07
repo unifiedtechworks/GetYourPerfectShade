@@ -240,7 +240,7 @@ const COMPANY_BLOCK = [
   "Umatilla, Oregon 97882",
   "Oregon CCB 250146",
   "Washington CCB PREFESL768Q",
-  "Email: ps.perfectshade@gmail.com",
+  "Email: ps.getyourperfectshade@gmail.com",
   "Phone: 541-571-4675",
   "Website: getyourperfectshade.com",
 ] as const;

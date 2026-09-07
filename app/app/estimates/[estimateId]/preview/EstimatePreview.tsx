@@ -49,7 +49,7 @@ export function EstimatePreview({ estimate }: { estimate: PreviewEstimate }) {
             <span>Umatilla, Oregon 97882</span>
             <span>Oregon CCB 250146</span>
             <span>Washington CCB PREFESL768Q</span>
-            <span>Email: ps.perfectshade@gmail.com</span>
+            <span>Email: ps.getyourperfectshade@gmail.com</span>
             <span>Phone: 541-571-4675</span>
             <span>Website: getyourperfectshade.com</span>
           </address>

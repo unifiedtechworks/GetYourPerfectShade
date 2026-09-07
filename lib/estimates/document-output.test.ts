@@ -158,6 +158,8 @@ describe("Phase 4 DOCX and PDF generation", () => {
 
   it("uses the approved wording, conditions, money, and alternate separation", () => {
     const text = buildEstimatePdfText(estimate());
+    expect(text).toContain("Email: ps.getyourperfectshade@gmail.com");
+    expect(text).not.toContain("ps.perfectshade@gmail.com");
     expect(text).toContain(RETAINAGE_TERM_TEXT);
     expect(text).toContain(MEASUREMENT_READINESS_TEXT);
     expect(text).toContain(CRAFTSMANSHIP_WARRANTY_TEXT);
