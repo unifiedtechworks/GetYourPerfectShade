@@ -36,6 +36,7 @@
 }
 
 .footer a {
+  overflow-wrap: anywhere;
   display: flex;
   min-height: 44px;
   align-items: center;

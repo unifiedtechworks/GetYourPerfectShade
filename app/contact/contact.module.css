@@ -6,6 +6,9 @@
 }
 
 .contactLinks a {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
   min-height: 48px;
   border-radius: 999px;
   background: var(--color-navy);
