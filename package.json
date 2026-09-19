@@ -40,6 +40,6 @@
     "@types/react-dom": "latest",
     "esbuild": "^0.28.2",
     "typescript": "5.9.3",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.11"
   }
 }
