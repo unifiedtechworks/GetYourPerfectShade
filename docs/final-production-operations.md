@@ -46,8 +46,12 @@ operations address. A distribution list can replace it later without changing ar
 
 ## SES and DNS activation runbook
 
-These prerequisite steps are already complete for the current production identity. Repeat them
-only for a separately authorized replacement identity or domain:
+Preserve the existing SES identity and Easy DKIM records. The identity/DNS creation steps below
+describe initial setup; repeat them only for a separately authorized replacement identity or
+domain. Verify identity/DKIM status and production sending access before deployment. An empty
+`REVIEW_IN_PROGRESS` stack does not establish that Cognito configuration, SNS subscription
+confirmation, or delivery/MFA/feedback acceptance checks are complete. Perform those checks after
+the corrected stack is deployed and before production sending.
 
 1. In Amazon SES **in `us-west-2`**, create an email identity for
    `getyourperfectshade.com`. Do not create an address identity or mailbox.
