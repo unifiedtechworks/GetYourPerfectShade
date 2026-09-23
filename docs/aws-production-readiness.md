@@ -214,8 +214,10 @@ Before production:
 No production identity or DNS record should be created until the owner approves
 the sender domain, address, recipients, and operational mailbox.
 
-The production template defines the SES domain identity and alarms on account
-bounce/complaint reputation metrics. Deployment still requires externally
+The production template references the pre-existing, externally managed SES domain identity and
+does not create or delete it. Its Easy DKIM DNS records, verification, and production sending
+access remain external prerequisites. The template alarms on account bounce/complaint reputation
+metrics. Deployment still requires externally
 published DKIM/SPF/DMARC records, confirmed SES production access, SNS/event
 handling for individual bounce/complaint events, and a monitored suppression
 and reply workflow.

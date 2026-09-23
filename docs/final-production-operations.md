@@ -20,6 +20,11 @@ Approved business inputs:
 The From address does not need a mailbox. SES authorizes it through the verified domain identity.
 Replies go to the monitored Gmail mailbox. Do not add MX records.
 
+The `getyourperfectshade.com` SES domain identity is pre-existing and externally managed.
+`PerfectShadeProduction` imports it by name and does not own the identity or its Easy DKIM DNS
+records. Deleting the production stack must not delete the SES identity. Identity verification,
+DKIM success, and production sending access remain external deployment prerequisites.
+
 ## Required deployment context
 
 Production synthesis and deployment require separate context values for `sesFromEmail` and
@@ -41,7 +46,8 @@ operations address. A distribution list can replace it later without changing ar
 
 ## SES and DNS activation runbook
 
-Perform these steps only after the relevant AWS and DNS authorizations are recorded:
+These prerequisite steps are already complete for the current production identity. Repeat them
+only for a separately authorized replacement identity or domain:
 
 1. In Amazon SES **in `us-west-2`**, create an email identity for
    `getyourperfectshade.com`. Do not create an address identity or mailbox.

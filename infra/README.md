@@ -126,6 +126,12 @@ auto-pause, 35-day backup retention, deletion protection, retained secrets/bucke
 TOTP MFA, SES sender mode, and a USD 200 budget definition. `cloudTrailDataEventsEnabled=true`
 is optional because S3 object-level events can materially increase CloudTrail cost.
 
+The production SES domain identity is a pre-existing, externally managed prerequisite.
+`PerfectShadeProduction` imports `sesVerifiedDomain` by name and uses the resulting
+account- and region-aware identity ARN for Cognito email; it does not create, update, or delete
+the SES identity or its Route 53 Easy DKIM records. Confirm identity verification, DKIM, and SES
+production sending access in `us-west-2` before deployment.
+
 The production runtime secret is distinct from the admin/migration secret. The same shared
 credential construct used by development transactionally synchronizes the restricted
 `perfect_shade_app_runtime` login and gates application Lambda updates. Application Lambdas

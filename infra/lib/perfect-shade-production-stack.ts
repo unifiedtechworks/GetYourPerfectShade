@@ -31,9 +31,11 @@ export class PerfectShadeProductionStack extends Stack {
       throw new Error("Production requires TOTP MFA and the approved SES sender configuration.");
     }
 
-    const senderIdentity = new ses.EmailIdentity(this, "SenderIdentity", {
-      identity: ses.Identity.domain(config.sesSenderDomain),
-    });
+    const senderIdentity = ses.EmailIdentity.fromEmailIdentityName(
+      this,
+      "ExistingSenderIdentity",
+      config.sesSenderDomain,
+    );
     const sesConfigurationSet = new ses.ConfigurationSet(
       this,
       "TransactionalMailConfigurationSet",
@@ -56,9 +58,9 @@ export class PerfectShadeProductionStack extends Stack {
     });
     const identity = new IdentityConstruct(this, "Identity", {
       config,
+      sesIdentity: senderIdentity,
       sesConfigurationSetName: sesConfigurationSet.configurationSetName,
     });
-    identity.userPool.node.addDependency(senderIdentity);
     const data = new ProductionDataConstruct(this, "Data", config);
     const storage = new ProductionStorageConstruct(this, "Storage", config);
     if (!data.cluster.secret) {

@@ -20,10 +20,10 @@ const config: PerfectShadeProductionConfig = {
   auroraAutoPauseMinutes: 0,
   mfaMode: "required",
   emailSenderMode: "ses",
-  sesFromEmail: "no-reply@example.invalid",
-  sesReplyToEmail: "reply@example.invalid",
-  sesVerifiedDomain: "example.invalid",
-  sesSenderDomain: "example.invalid",
+  sesFromEmail: "notifications@getyourperfectshade.com",
+  sesReplyToEmail: "ps.getyourperfectshade@gmail.com",
+  sesVerifiedDomain: "getyourperfectshade.com",
+  sesSenderDomain: "getyourperfectshade.com",
   enableBudget: true,
   monthlyBudgetUsd: 200,
   budgetNotificationEmail: "budget@example.invalid",
@@ -93,6 +93,7 @@ describe("PerfectShadeProductionStack", { timeout: 120_000 }, () => {
 
   it("isolates production names, URLs, Cognito, and required TOTP MFA", () => {
     const template = templateFor();
+    template.resourceCountIs("AWS::SES::EmailIdentity", 0);
     template.hasResourceProperties("AWS::Cognito::UserPool", {
       UserPoolName: "perfect-shade-production-staff",
       AdminCreateUserConfig: { AllowAdminCreateUserOnly: true },
@@ -101,8 +102,8 @@ describe("PerfectShadeProductionStack", { timeout: 120_000 }, () => {
       AutoVerifiedAttributes: ["email"],
       DeletionProtection: "ACTIVE",
       EmailConfiguration: Match.objectLike({
-        From: "Perfect Shade <no-reply@example.invalid>",
-        ReplyToEmailAddress: "reply@example.invalid",
+        From: "Perfect Shade <notifications@getyourperfectshade.com>",
+        ReplyToEmailAddress: "ps.getyourperfectshade@gmail.com",
         ConfigurationSet: Match.anyValue(),
       }),
     });
@@ -110,6 +111,20 @@ describe("PerfectShadeProductionStack", { timeout: 120_000 }, () => {
       CallbackURLs: ["https://www.getyourperfectshade.com/auth/callback"],
       LogoutURLs: ["https://www.getyourperfectshade.com/sign-in"],
       GenerateSecret: false,
+    });
+    const userPool = Object.values(
+      template.findResources("AWS::Cognito::UserPool"),
+    )[0];
+    expect(userPool).toBeDefined();
+    expect(userPool!.Properties?.EmailConfiguration?.SourceArn).toEqual({
+      "Fn::Join": [
+        "",
+        [
+          "arn:",
+          { Ref: "AWS::Partition" },
+          ":ses:us-west-2:111111111111:identity/getyourperfectshade.com",
+        ],
+      ],
     });
     expect(JSON.stringify(template.toJSON())).not.toContain("localhost");
     expect(JSON.stringify(template.toJSON())).not.toContain("amplifyapp.com");
@@ -234,6 +249,7 @@ describe("PerfectShadeProductionStack", { timeout: 120_000 }, () => {
         SnsDestination: Match.anyValue(),
       }),
     });
+    template.resourceCountIs("AWS::SES::ConfigurationSet", 1);
     template.hasResourceProperties("AWS::CloudTrail::Trail", {
       IsMultiRegionTrail: true,
       IncludeGlobalServiceEvents: true,

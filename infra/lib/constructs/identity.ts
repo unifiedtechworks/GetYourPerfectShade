@@ -1,10 +1,12 @@
 import { Aws, Duration, RemovalPolicy } from "aws-cdk-lib";
 import * as cognito from "aws-cdk-lib/aws-cognito";
+import type * as ses from "aws-cdk-lib/aws-ses";
 import { Construct } from "constructs";
 import type { PerfectShadeApplicationConfig } from "../config";
 
 export interface IdentityConstructProps {
   readonly config: PerfectShadeApplicationConfig;
+  readonly sesIdentity?: ses.IEmailIdentity;
   readonly sesConfigurationSetName?: string;
 }
 
@@ -24,7 +26,8 @@ export class IdentityConstruct extends Construct {
           replyTo: config.sesReplyToEmail ?? config.sesFromEmail!,
           configurationSetName: props.sesConfigurationSetName,
           sesRegion: config.region,
-          sesVerifiedDomain: config.sesVerifiedDomain!,
+          sesVerifiedDomain:
+            props.sesIdentity?.emailIdentityName ?? config.sesVerifiedDomain!,
         })
       : cognito.UserPoolEmail.withCognito();
 
