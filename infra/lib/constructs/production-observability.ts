@@ -326,8 +326,7 @@ export class ProductionObservabilityConstruct extends Construct {
 
     const anomalyMonitor = new ce.CfnAnomalyMonitor(this, "CostAnomalyMonitor", {
       monitorName: `${config.resourcePrefix}-tag-monitor`,
-      monitorType: "DIMENSIONAL",
-      monitorDimension: "TAG",
+      monitorType: "CUSTOM",
       monitorSpecification: JSON.stringify({
         Tags: {
           Key: "Project",

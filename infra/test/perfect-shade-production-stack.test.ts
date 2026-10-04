@@ -301,13 +301,31 @@ describe("PerfectShadeProductionStack", { timeout: 120_000 }, () => {
         Match.objectLike({ Notification: Match.objectLike({ NotificationType: "FORECASTED" }) }),
       ]),
     });
-    template.hasResourceProperties("AWS::CE::AnomalyMonitor", {
-      MonitorDimension: "TAG",
-      MonitorType: "DIMENSIONAL",
-      MonitorName: "perfect-shade-production-tag-monitor",
-    });
+    const anomalyMonitors = template.findResources("AWS::CE::AnomalyMonitor");
+    expect(Object.keys(anomalyMonitors)).toHaveLength(1);
+    const anomalyMonitorLogicalId = Object.keys(anomalyMonitors)[0]!;
+    const anomalyMonitor = anomalyMonitors[anomalyMonitorLogicalId]!;
+    expect(anomalyMonitor.Properties).toEqual(
+      expect.objectContaining({
+        MonitorType: "CUSTOM",
+        MonitorName: "perfect-shade-production-tag-monitor",
+        MonitorSpecification: JSON.stringify({
+          Tags: {
+            Key: "Project",
+            MatchOptions: ["EQUALS"],
+            Values: ["PerfectShade"],
+          },
+        }),
+      }),
+    );
+    expect(anomalyMonitor.Properties).not.toHaveProperty(
+      "MonitorDimension",
+    );
     template.hasResourceProperties("AWS::CE::AnomalySubscription", {
       Frequency: "DAILY",
+      MonitorArnList: [{
+        "Fn::GetAtt": [anomalyMonitorLogicalId, "MonitorArn"],
+      }],
       SubscriptionName: "perfect-shade-production-daily-anomalies",
       Subscribers: [{ Address: "cost@example.invalid", Type: "EMAIL" }],
     });
