@@ -12,6 +12,7 @@ export interface DataConstructProps {
 export class DataConstruct extends Construct {
   readonly vpc: ec2.Vpc;
   readonly cluster: rds.DatabaseCluster;
+  readonly writer: rds.CfnDBInstance;
   readonly databaseName = "perfectshade";
 
   constructor(scope: Construct, id: string, props: DataConstructProps) {
@@ -68,6 +69,11 @@ export class DataConstruct extends Construct {
       vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_ISOLATED },
       removalPolicy: RemovalPolicy.DESTROY,
     });
+    const writer = this.cluster.node.findChild("Writer").node.defaultChild;
+    if (!rds.CfnDBInstance.isCfnDBInstance(writer)) {
+      throw new Error("Aurora writer resource was not created.");
+    }
+    this.writer = writer;
 
     this.cluster.secret?.applyRemovalPolicy(RemovalPolicy.DESTROY);
   }

@@ -8,6 +8,7 @@ import type { PerfectShadeProductionConfig } from "../production-config";
 export class ProductionDataConstruct extends Construct {
   readonly vpc: ec2.Vpc;
   readonly cluster: rds.DatabaseCluster;
+  readonly writer: rds.CfnDBInstance;
   readonly databaseName = "perfectshade";
 
   constructor(scope: Construct, id: string, config: PerfectShadeProductionConfig) {
@@ -60,6 +61,11 @@ export class ProductionDataConstruct extends Construct {
       vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_ISOLATED },
       removalPolicy: RemovalPolicy.SNAPSHOT,
     });
+    const writer = this.cluster.node.findChild("Writer").node.defaultChild;
+    if (!rds.CfnDBInstance.isCfnDBInstance(writer)) {
+      throw new Error("Aurora writer resource was not created.");
+    }
+    this.writer = writer;
     this.cluster.secret?.applyRemovalPolicy(RemovalPolicy.RETAIN);
   }
 }

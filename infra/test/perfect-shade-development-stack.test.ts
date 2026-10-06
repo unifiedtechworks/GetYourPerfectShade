@@ -133,6 +133,22 @@ describe("PerfectShadeDevelopmentStack", { timeout: 120_000 }, () => {
       "Custom::PerfectShadeRuntimeDatabaseCredentials",
       1,
     );
+    const clusters = template.findResources("AWS::RDS::DBCluster");
+    const writerResources = template.findResources("AWS::RDS::DBInstance");
+    expect(Object.keys(writerResources)).toHaveLength(1);
+    const writerLogicalId = Object.keys(writerResources)[0]!;
+    const clusterLogicalId = Object.keys(clusters)[0]!;
+    expect(writerResources[writerLogicalId]!.Properties.DBClusterIdentifier).toEqual({
+      Ref: clusterLogicalId,
+    });
+    const runtimeCredentialResources = template.findResources(
+      "Custom::PerfectShadeRuntimeDatabaseCredentials",
+    );
+    const runtimeCredentialResource = Object.values(runtimeCredentialResources)[0]!;
+    const runtimeCredentialDependencies = Array.isArray(runtimeCredentialResource.DependsOn)
+      ? runtimeCredentialResource.DependsOn
+      : [runtimeCredentialResource.DependsOn];
+    expect(runtimeCredentialDependencies).toContain(writerLogicalId);
   });
 
   it("defines a private encrypted versioned development document bucket", () => {

@@ -48,6 +48,7 @@ export class PerfectShadeDevelopmentStack extends Stack {
       {
         config,
         cluster: data.cluster,
+        writer: data.writer,
         databaseName: data.databaseName,
         adminSecret: data.cluster.secret,
       },

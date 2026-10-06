@@ -17,6 +17,7 @@ import type { PerfectShadeApplicationConfig } from "../config";
 export interface RuntimeDatabaseCredentialsConstructProps {
   readonly config: PerfectShadeApplicationConfig;
   readonly cluster: rds.DatabaseCluster;
+  readonly writer: rds.CfnDBInstance;
   readonly databaseName: string;
   readonly adminSecret: secretsmanager.ISecret;
 }
@@ -117,5 +118,6 @@ export class RuntimeDatabaseCredentialsConstruct extends Construct {
         ProvisionerVersion: "1",
       },
     });
+    this.resource.node.addDependency(props.writer);
   }
 }
