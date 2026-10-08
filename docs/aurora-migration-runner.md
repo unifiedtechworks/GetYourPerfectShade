@@ -114,8 +114,21 @@ When applying `0001_account_foundation.sql`, the runner recognizes only statemen
 obsolete runtime-role bootstrap `DO` block, with all of these exact identifiers:
 
 - Version: `0001`
-- File SHA-256: `efebbb1ad193d5a110e152a99565867504f88aa313413226237a957ce4e7d7e3`
-- Parsed statement SHA-256: `7c262ffd6e8e3846a9038c8d159cbdabefe22555f77e79d2141d717b0bc8c2d4`
+- Canonical Git LF file SHA-256: `19a8429b33e6eb2fe513e00926a6a2187a76c45264ca35b88e863b904149456b`
+- Canonical Git LF parsed statement SHA-256: `8a1fe184711a2271c1ca33c3689176747cf56509c9222c21fe152bc36f1a8a13`
+
+Compatibility accepts only two explicitly reviewed **raw file/statement fingerprint pairs**:
+
+| Representation | File SHA-256 | Parsed statement 4 SHA-256 |
+| --- | --- | --- |
+| Git LF | `19a8429b33e6eb2fe513e00926a6a2187a76c45264ca35b88e863b904149456b` | `8a1fe184711a2271c1ca33c3689176747cf56509c9222c21fe152bc36f1a8a13` |
+| Windows CRLF | `efebbb1ad193d5a110e152a99565867504f88aa313413226237a957ce4e7d7e3` | `7c262ffd6e8e3846a9038c8d159cbdabefe22555f77e79d2141d717b0bc8c2d4` |
+
+The loader exposes a raw history checksum rather than complete file text. Exact paired
+allowlisting keeps that contract unchanged and is more restrictive than general line-ending
+normalization: mixed endings, bare CR, inconsistent LF/CRLF pairs, and changes to spaces,
+indentation, case, comments, punctuation, or statement order cannot inherit the exception.
+Tests execute the actual LF Git blob as well as its verified CRLF equivalent.
 
 Inside the same locked migration transaction, it reads `pg_catalog.pg_roles` using the
 administrative migration connection. The preprovisioned `perfect_shade_app_runtime` role must
@@ -133,7 +146,13 @@ records the **original file checksum**, with runner version `1.1.0`, only after 
 
 The compatibility layer is independent of environment names and does not catch permission errors
 or skip other role statements. Existing applied history through `0009` remains valid and is not
-replayed; `status` and `plan` retain their read-only behavior. Deploying the runner source change
+replayed; `status` and `plan` retain their read-only behavior. **History still uses raw file
+checksums.** A database initialized from CRLF files requires those same checksum-matching bytes
+for later history validation; an LF checkout of the same SQL will report a checksum mismatch.
+This existing cross-platform history limitation is separate from compatibility recognition.
+Keep the approved matching migration bytes for each database; never rewrite recorded history
+or bypass validation. A new database initialized from the verified LF files records their
+original LF checksums instead. Deploying the runner source change
 does not apply migrations automatically. After integration, repeat the separately authorized
 production preflight and review the exact plan before a controlled apply.
 

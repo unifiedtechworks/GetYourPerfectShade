@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { execFileSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it, vi } from "vitest";
@@ -10,11 +11,27 @@ import {
 import { RUNNER_VERSION } from "./history.mjs";
 import { loadMigrationFiles } from "./migration-files.mjs";
 import { applyMigrations, migrationPlan, migrationStatus } from "./runner.mjs";
+import { splitPostgresStatements } from "./sql-parser.mjs";
 
 const migrations = await loadMigrationFiles(join(
   dirname(fileURLToPath(import.meta.url)), "..", "migrations",
 ));
 const foundation = migrations[0];
+// Read the actual Git blob, not just the Windows checkout used by production
+// operators. This reproduces Chat 4's LF mocked execution without editing SQL.
+const gitLfSql = execFileSync("git", [
+  "show", "HEAD:infra/database/migrations/0001_account_foundation.sql",
+], { cwd: dirname(fileURLToPath(import.meta.url)) }).toString("utf8");
+function migrationFromSql(sql) {
+  return {
+    version: "0001",
+    filename: "0001_account_foundation.sql",
+    checksum: createHash("sha256").update(sql, "utf8").digest("hex"),
+    statements: splitPostgresStatements(sql),
+  };
+}
+const lfFoundation = migrationFromSql(gitLfSql);
+const crlfFoundation = migrationFromSql(gitLfSql.replace(/\n/g, "\r\n"));
 const safeRole = {
   rolcanlogin: true,
   rolinherit: false,
@@ -81,11 +98,11 @@ function compatibilityInput(database, overrides = {}) {
 describe("legacy 0001 runtime-role compatibility", () => {
   it("pins the immutable file and exact parsed fourth statement", () => {
     expect(foundation.filename).toBe(LEGACY_RUNTIME_ROLE_BOOTSTRAP.filename);
-    expect(foundation.checksum).toBe(
-      "efebbb1ad193d5a110e152a99565867504f88aa313413226237a957ce4e7d7e3",
-    );
+    const representation = LEGACY_RUNTIME_ROLE_BOOTSTRAP.representations
+      .find(({ migrationChecksum }) => migrationChecksum === foundation.checksum);
+    expect(representation).toBeDefined();
     expect(createHash("sha256").update(foundation.statements[3], "utf8")
-      .digest("hex")).toBe(LEGACY_RUNTIME_ROLE_BOOTSTRAP.statementChecksum);
+      .digest("hex")).toBe(representation.statementChecksum);
   });
 
   it("skips only the satisfied legacy block and records the original checksum after all schema work", async () => {
@@ -211,7 +228,7 @@ describe("legacy 0001 runtime-role compatibility", () => {
     await expect(migrationPlan(database, migrations)).resolves.toMatchObject({ pending: [] });
     await expect(applyMigrations(database, migrations)).resolves.toMatchObject({ appliedNow: [] });
     expect(database.calls).toEqual([]);
-    expect(database.history[0].checksum).toBe(LEGACY_RUNTIME_ROLE_BOOTSTRAP.migrationChecksum);
+    expect(database.history[0].checksum).toBe(foundation.checksum);
   });
 
   it("does not inspect or replay when another runner applied 0001 before the history lock", async () => {
@@ -223,5 +240,121 @@ describe("legacy 0001 runtime-role compatibility", () => {
     await expect(applyMigrations(database, [foundation])).resolves.toMatchObject({ appliedNow: [] });
     expect(database.calls).not.toContain("inspect-role");
     expect(database.executed).toEqual([]);
+  });
+});
+
+describe("LF/CRLF compatibility fingerprints", () => {
+  it("pins the actual Git LF blob and its canonical statement fingerprint", () => {
+    expect(gitLfSql).not.toContain("\r");
+    expect(lfFoundation.checksum).toBe(
+      "19a8429b33e6eb2fe513e00926a6a2187a76c45264ca35b88e863b904149456b",
+    );
+    expect(lfFoundation.checksum).toBe(LEGACY_RUNTIME_ROLE_BOOTSTRAP.migrationChecksum);
+    expect(createHash("sha256").update(lfFoundation.statements[3], "utf8")
+      .digest("hex")).toBe(LEGACY_RUNTIME_ROLE_BOOTSTRAP.statementChecksum);
+    expect(crlfFoundation.checksum).toBe(
+      "efebbb1ad193d5a110e152a99565867504f88aa313413226237a957ce4e7d7e3",
+    );
+    expect(crlfFoundation.statements[3].replace(/\r\n/g, "\n"))
+      .toBe(lfFoundation.statements[3]);
+  });
+
+  describe.each([["Git LF", lfFoundation], ["CRLF", crlfFoundation]])(
+    "%s execution", (_name, migration) => {
+      it("skips exactly statement 4, runs subsequent SQL, and records its original raw checksum", async () => {
+        const database = new CompatibilityDatabase();
+        const report = vi.fn();
+        await expect(applyMigrations(database, [migration], undefined, report))
+          .resolves.toMatchObject({ appliedNow: [migration], pending: [] });
+        expect(database.executed.map(({ number }) => number)).toEqual(
+          migration.statements.map((_, i) => i + 1).filter((n) => n !== 4),
+        );
+        expect(database.history[0].checksum).toBe(migration.checksum);
+        expect(database.history[0].runnerVersion).toBe("1.1.0");
+        expect(report).toHaveBeenCalledExactlyOnceWith(LEGACY_RUNTIME_ROLE_SATISFIED_MESSAGE);
+      });
+
+      it("still fails closed for a missing role", async () => {
+        const database = new CompatibilityDatabase(null);
+        await expect(applyMigrations(database, [migration])).rejects.toMatchObject({
+          rollbackConfirmed: true, cause: { code: "PROVISIONED_RUNTIME_ROLE_MISSING" },
+        });
+        expect(database.history).toEqual([]);
+        expect(database.calls).not.toContain("record");
+      });
+
+      it("still fails closed for an unsafe role", async () => {
+        const database = new CompatibilityDatabase({ ...safeRole, rolbypassrls: true });
+        await expect(applyMigrations(database, [migration])).rejects.toMatchObject({
+          rollbackConfirmed: true,
+          cause: { code: "PROVISIONED_RUNTIME_ROLE_ATTRIBUTES_INVALID" },
+        });
+        expect(database.history).toEqual([]);
+      });
+
+      it("rolls back all schema work if a later statement fails", async () => {
+        const database = new CompatibilityDatabase();
+        database.failAt = 5;
+        await expect(applyMigrations(database, [migration], undefined, vi.fn()))
+          .rejects.toMatchObject({ statementNumber: 5, rollbackConfirmed: true });
+        expect(database.history).toEqual([]);
+        expect(database.schemaStatements).toEqual([]);
+        expect(database.calls).not.toContain("record");
+      });
+    },
+  );
+
+  it.each([
+    ["spaces", (sql) => sql.replace("login noinherit", "login  noinherit")],
+    ["indentation", (sql) => sql.replace("  else\n", " else\n")],
+    ["capitalization", (sql) => sql.replace("alter role", "ALTER ROLE")],
+    ["comments", (sql) => sql.replace("-- The Data API", "-- This Data API")],
+    ["punctuation", (sql) => sql.replace("nobypassrls;", "nobypassrls ;")],
+    ["statement order", (sql) => sql.replace(
+      "create schema if not exists app;\ncreate schema if not exists app_private;",
+      "create schema if not exists app_private;\ncreate schema if not exists app;",
+    )],
+    ["mixed line endings", (sql) => sql.replace("\n", "\r\n")],
+    ["bare CR", (sql) => sql.replace("\n", "\r")],
+    ["CRCRLF", (sql) => sql.replace("\n", "\r\r\n")],
+  ])("rejects changes to %s without querying or changing the role", async (_name, change) => {
+    const sql = change(gitLfSql);
+    expect(sql).not.toBe(gitLfSql);
+    const database = new CompatibilityDatabase();
+    await expect(applyMigrations(database, [migrationFromSql(sql)]))
+      .rejects.toMatchObject({
+        rollbackConfirmed: true,
+        cause: { code: "LEGACY_RUNTIME_ROLE_FINGERPRINT_MISMATCH" },
+      });
+    expect(database.calls).not.toContain("inspect-role");
+    expect(database.history).toEqual([]);
+  });
+
+  it.each([
+    ["LF file/CRLF statement", lfFoundation, crlfFoundation],
+    ["CRLF file/LF statement", crlfFoundation, lfFoundation],
+  ])("rejects an inconsistent %s pair", async (_name, file, statement) => {
+    const database = new CompatibilityDatabase();
+    await expect(legacyRuntimeRoleBootstrapSatisfied(compatibilityInput(database, {
+      migration: file, statement: statement.statements[3],
+    }))).rejects.toMatchObject({ code: "LEGACY_RUNTIME_ROLE_FINGERPRINT_MISMATCH" });
+    expect(database.calls).not.toContain("inspect-role");
+  });
+
+  it("does not normalize or bypass existing raw history checksums across checkouts", async () => {
+    const database = new CompatibilityDatabase();
+    database.history = [{
+      version: "0001", filename: crlfFoundation.filename,
+      checksum: crlfFoundation.checksum, appliedAt: "2026-10-08T00:00:00.000Z",
+      runnerVersion: "1.0.0",
+    }];
+    await expect(migrationStatus(database, [crlfFoundation]))
+      .resolves.toMatchObject({ pending: [] });
+    await expect(migrationStatus(database, [lfFoundation]))
+      .rejects.toMatchObject({ code: "INVALID_MIGRATION_STATE" });
+    await expect(applyMigrations(database, [lfFoundation]))
+      .rejects.toThrow("Checksum mismatch for applied migration 0001_account_foundation.sql.");
+    expect(database.calls).toEqual([]);
+    expect(database.history[0].checksum).toBe(crlfFoundation.checksum);
   });
 });
