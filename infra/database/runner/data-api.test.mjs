@@ -16,6 +16,31 @@ const CONFIG = {
 };
 
 describe("RDS Data API adapter", () => {
+  it("inspects all runtime role attributes through the admin connection in the migration transaction", async () => {
+    const role = { rolcanlogin: true, rolinherit: false, rolsuper: false,
+      rolcreatedb: false, rolcreaterole: false, rolreplication: false, rolbypassrls: false };
+    const client = { send: vi.fn(async (command) => {
+      expect(command).toBeInstanceOf(ExecuteStatementCommand);
+      expect(command.input).toMatchObject({
+        secretArn: CONFIG.secretArn, transactionId: "migration-tx", formatRecordsAs: "JSON",
+      });
+      expect(command.input.sql).toContain("pg_catalog.pg_roles");
+      expect(command.input.sql).toContain("where rolname = 'perfect_shade_app_runtime'");
+      for (const attribute of Object.keys(role)) expect(command.input.sql).toContain(attribute);
+      expect(command.input.sql).not.toMatch(/\b(alter|grant|create)\b/i);
+      return { formattedRecords: JSON.stringify([role]) };
+    }) };
+    await expect(new DataApiMigrationDatabase(CONFIG, client).inspectRuntimeRole("migration-tx"))
+      .resolves.toEqual(role);
+  });
+
+  it("reports a missing runtime role without attempting to provision it", async () => {
+    const client = { send: vi.fn(async () => ({ formattedRecords: "[]" })) };
+    await expect(new DataApiMigrationDatabase(CONFIG, client).inspectRuntimeRole("migration-tx"))
+      .resolves.toBeNull();
+    expect(client.send).toHaveBeenCalledOnce();
+  });
+
   it("performs a read-only history-table check", async () => {
     const client = {
       send: vi.fn(async (command) => {

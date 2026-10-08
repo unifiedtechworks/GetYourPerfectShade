@@ -2,7 +2,7 @@ import { InvalidMigrationStateError } from "./errors.mjs";
 import { MIGRATION_FILENAME_PATTERN } from "./migration-files.mjs";
 
 export const HISTORY_TABLE = "public.perfect_shade_schema_migrations";
-export const RUNNER_VERSION = "1.0.0";
+export const RUNNER_VERSION = "1.1.0";
 
 export const HISTORY_BOOTSTRAP_SQL = `
 create table public.perfect_shade_schema_migrations (

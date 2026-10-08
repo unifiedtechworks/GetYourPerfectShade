@@ -159,6 +159,20 @@ export class DataApiMigrationDatabase {
     );
   }
 
+  async inspectRuntimeRole(transactionId) {
+    const response = await this.execute(
+      `select rolcanlogin, rolinherit, rolsuper, rolcreatedb,
+              rolcreaterole, rolreplication, rolbypassrls
+       from pg_catalog.pg_roles
+       where rolname = 'perfect_shade_app_runtime'`,
+      transactionId,
+      undefined,
+      true,
+    );
+    const records = parseRecords(response, "runtime role check");
+    return records[0] ?? null;
+  }
+
   async executeMigrationStatement(
     statement,
     transactionId,

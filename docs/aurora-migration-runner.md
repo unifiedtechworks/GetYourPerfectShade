@@ -104,6 +104,39 @@ Line-ending, encoding, whitespace, and comment changes alter the checksum becaus
 the exact bytes. Never edit an applied migration. Restore the original bytes or add a new
 forward-only migration.
 
+## Legacy 0001 runtime-role compatibility
+
+Runner version `1.1.0` supports the current infrastructure provisioner without changing any
+historical migration bytes or checksums. Application Lambdas connect directly with the restricted
+runtime secret; they do not assume the runtime role through `SET ROLE` or `SET LOCAL ROLE`.
+
+When applying `0001_account_foundation.sql`, the runner recognizes only statement **4**, the
+obsolete runtime-role bootstrap `DO` block, with all of these exact identifiers:
+
+- Version: `0001`
+- File SHA-256: `efebbb1ad193d5a110e152a99565867504f88aa313413226237a957ce4e7d7e3`
+- Parsed statement SHA-256: `7c262ffd6e8e3846a9038c8d159cbdabefe22555f77e79d2141d717b0bc8c2d4`
+
+Inside the same locked migration transaction, it reads `pg_catalog.pg_roles` using the
+administrative migration connection. The preprovisioned `perfect_shade_app_runtime` role must
+exist with `rolcanlogin=true` and `rolinherit`, `rolsuper`, `rolcreatedb`, `rolcreaterole`,
+`rolreplication`, and `rolbypassrls` all exactly `false`. Missing roles, unexpected attributes, or
+changed fingerprints fail closed and roll back the migration. The runner never creates or alters
+the role as a fallback. Complete or correct the reviewed infrastructure provisioning workflow
+before retrying; do not manually change migration history.
+
+Only after these checks does it treat the whole legacy block, including its obsolete role-membership
+grant to the migration identity, as already satisfied. It emits the non-sensitive message
+`Legacy 0001 runtime-role bootstrap satisfied by provisioned restricted role.` The remaining
+schema statements and history insertion must still succeed in the same transaction. History
+records the **original file checksum**, with runner version `1.1.0`, only after success.
+
+The compatibility layer is independent of environment names and does not catch permission errors
+or skip other role statements. Existing applied history through `0009` remains valid and is not
+replayed; `status` and `plan` retain their read-only behavior. Deploying the runner source change
+does not apply migrations automatically. After integration, repeat the separately authorized
+production preflight and review the exact plan before a controlled apply.
+
 ## SQL and transaction behavior
 
 The runner uses a PostgreSQL-aware scanner rather than a naive semicolon split. It preserves

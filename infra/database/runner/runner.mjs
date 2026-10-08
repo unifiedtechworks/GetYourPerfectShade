@@ -3,6 +3,10 @@ import {
   MigrationRunnerError,
 } from "./errors.mjs";
 import { RUNNER_VERSION, validateMigrationHistory } from "./history.mjs";
+import {
+  legacyRuntimeRoleBootstrapSatisfied,
+  LEGACY_RUNTIME_ROLE_SATISFIED_MESSAGE,
+} from "./compatibility.mjs";
 
 async function inspect(database, migrations) {
   const historyExists = await database.historyTableExists();
@@ -34,6 +38,7 @@ export async function applyMigrations(
   database,
   migrations,
   clock = () => Date.now(),
+  report = (message) => console.log(message),
 ) {
   let state = await inspect(database, migrations);
   if (!state.historyExists) {
@@ -68,6 +73,16 @@ export async function applyMigrations(
       const startedAt = clock();
       for (const statement of migration.statements) {
         statementNumber += 1;
+        if (await legacyRuntimeRoleBootstrapSatisfied({
+          database,
+          migration,
+          statement,
+          statementNumber,
+          transactionId,
+        })) {
+          report(LEGACY_RUNTIME_ROLE_SATISFIED_MESSAGE);
+          continue;
+        }
         await database.executeMigrationStatement(
           statement,
           transactionId,
