@@ -192,6 +192,24 @@ describe("Cognito MFA challenge state machine", () => {
       },
     });
   });
+
+  it("treats TOTP enrollment as a Cognito challenge, not as a preference side effect", async () => {
+    const client = new FakeCognitoClient([{
+      ChallengeName: ChallengeNameType.MFA_SETUP,
+      Session: "setup-session",
+    }]);
+    const service = createCognitoAuthService(client, "client-id");
+
+    await expect(service.selectMfaType(
+      "staff@example.com",
+      "selection-session",
+      "software-token",
+    )).resolves.toEqual({
+      status: "mfa-setup-required",
+      username: "staff@example.com",
+      session: "setup-session",
+    });
+  });
   it("recognizes the required TOTP setup challenge", async () => {
     const client = new FakeCognitoClient([{
       ChallengeName: ChallengeNameType.MFA_SETUP,

@@ -73,7 +73,9 @@ passwords, MFA codes, setup keys, tokens, and raw Cognito errors are never logge
 
 Cognito owns email-code generation and TOTP seeds. Neither can be recovered from the application.
 A lost authenticator or inaccessible MFA mailbox is an administrator-assisted Cognito recovery
-event; never attempt to reconstruct/store a seed or bypass required MFA.
+event; never attempt to reconstruct/store a seed or bypass required MFA. An MFA preference is not
+factor enrollment: changing email/TOTP preference cannot be used as proof that an authenticator
+exists or as a promise that Cognito will force TOTP setup.
 
 ## Production account recovery
 
@@ -82,7 +84,9 @@ recovery. Production `/forgot-password` and `/reset-password` do not call the se
 promise a recovery email; they direct staff to the approved owner-assisted process. Development
 continues to use `ForgotPassword` and `ConfirmForgotPassword`. The operational process is in
 [`production-email-mfa.md`](./production-email-mfa.md). Recovery must not add a public signup route
-or permit an unapproved user to become a member.
+or permit an unapproved user to become a member. Application `owner` authorization and AWS recovery
+operator access are separate controls; neither Sheri nor Seth receives AWS permissions merely from
+an Aurora owner membership.
 
 If an identity or pool is accidentally removed, Cognito passwords, sessions, and MFA seeds do
 not survive. The replacement identity must be administrator-provisioned, complete a new password,

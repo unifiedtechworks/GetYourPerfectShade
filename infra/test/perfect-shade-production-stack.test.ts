@@ -6,6 +6,7 @@ import {
   loadProductionConfig,
   type PerfectShadeProductionConfig,
 } from "../lib/production-config";
+import { PRODUCTION_RECOVERY_ACTIONS } from "../lib/constructs/production-recovery-operator";
 
 const config: PerfectShadeProductionConfig = {
   environmentName: "production",
@@ -37,6 +38,23 @@ const config: PerfectShadeProductionConfig = {
 };
 
 let cachedTemplate: Template | undefined;
+
+function validProductionContext(overrides: Record<string, string> = {}) {
+  return {
+    confirmProductionSynthesis: "true",
+    callbackUrls: "https://www.getyourperfectshade.com/auth/callback",
+    logoutUrls: "https://www.getyourperfectshade.com/sign-in",
+    allowedCorsOrigins: "https://www.getyourperfectshade.com",
+    sesFromEmail: "notifications@getyourperfectshade.com",
+    sesReplyToEmail: "ps.getyourperfectshade@gmail.com",
+    sesVerifiedDomain: "getyourperfectshade.com",
+    operationsNotificationEmail: "operations@example.invalid",
+    budgetNotificationEmail: "budget@example.invalid",
+    costAnomalyNotificationEmail: "cost@example.invalid",
+    estimateIncludeCompanySignature: "true",
+    ...overrides,
+  };
+}
 
 function templateFor(): Template {
   if (cachedTemplate) return cachedTemplate;
@@ -92,6 +110,81 @@ describe("PerfectShadeProductionStack", { timeout: 120_000 }, () => {
       costAnomalyNotificationEmail: "cost@example.invalid",
       estimateIncludeCompanySignature: "true",
     } }))).toThrow(/verified SES domain/);
+
+    expect(() => loadProductionConfig(new App({ context: validProductionContext({
+      recoveryOperatorPrincipalArn: "arn:aws:iam::111111111111:role/*",
+    }) }))).toThrow(/exact IAM user or role ARN/);
+  });
+
+  it("keeps the recovery role opt-in and restricts it to the approved pool actions", () => {
+    const baseline = templateFor();
+    expect(Object.values(baseline.findResources("AWS::IAM::Role")).some((resource) =>
+      resource.Properties?.RoleName === "perfect-shade-production-cognito-recovery"
+    )).toBe(false);
+    const baselineSerialized = JSON.stringify(baseline.toJSON());
+    for (const administrativeAction of [
+      "AdminSetUserPassword",
+      "AdminUpdateUserAttributes",
+      "AdminSetUserMFAPreference",
+      "AdminUserGlobalSignOut",
+    ]) {
+      expect(baselineSerialized).not.toContain(administrativeAction);
+    }
+    const routes = Object.values(baseline.findResources("AWS::ApiGatewayV2::Route"));
+    expect(routes.every((route) =>
+      route.Properties?.AuthorizationType === "JWT" &&
+      !String(route.Properties?.RouteKey).toLowerCase().includes("recovery")
+    )).toBe(true);
+
+    const app = new App();
+    const trustedPrincipalArn = "arn:aws:iam::111111111111:user/recovery-operator";
+    const template = Template.fromStack(new PerfectShadeProductionStack(app, "RecoveryTest", {
+      config: { ...config, recoveryOperatorPrincipalArn: trustedPrincipalArn },
+      env: { account: "111111111111", region: "us-west-2" },
+    }));
+    const roles = template.findResources("AWS::IAM::Role");
+    const recoveryRoleEntry = Object.entries(roles).find(([, resource]) =>
+      resource.Properties?.RoleName === "perfect-shade-production-cognito-recovery"
+    );
+    expect(recoveryRoleEntry).toBeDefined();
+    const [recoveryRoleLogicalId, recoveryRole] = recoveryRoleEntry!;
+    expect(recoveryRole.Properties?.MaxSessionDuration).toBe(3600);
+    expect(recoveryRole.Properties?.AssumeRolePolicyDocument).toMatchObject({
+      Statement: [expect.objectContaining({
+        Effect: "Allow",
+        Principal: { AWS: trustedPrincipalArn },
+        Action: "sts:AssumeRole",
+        Condition: {
+          Bool: { "aws:MultiFactorAuthPresent": "true" },
+          NumericLessThanEquals: { "aws:MultiFactorAuthAge": "900" },
+        },
+      })],
+    });
+
+    const policy = Object.values(template.findResources("AWS::IAM::Policy")).find((resource) =>
+      JSON.stringify(resource.Properties?.Roles).includes(recoveryRoleLogicalId)
+    );
+    expect(policy).toBeDefined();
+    const statement = policy!.Properties?.PolicyDocument?.Statement?.find(
+      (candidate: { Action?: string[] }) =>
+        candidate.Action?.includes("cognito-idp:AdminSetUserPassword"),
+    );
+    expect(statement?.Action).toEqual([...PRODUCTION_RECOVERY_ACTIONS]);
+    expect(statement?.Resource).toEqual({
+      "Fn::GetAtt": [expect.stringMatching(/IdentityStaffUserPool/), "Arn"],
+    });
+    const serialized = JSON.stringify(policy);
+    for (const forbidden of [
+      "AdminCreateUser",
+      "AdminDeleteUser",
+      "DeleteUserPool",
+      "secretsmanager:",
+      "rds-data:",
+      "iam:",
+    ]) {
+      expect(serialized).not.toContain(forbidden);
+    }
+    template.hasOutput("RecoveryOperatorRoleArn", {});
   });
 
   it("isolates production Cognito with required email and TOTP MFA", () => {

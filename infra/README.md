@@ -16,6 +16,7 @@ infra/
   lib/perfect-shade-production-stack.ts
   lib/constructs/
     identity.ts                        Cognito User Pool and app client
+    production-recovery-operator.ts    Opt-in, pool-scoped recovery IAM role
     data.ts                            private Aurora Serverless v2 and Data API
     runtime-database-credentials.ts   shared restricted login secret/provisioner
     storage.ts                         private versioned document bucket
@@ -131,6 +132,14 @@ The production SES domain identity is a pre-existing, externally managed prerequ
 account- and region-aware identity ARN for Cognito email; it does not create, update, or delete
 the SES identity or its Route 53 Easy DKIM records. Confirm identity verification, DKIM, and SES
 production sending access in `us-west-2` before deployment.
+
+The recovery role is intentionally absent by default. `recoveryOperatorPrincipalArn` must be one
+exact IAM user or role ARN and must remain unset until the primary/backup operators and their MFA
+trust model are approved. Supplying it creates the pool-scoped
+`perfect-shade-production-cognito-recovery` role; it does not grant the public application or
+application Lambdas recovery access. See
+[`docs/production-email-mfa.md`](../docs/production-email-mfa.md) before synthesizing or deploying
+that optional path.
 
 The production runtime secret is distinct from the admin/migration secret. The same shared
 credential construct used by development transactionally synchronizes the restricted

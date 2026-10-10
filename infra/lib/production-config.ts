@@ -7,6 +7,7 @@ export interface PerfectShadeProductionConfig extends PerfectShadeApplicationCon
   readonly costAnomalyNotificationEmail: string;
   readonly sesSenderDomain: string;
   readonly cloudTrailDataEventsEnabled: boolean;
+  readonly recoveryOperatorPrincipalArn?: string;
 }
 
 function requiredContext(app: App, key: string): string {
@@ -27,6 +28,18 @@ function requiredBooleanContext(app: App, key: string): boolean {
     throw new Error(`${key} must be true or false.`);
   }
   return value === "true";
+}
+
+function optionalPrincipalArn(app: App, key: string): string | undefined {
+  const value = app.node.tryGetContext(key);
+  if (value === undefined || value === null || value === "") return undefined;
+  if (
+    typeof value !== "string" ||
+    !/^arn:aws:iam::\d{12}:(?:user|role)\/[A-Za-z0-9+=,.@_\/-]+$/.test(value.trim())
+  ) {
+    throw new Error(`${key} must be one exact IAM user or role ARN without wildcards.`);
+  }
+  return value.trim();
 }
 
 export function loadProductionConfig(app: App): PerfectShadeProductionConfig {
@@ -114,5 +127,9 @@ export function loadProductionConfig(app: App): PerfectShadeProductionConfig {
     ),
     cloudTrailDataEventsEnabled:
       app.node.tryGetContext("cloudTrailDataEventsEnabled") === "true",
+    recoveryOperatorPrincipalArn: optionalPrincipalArn(
+      app,
+      "recoveryOperatorPrincipalArn",
+    ),
   };
 }

@@ -9,6 +9,7 @@ import { IdentityConstruct } from "./constructs/identity";
 import { ProductionAuditConstruct } from "./constructs/production-audit";
 import { ProductionDataConstruct } from "./constructs/production-data";
 import { ProductionObservabilityConstruct } from "./constructs/production-observability";
+import { ProductionRecoveryOperatorConstruct } from "./constructs/production-recovery-operator";
 import { ProductionStorageConstruct } from "./constructs/production-storage";
 import { RuntimeDatabaseCredentialsConstruct } from "./constructs/runtime-database-credentials";
 import type { PerfectShadeProductionConfig } from "./production-config";
@@ -61,6 +62,13 @@ export class PerfectShadeProductionStack extends Stack {
       sesIdentity: senderIdentity,
       sesConfigurationSetName: sesConfigurationSet.configurationSetName,
     });
+    const recoveryOperator = config.recoveryOperatorPrincipalArn
+      ? new ProductionRecoveryOperatorConstruct(this, "RecoveryOperator", {
+          resourcePrefix: config.resourcePrefix,
+          userPool: identity.userPool,
+          trustedOperatorPrincipalArn: config.recoveryOperatorPrincipalArn,
+        })
+      : undefined;
     const data = new ProductionDataConstruct(this, "Data", config);
     const storage = new ProductionStorageConstruct(this, "Storage", config);
     if (!data.cluster.secret) {
@@ -134,6 +142,9 @@ export class PerfectShadeProductionStack extends Stack {
     this.output("SesConfigurationSetName", sesConfigurationSet.configurationSetName);
     this.output("SesFeedbackTopicArn", sesFeedbackTopic.topicArn);
     this.output("BudgetStatus", "configured-on-production-deploy");
+    if (recoveryOperator) {
+      this.output("RecoveryOperatorRoleArn", recoveryOperator.role.roleArn);
+    }
 
     Tags.of(this).add("Project", "PerfectShade");
     Tags.of(this).add("ManagedBy", "CDK");
