@@ -258,10 +258,10 @@ The ownership design is implemented; these are live execution and verification s
 1. Apply the approved production migrations through `0009_additional_owner_provisioning.sql`
    using the migration runner and administrative credential, then bootstrap Sheri as the initial
    owner with `pnpm bootstrap:owner` per [initial-owner bootstrap](./initial-owner-bootstrap.md).
-2. Sheri completes the initial password change and TOTP enrollment.
+2. Sheri completes the initial password change and email MFA verification.
 3. Run `pnpm owner:add` for Seth / Unified Techworks using the documented dry-run, preflight,
    and approved execution sequence, authorized by Sheri's active owner subject.
-4. Seth completes the initial password change and TOTP enrollment.
+4. Seth completes the initial password change and his approved MFA factor; TOTP remains available.
 5. Verify both accounts independently in separate authenticated sessions: the account API must
    return the Perfect Shade organization and `owner` role, with working protected access. Confirm
    the Team UI cannot demote, disable, remove, or replace either owner.
@@ -418,7 +418,8 @@ Record pass/fail, timestamp, tester, device/browser, and evidence for each item.
 - [ ] Seth / Unified Techworks has verified owner-level application access for troubleshooting,
   maintenance, and future improvements.
 - [ ] Production sign-in uses only production Cognito/API configuration.
-- [ ] Cognito callback, logout, password recovery, required TOTP, refresh, and sign-out pass.
+- [ ] Cognito callback, logout, administrator-assisted recovery, required email/TOTP MFA, refresh,
+  and sign-out pass.
 - [ ] Signed-out `/app/*` fails closed; authorized owner/admin/staff access matches role rules.
 - [ ] No development identity or session can access production, and vice versa.
 

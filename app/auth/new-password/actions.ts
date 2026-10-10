@@ -13,6 +13,7 @@ import {
 } from "@/lib/auth/cognito/cookies";
 import { validateStaffPassword } from "@/lib/auth/password-policy";
 import { safeNextPath } from "@/lib/auth/redirect";
+import { challengeDestination } from "@/lib/auth/cognito/challenge-routing";
 
 export async function setInitialPassword(formData: FormData) {
   const password = String(formData.get("password") ?? "");
@@ -34,19 +35,14 @@ export async function setInitialPassword(formData: FormData) {
     password,
   );
   if (result.status !== "authenticated") {
-    if (result.status === "mfa-setup-required" || result.status === "mfa-code-required") {
-      const setup = result.status === "mfa-setup-required";
+    const destination = challengeDestination(result, challenge.next);
+    if (destination) {
       cookieStore.set(
         AUTH_COOKIES.challenge,
-        encodeChallenge(createChallenge({
-          kind: setup ? "mfa-setup" : "software-token-mfa",
-          username: result.username,
-          session: result.session,
-          next: challenge.next,
-        })),
+        encodeChallenge(createChallenge(destination.challenge)),
         challengeCookieOptions(),
       );
-      redirect(setup ? "/auth/mfa/setup" : "/auth/mfa/verify");
+      redirect(destination.path);
     }
     const error = result.status === "configuration-error" ? "configuration" : "challenge";
     redirect(`/auth/new-password?error=${error}`);

@@ -8,8 +8,8 @@ This document describes the application-side Cognito implementation.
 Perfect Shade uses internal staff accounts only. Amazon Cognito User Pools authenticates staff;
 public self-registration and customer-facing login are excluded. Administrators provision users,
 and an administrator-created user completes Cognito's `NEW_PASSWORD_REQUIRED` challenge before
-receiving an application session. Production additionally requires Cognito-managed TOTP MFA for
-every staff role.
+receiving an application session. Production additionally requires Cognito-managed MFA for every
+staff role, with native email verification and TOTP available as approved factors.
 
 Cognito `sub` is the immutable actor identity. Cognito groups are not application roles. The AWS
 account API resolves the actor's active database membership and returns one of:
@@ -41,8 +41,11 @@ Current custom flows:
 - Administrator-created user's `NEW_PASSWORD_REQUIRED` response.
 - TOTP enrollment through `MFA_SETUP`, `AssociateSoftwareToken`, and `VerifySoftwareToken`.
 - Subsequent authenticator-code sign-in through `SOFTWARE_TOKEN_MFA`.
-- Generic forgot-password response using `ForgotPassword`.
-- Recovery-code confirmation using `ConfirmForgotPassword`.
+- Native email second-factor sign-in through `EMAIL_OTP` (and legacy `EMAIL_MFA` response
+  compatibility) only after password authentication.
+- Cognito `SELECT_MFA_TYPE` handling for email or authenticator-app selection.
+- Development-only generic forgot-password response using `ForgotPassword` and recovery-code
+  confirmation using `ConfirmForgotPassword`; production recovery is administrator-assisted.
 - Cognito global sign-out where available plus unconditional local cookie removal.
 
 Challenge state is type-scoped and expires after ten minutes. MFA setup keys are shown only in
@@ -54,7 +57,7 @@ challenges fail closed with a generic message.
 | Area | Routes | Behavior |
 | --- | --- | --- |
 | Marketing | Existing public routes | Unchanged and public |
-| Authentication | `/sign-in`, `/forgot-password`, `/reset-password`, `/auth/new-password`, `/auth/mfa/setup`, `/auth/mfa/verify` | Public flow endpoints; no `/sign-up` route |
+| Authentication | `/sign-in`, `/forgot-password`, `/reset-password`, `/auth/new-password`, `/auth/mfa/setup`, `/auth/mfa/verify`, `/auth/mfa/email`, `/auth/mfa/select` | Public flow endpoints; no `/sign-up` route |
 | Application | `/app/*` | Cognito session required by proxy and server layout |
 
 `safeNextPath` rejects external and scheme-relative redirect targets. Missing Cognito
@@ -97,9 +100,10 @@ emails temporary credentials, which are never accepted or returned by the applic
 [`staff-account-management.md`](./staff-account-management.md) for API contracts, permissions,
 and partial-service recovery.
 
-Production environment isolation, TOTP behavior, SES requirements, and the controlled Cognito
+Production environment isolation, email/TOTP MFA behavior, SES requirements, and the controlled Cognito
 subject-relink runbook are documented in
-[`production-identity-readiness.md`](./production-identity-readiness.md).
+[`production-identity-readiness.md`](./production-identity-readiness.md) and
+[`production-email-mfa.md`](./production-email-mfa.md).
 
 ## Provider transition status
 

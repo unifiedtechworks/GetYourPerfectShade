@@ -60,3 +60,16 @@ export function getCognitoConfiguration(): CognitoConfiguration | null {
     siteUrl: siteUrl ?? "http://localhost:3000",
   };
 }
+
+export type PasswordRecoveryPolicy =
+  | "self-service-email"
+  | "administrator-only"
+  | "configuration-error";
+
+export function getPasswordRecoveryPolicy(): PasswordRecoveryPolicy {
+  const configuration = getCognitoConfiguration();
+  if (!configuration) return "configuration-error";
+  return configuration.environmentName === "production"
+    ? "administrator-only"
+    : "self-service-email";
+}

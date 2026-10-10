@@ -226,7 +226,8 @@ AWS authentication library. The implementation must:
 - Validate issuer, audience/client ID, token use, signature, and expiry server-side.
 - Refresh tokens only in server-controlled code.
 - Clear local cookies and revoke tokens on sign-out where applicable.
-- Preserve the current generic password-recovery response to reduce account enumeration.
+- Preserve the generic development password-recovery response to reduce account enumeration;
+  production uses administrator-assisted recovery because email is an MFA factor.
 
 The exact library should be selected by Chat 2 after a short proof against the repository's
 current Next.js version and Amplify runtime. Prefer an AWS-supported Cognito/Amplify adapter; if
@@ -591,7 +592,7 @@ attempts, and denied privileged operations.
 | --- | --- |
 | Supabase Auth users | Cognito User Pool users |
 | Public-signup setting | Cognito self-registration disabled |
-| Password sign-in/reset | Cognito auth APIs and verified-email recovery |
+| Password sign-in/reset | Cognito password-first auth; development verified-email recovery; production administrator-assisted recovery |
 | Supabase SSR cookies/client | Cognito/OIDC server session adapter with HttpOnly cookies |
 | `auth.uid()` | Validated Cognito `sub`, passed into controlled transaction context |
 | Supabase Postgres | Aurora PostgreSQL Serverless v2 |
@@ -828,15 +829,18 @@ deployment. This document does not authorize resource provisioning or production
 
 - Internal staff accounts only; Cognito public signup is disabled.
 - Administrators provision users.
-- Use email/password authentication with verified email and password recovery.
-- Development may keep MFA off or optional. Production requires Cognito TOTP MFA for every staff
-  role; SMS MFA is not required.
+- Use password-first authentication with verified staff email.
+- Development may keep MFA off or optional. Production requires Cognito-native email or TOTP MFA
+  for every staff role; SMS MFA and passwordless email sign-in are disabled.
+- Production recovery is administrator-assisted because the MFA email cannot also receive
+  self-service recovery codes.
 - Use a verified Perfect Shade or Unified Techworks Amazon SES sender identity for invitations
   and recovery.
 
 The repository-side production identity contract and application MFA flow are defined in
-[`production-identity-readiness.md`](./production-identity-readiness.md). Production provisioning
-and SES remain separately authorized infrastructure work.
+[`production-identity-readiness.md`](./production-identity-readiness.md) and
+[`production-email-mfa.md`](./production-email-mfa.md). Production provisioning and SES remain
+separately authorized infrastructure work.
 
 ### Approved Decision 5: Membership permissions
 

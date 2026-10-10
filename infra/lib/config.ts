@@ -2,6 +2,8 @@ import type { App } from "aws-cdk-lib";
 
 export type MfaMode = "off" | "optional" | "required";
 export type EmailSenderMode = "cognito" | "ses";
+export type CognitoFeaturePlan = "essentials" | "plus";
+export type AccountRecoveryMode = "self-service-email" | "admin-only";
 
 export interface PerfectShadeApplicationConfig {
   readonly environmentName: "development" | "production";
@@ -15,6 +17,9 @@ export interface PerfectShadeApplicationConfig {
   readonly auroraMaxCapacity: number;
   readonly auroraAutoPauseMinutes: number;
   readonly mfaMode: MfaMode;
+  readonly emailMfaEnabled?: boolean;
+  readonly cognitoFeaturePlan?: CognitoFeaturePlan;
+  readonly accountRecoveryMode?: AccountRecoveryMode;
   readonly emailSenderMode: EmailSenderMode;
   readonly sesFromEmail?: string;
   readonly sesReplyToEmail?: string;
@@ -110,6 +115,8 @@ export function loadDevelopmentConfig(app: App): PerfectShadeDevelopmentConfig {
       15,
     ),
     mfaMode: mfaContext,
+    emailMfaEnabled: false,
+    accountRecoveryMode: "self-service-email",
     emailSenderMode,
     sesFromEmail,
     sesReplyToEmail,

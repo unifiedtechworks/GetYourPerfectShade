@@ -204,8 +204,8 @@ Every step requires the separate deployment authorization described in
 7. Run `pnpm migration:status` again and confirm no migrations remain pending.
 8. Run the owner-bootstrap `--dry-run` documented in `initial-owner-bootstrap.md`.
 9. Run the authorized owner bootstrap.
-10. Complete the Cognito permanent-password challenge for the new staff owner; in a pool with
-    required MFA, complete TOTP enrollment immediately afterward.
+10. Complete the Cognito permanent-password challenge for the new staff owner; in the production
+    pool, complete required email MFA or the approved TOTP alternative immediately afterward.
 11. Map the recorded stack outputs into the application and Amplify environment configuration.
 12. Perform live account, tenant-isolation, and estimate API validation.
 

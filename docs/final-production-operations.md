@@ -64,15 +64,16 @@ the corrected stack is deployed and before production sending.
 5. Configure Cognito with From `notifications@getyourperfectshade.com` and Reply-To
    `ps.getyourperfectshade@gmail.com`. Send replies only to the Gmail mailbox; the From address is
    intentionally send-only.
-6. Request SES production access for transactional staff invitation, verification, and password
-   recovery mail. Describe the staff-only, low-volume use case and the monitored complaint/bounce
+6. Request SES production access for transactional staff invitation, verification, and email-MFA
+   mail. Describe the staff-only, low-volume use case and the monitored complaint/bounce
    process accurately.
 7. Confirm the production SES configuration set publishes `BOUNCE`, `COMPLAINT`, and `REJECT`
    events to the dedicated SNS feedback topic. Confirm the operations subscription before sending.
-   Use the SES account suppression list and stop invitation/recovery sending when reputation is
+   Use the SES account suppression list and stop invitation/MFA sending when reputation is
    unhealthy.
 8. With an approved non-owner test identity, validate invitation delivery, Reply-To behavior,
-   `NEW_PASSWORD_REQUIRED`, TOTP enrollment, password recovery, bounce handling, and complaint
+   `NEW_PASSWORD_REQUIRED`, email MFA, the TOTP alternative, administrator-assisted recovery,
+   bounce handling, and complaint
    alert routing. Do not use or disable the only production owner for this test.
 
 ## Monitoring and cost controls

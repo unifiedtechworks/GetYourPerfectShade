@@ -19,6 +19,9 @@ const config: PerfectShadeProductionConfig = {
   auroraMaxCapacity: 4,
   auroraAutoPauseMinutes: 0,
   mfaMode: "required",
+  emailMfaEnabled: true,
+  cognitoFeaturePlan: "essentials",
+  accountRecoveryMode: "admin-only",
   emailSenderMode: "ses",
   sesFromEmail: "notifications@getyourperfectshade.com",
   sesReplyToEmail: "ps.getyourperfectshade@gmail.com",
@@ -91,14 +94,18 @@ describe("PerfectShadeProductionStack", { timeout: 120_000 }, () => {
     } }))).toThrow(/verified SES domain/);
   });
 
-  it("isolates production names, URLs, Cognito, and required TOTP MFA", () => {
+  it("isolates production Cognito with required email and TOTP MFA", () => {
     const template = templateFor();
     template.resourceCountIs("AWS::SES::EmailIdentity", 0);
     template.hasResourceProperties("AWS::Cognito::UserPool", {
       UserPoolName: "perfect-shade-production-staff",
       AdminCreateUserConfig: { AllowAdminCreateUserOnly: true },
       MfaConfiguration: "ON",
-      EnabledMfas: ["SOFTWARE_TOKEN_MFA"],
+      EnabledMfas: ["SOFTWARE_TOKEN_MFA", "EMAIL_OTP"],
+      UserPoolTier: "ESSENTIALS",
+      AccountRecoverySetting: {
+        RecoveryMechanisms: [{ Name: "admin_only", Priority: 1 }],
+      },
       AutoVerifiedAttributes: ["email"],
       DeletionProtection: "ACTIVE",
       EmailConfiguration: Match.objectLike({
@@ -128,6 +135,8 @@ describe("PerfectShadeProductionStack", { timeout: 120_000 }, () => {
     });
     expect(JSON.stringify(template.toJSON())).not.toContain("localhost");
     expect(JSON.stringify(template.toJSON())).not.toContain("amplifyapp.com");
+    expect(userPool!.Properties?.Policies?.SignInPolicy?.AllowedFirstAuthFactors)
+      .toBeUndefined();
   });
 
   it("defines retained private Aurora 16.14 with PITR and separate runtime credentials", () => {

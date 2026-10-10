@@ -21,6 +21,8 @@ const baseConfig: PerfectShadeDevelopmentConfig = {
   auroraMaxCapacity: 1,
   auroraAutoPauseMinutes: 15,
   mfaMode: "off",
+  emailMfaEnabled: false,
+  accountRecoveryMode: "self-service-email",
   emailSenderMode: "cognito",
   enableBudget: false,
   monthlyBudgetUsd: 50,
@@ -55,6 +57,8 @@ describe("PerfectShadeDevelopmentStack", { timeout: 120_000 }, () => {
       allowedCorsOrigins: ["http://localhost:3000"],
       auroraEngineVersion: "16.14",
       emailSenderMode: "cognito",
+      emailMfaEnabled: false,
+      accountRecoveryMode: "self-service-email",
       enableBudget: false,
     });
   });
@@ -67,6 +71,15 @@ describe("PerfectShadeDevelopmentStack", { timeout: 120_000 }, () => {
     expect(() => loadDevelopmentConfig(new App({
       context: { enableBudget: true },
     }))).toThrow(/budgetNotificationEmail/);
+  });
+
+  it("rejects email MFA without the production SES and recovery contract", () => {
+    expect(() => templateFor({
+      mfaMode: "optional",
+      emailMfaEnabled: true,
+      cognitoFeaturePlan: "essentials",
+      accountRecoveryMode: "self-service-email",
+    })).toThrow(/Email MFA requires/);
   });
 
   it("defines a staff-only Cognito pool and public Next.js app client", () => {

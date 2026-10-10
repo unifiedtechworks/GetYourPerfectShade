@@ -12,3 +12,6 @@
 .links a { color: #354f40; }
 .setupSecret { display: grid; gap: .45rem; }
 .setupSecret code { padding: .75rem; border: 1px solid #a9aa9f; border-radius: .45rem; background: #f5f5f1; font-size: .9rem; overflow-wrap: anywhere; user-select: all; }
+.methodChoices { display: grid; gap: .75rem; margin-top: 1.5rem; }
+.methodChoices button { width: 100%; padding: .8rem 1rem; border: 1px solid #354f40; border-radius: .45rem; background: #fff; color: #354f40; font: inherit; font-weight: 700; cursor: pointer; }
+.methodChoices button:hover, .methodChoices button:focus-visible { background: #eef2ee; }

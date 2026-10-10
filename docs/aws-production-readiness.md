@@ -26,7 +26,7 @@ is part of the separately authorized production launch.
 | Database recovery | One-day configured backup retention, encrypted automated snapshot, PITR window available, no deletion protection | Increase retention, protect deletion, retain snapshots, and rehearse restore |
 | Database secret | AWS-managed encryption, no automatic rotation | Separate runtime and migration credentials; establish rotation and recovery procedure |
 | S3 documents | SSE-S3, versioning, full Block Public Access, TLS-only policy, seven-day incomplete-upload cleanup | Retain bucket and versions; do not auto-delete production documents |
-| Cognito | Staff-only, administrator-created users, verified-email recovery, strong 12-character password policy, MFA off | Create a separate retained production pool and require TOTP MFA |
+| Cognito | Staff-only, administrator-created users, verified-email recovery, strong 12-character password policy, MFA off | Create a separate retained production pool and require native email or TOTP MFA |
 | SES | Cognito default sender; SES account is not production-enabled; no verified owned domain | Verify the owned domain and obtain SES production access before staff invitations/recovery |
 | API | All application routes use Cognito JWT authorization; no default-stage throttling | Add reviewed production rate/burst limits and document-generation concurrency controls |
 | Lambdas | ARM64 Node.js 22; account 256 MB/15 seconds; estimate 1024 MB/60 seconds/1024 MB temporary storage | Values are acceptable starting points; load-test and alarm on p95/p99 and failures |
@@ -62,7 +62,7 @@ bootstrap or deployment.
   It generates the environment-specific `perfect_shade_app_runtime` secret and
   transactionally synchronizes that login through a deployment-only provisioner
   before either application Lambda is updated.
-- Production requires administrator-created users, TOTP MFA, SES mode, and
+- Production requires administrator-created users, email/TOTP MFA, SES mode, and
   production-only callback/logout/CORS values. Localhost and Amplify development
   URLs fail production configuration validation.
 - Aurora synthesizes at PostgreSQL 16.14, 0.5–4 ACU, no auto-pause, 35-day PITR,
@@ -102,7 +102,7 @@ bootstrap or deployment.
 | Aurora protection | Deletion protection enabled, 35-day automated backup retention, copy tags to snapshots, retained/final snapshot removal policy, maintenance/backup windows documented |
 | Database identities | Separate Secrets Manager credentials for restricted application runtime and privileged migrations; never give Lambdas the migration/admin credential |
 | S3 | Separate private SSE-S3 bucket, versioning, TLS-only policy, full Block Public Access, `RETAIN`, no auto-delete; move to SSE-KMS only after key ownership/recovery approval |
-| Cognito | Separate staff pool and client, public signup disabled, deletion protection active, retained on stack removal, verified email, TOTP MFA required |
+| Cognito | Separate staff pool and client, public signup disabled, deletion protection active, retained on stack removal, verified email, email/TOTP MFA required, administrator-only recovery |
 | API | Separate HTTP API and JWT authorizer using only the production pool/client; exact production CORS origin; stage throttles enabled |
 | Lambdas | Separate roles, log groups, configuration, reserved concurrency guardrails, and production backend outputs |
 | SES | Verified owned domain and approved sender in `us-west-2`; production access enabled |
@@ -178,16 +178,18 @@ recovery, and its continuing cost.
 
 ### Cognito and MFA
 
-Use a separate retained production pool. TOTP MFA should be **required for all
-staff**, which necessarily protects owner and admin accounts and avoids fragile
-role-dependent enforcement after token issuance. SMS MFA is not recommended.
+Use a separate retained production pool. Cognito-native email or TOTP MFA should be **required for
+all staff**, which necessarily protects owner and admin accounts and avoids fragile role-dependent
+enforcement after token issuance. SMS MFA is not recommended.
 If launch readiness makes pool-wide MFA impossible, production must not proceed
 until an explicitly reviewed privileged-user enforcement design exists.
 
-The application implements `MFA_SETUP`, software-token association and
-verification, `SOFTWARE_TOKEN_MFA`, short-lived fail-closed challenge state,
-and the `NEW_PASSWORD_REQUIRED` to MFA sequence. The production pool keeps MFA
-required; complete a nonproduction enrollment/recovery drill before launch.
+The application implements native `EMAIL_OTP`, legacy `EMAIL_MFA` compatibility,
+`SELECT_MFA_TYPE`, `MFA_SETUP`, software-token association and verification,
+`SOFTWARE_TOKEN_MFA`, short-lived fail-closed challenge state, and the
+`NEW_PASSWORD_REQUIRED` to MFA sequence. The production pool keeps MFA required and uses
+administrator-only recovery; complete a nonproduction enrollment/recovery drill before launch.
+See [`production-email-mfa.md`](./production-email-mfa.md).
 
 Cognito passwords, MFA seeds, and active sessions cannot be backed up or
 restored. Recovery recreates the pool and administrator-provisioned identities,

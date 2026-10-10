@@ -35,6 +35,35 @@ describe("administrator-created user challenge state", () => {
     expect(decodeChallenge(encodeChallenge(challenge), now + 10 * 60 * 1_000 + 1)).toBeNull();
     expect(decodeChallenge(encodeChallenge(challenge), now - 5_001)).toBeNull();
   });
+
+  it("validates email-MFA and method-selection challenge metadata", () => {
+    const now = Date.parse("2026-10-10T12:00:00Z");
+    const email = createChallenge({
+      kind: "email-mfa",
+      username: "staff@example.com",
+      session: "opaque-session",
+      next: "/app",
+      emailChallengeName: "EMAIL_OTP",
+    }, now);
+    const selection = createChallenge({
+      kind: "mfa-selection",
+      username: "staff@example.com",
+      session: "opaque-session",
+      next: "/app",
+      mfaMethods: ["email", "software-token"],
+    }, now);
+
+    expect(decodeChallenge(encodeChallenge(email), now)).toEqual(email);
+    expect(decodeChallenge(encodeChallenge(selection), now)).toEqual(selection);
+    expect(decodeChallenge(encodeChallenge({
+      ...email,
+      emailChallengeName: undefined,
+    }), now)).toBeNull();
+    expect(decodeChallenge(encodeChallenge({
+      ...selection,
+      mfaMethods: [],
+    }), now)).toBeNull();
+  });
 });
 
 describe("authentication cookie hardening", () => {

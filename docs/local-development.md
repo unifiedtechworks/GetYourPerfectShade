@@ -71,11 +71,17 @@ routes remain available. With the development stack deployed, additionally verif
 7. Expired access tokens refresh only in server-controlled code.
 8. Disabled users and missing memberships fail closed.
 
+Development intentionally keeps Cognito MFA off and retains verified-email self-service password
+recovery. Email-MFA tests use mocked Cognito responses; do not enable MFA or create billable test
+resources merely to exercise this source implementation. Production uses administrator-only
+recovery as documented in [`production-email-mfa.md`](./production-email-mfa.md).
+
 ## AWS Amplify
 
 Set all six environment values per Amplify branch/environment. Development and production must
 use separate Cognito and API resources. Production is not authorized by this application change.
-Use an approved SES sender before production invitations or password recovery.
+Use the approved SES sender before production invitations or MFA delivery. Production password
+recovery is administrator-assisted rather than self-service email recovery.
 Production rejects missing, local, or non-HTTPS API/site values. See
 [`production-identity-readiness.md`](./production-identity-readiness.md).
 

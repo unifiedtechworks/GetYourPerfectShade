@@ -13,7 +13,9 @@ export type AuthChallengeKind =
   | "new-password"
   | "mfa-setup"
   | "mfa-setup-verification"
-  | "software-token-mfa";
+  | "software-token-mfa"
+  | "mfa-selection"
+  | "email-mfa";
 
 type CookieOptions = {
   httpOnly: boolean;
@@ -64,6 +66,8 @@ export type AuthChallenge = {
   session: string;
   next: string;
   issuedAt: number;
+  mfaMethods?: Array<"email" | "software-token">;
+  emailChallengeName?: "EMAIL_OTP" | "EMAIL_MFA";
 };
 
 export function createChallenge(
@@ -87,7 +91,14 @@ export function decodeChallenge(
     if (
       typeof parsed === "object" && parsed !== null &&
       (parsed as AuthChallenge).version === 1 &&
-      ["new-password", "mfa-setup", "mfa-setup-verification", "software-token-mfa"]
+      [
+        "new-password",
+        "mfa-setup",
+        "mfa-setup-verification",
+        "software-token-mfa",
+        "mfa-selection",
+        "email-mfa",
+      ]
         .includes((parsed as AuthChallenge).kind) &&
       typeof (parsed as AuthChallenge).username === "string" &&
       (parsed as AuthChallenge).username.length > 0 &&
@@ -100,7 +111,23 @@ export function decodeChallenge(
       typeof (parsed as AuthChallenge).issuedAt === "number" &&
       Number.isFinite((parsed as AuthChallenge).issuedAt) &&
       (parsed as AuthChallenge).issuedAt <= now + 5_000 &&
-      now - (parsed as AuthChallenge).issuedAt <= AUTH_CHALLENGE_MAX_AGE_SECONDS * 1_000
+      now - (parsed as AuthChallenge).issuedAt <= AUTH_CHALLENGE_MAX_AGE_SECONDS * 1_000 &&
+      (
+        (parsed as AuthChallenge).kind !== "mfa-selection" ||
+        (
+          Array.isArray((parsed as AuthChallenge).mfaMethods) &&
+          (parsed as AuthChallenge).mfaMethods!.length > 0 &&
+          (parsed as AuthChallenge).mfaMethods!.every((method) =>
+            method === "email" || method === "software-token"
+          )
+        )
+      ) &&
+      (
+        (parsed as AuthChallenge).kind !== "email-mfa" ||
+        ["EMAIL_OTP", "EMAIL_MFA"].includes(
+          (parsed as AuthChallenge).emailChallengeName ?? "",
+        )
+      )
     ) return parsed as AuthChallenge;
   } catch {
     // Treat malformed or stale challenge cookies as absent.

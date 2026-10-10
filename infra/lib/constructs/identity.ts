@@ -30,6 +30,22 @@ export class IdentityConstruct extends Construct {
             props.sesIdentity?.emailIdentityName ?? config.sesVerifiedDomain!,
         })
       : cognito.UserPoolEmail.withCognito();
+    const featurePlan = config.cognitoFeaturePlan === "plus"
+      ? cognito.FeaturePlan.PLUS
+      : config.cognitoFeaturePlan === "essentials"
+        ? cognito.FeaturePlan.ESSENTIALS
+        : undefined;
+
+    if (config.emailMfaEnabled && (
+      config.mfaMode === "off" ||
+      config.emailSenderMode !== "ses" ||
+      config.accountRecoveryMode !== "admin-only" ||
+      featurePlan === undefined
+    )) {
+      throw new Error(
+        "Email MFA requires MFA, SES delivery, administrator-only recovery, and Essentials or Plus.",
+      );
+    }
 
     this.userPool = new cognito.UserPool(this, "StaffUserPool", {
       userPoolName: `${config.resourcePrefix}-staff`,
@@ -37,14 +53,17 @@ export class IdentityConstruct extends Construct {
       signInAliases: { email: true },
       signInCaseSensitive: false,
       autoVerify: { email: true },
-      accountRecovery: cognito.AccountRecovery.EMAIL_ONLY,
+      accountRecovery: config.accountRecoveryMode === "admin-only"
+        ? cognito.AccountRecovery.NONE
+        : cognito.AccountRecovery.EMAIL_ONLY,
       email,
+      featurePlan,
       mfa: config.mfaMode === "required"
         ? cognito.Mfa.REQUIRED
         : config.mfaMode === "optional"
           ? cognito.Mfa.OPTIONAL
           : cognito.Mfa.OFF,
-      mfaSecondFactor: { otp: true, sms: false },
+      mfaSecondFactor: { email: config.emailMfaEnabled ?? false, otp: true, sms: false },
       passwordPolicy: {
         minLength: 12,
         requireDigits: true,

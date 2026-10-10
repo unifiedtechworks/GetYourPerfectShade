@@ -83,7 +83,9 @@ or prints the password.
 
 At first sign-in, Cognito returns `NEW_PASSWORD_REQUIRED`; the existing application flow requires
 the staff user to choose a permanent password satisfying the User Pool policy. Public signup and
-customer-facing login remain unavailable.
+customer-facing login remain unavailable. Production then requires Cognito-native MFA: the primary
+owner may complete email verification without an authenticator app, while TOTP remains an
+alternative. See [`production-email-mfa.md`](./production-email-mfa.md).
 
 ## Aurora transaction
 

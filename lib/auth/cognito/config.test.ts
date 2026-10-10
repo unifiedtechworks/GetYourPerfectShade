@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { getCognitoConfiguration } from "./config";
+import { getCognitoConfiguration, getPasswordRecoveryPolicy } from "./config";
 
 describe("Cognito environment configuration", () => {
   afterEach(() => vi.unstubAllEnvs());
@@ -24,6 +24,7 @@ describe("Cognito environment configuration", () => {
       apiBaseUrl: "https://api.example.com",
       siteUrl: "https://app.example.com",
     });
+    expect(getPasswordRecoveryPolicy()).toBe("self-service-email");
   });
 
   it("requires complete HTTPS-isolated production endpoints", () => {
@@ -41,6 +42,7 @@ describe("Cognito environment configuration", () => {
       apiBaseUrl: "https://api.getyourperfectshade.com",
       siteUrl: "https://www.getyourperfectshade.com",
     });
+    expect(getPasswordRecoveryPolicy()).toBe("administrator-only");
   });
 
   it("fails closed for production localhost, missing API, or region-mismatched pools", () => {
@@ -51,6 +53,7 @@ describe("Cognito environment configuration", () => {
     vi.stubEnv("NEXT_PUBLIC_SITE_URL", "http://localhost:3000");
     vi.stubEnv("NEXT_PUBLIC_API_BASE_URL", "");
     expect(getCognitoConfiguration()).toBeNull();
+    expect(getPasswordRecoveryPolicy()).toBe("configuration-error");
 
     vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://www.getyourperfectshade.com");
     vi.stubEnv("NEXT_PUBLIC_API_BASE_URL", "https://api.getyourperfectshade.com");

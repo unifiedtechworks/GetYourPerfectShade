@@ -73,7 +73,8 @@ acknowledgement that the operator has performed that review. It does not bypass 
 After the preflight and authorization record are reviewed, repeat the identical arguments with
 `--execute`. If the identity is absent, the command calls `AdminCreateUser` with email delivery.
 Cognito generates the temporary credentials and delivers them; the command accepts and prints no
-password. The owner must complete `NEW_PASSWORD_REQUIRED` and production TOTP setup at first login.
+password. The owner must complete `NEW_PASSWORD_REQUIRED` and a required production MFA factor at
+first login; email MFA and TOTP are supported.
 
 ## Database and audit behavior
 
@@ -111,10 +112,11 @@ state fails without database mutation.
 ## Production ownership sequence
 
 1. Bootstrap Sheri as the initial Perfect Shade owner using `pnpm bootstrap:owner`.
-2. Sheri completes the first-login permanent-password challenge and TOTP MFA enrollment.
+2. Sheri completes the first-login permanent-password challenge and email MFA verification.
 3. An approved operator runs this controlled workflow for Seth / Unified Techworks, with Sheri's
    active Cognito subject as the authorizing owner and a reviewed change reference.
-4. Seth completes the first-login permanent-password challenge and TOTP MFA enrollment.
+4. Seth completes the first-login permanent-password challenge and the approved MFA factor; TOTP
+   remains available for his account.
 5. Verify both identities return the Perfect Shade organization and `owner` role from the account
    API, and verify protected access independently.
 6. Confirm the Team UI cannot demote, disable, remove, or replace either owner.

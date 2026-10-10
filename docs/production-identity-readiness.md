@@ -35,8 +35,8 @@ is prohibited. The production client is a public client without a secret.
 
 The identity construct accepts a production-only contract that requires:
 
-- pool-wide TOTP MFA (`required`) with SMS MFA disabled;
-- administrator-only provisioning and email-only recovery;
+- pool-wide required MFA with Cognito-native email and TOTP factors, and SMS disabled;
+- administrator-only provisioning and administrator-assisted recovery;
 - deletion protection and retained removal policy;
 - SES delivery configuration;
 - exactly one approved callback, logout, and CORS origin;
@@ -54,35 +54,39 @@ does not reuse the development pool. This task does not deploy that stack.
 
 ## Staff MFA behavior
 
-Production Cognito enforces TOTP for every staff identity, regardless of Aurora role. On first
-sign-in Cognito may sequence `NEW_PASSWORD_REQUIRED`, then `MFA_SETUP`. The application:
+Production Cognito enforces MFA for every staff identity, regardless of Aurora role. Native email
+MFA and TOTP are enabled. On first sign-in Cognito may sequence `NEW_PASSWORD_REQUIRED`, method
+selection, and either an email-code challenge or `MFA_SETUP`. The application:
 
 1. stores only Cognito's opaque, short-lived challenge session in a Secure/HttpOnly/SameSite
    challenge cookie;
 2. calls `AssociateSoftwareToken` and shows the setup key only in the current setup view;
 3. never logs, writes to Aurora, writes to browser storage, or puts the key in a URL;
 4. calls `VerifySoftwareToken` with the six-digit code;
-5. completes `MFA_SETUP`, then creates the normal protected session;
-6. handles later `SOFTWARE_TOKEN_MFA` challenges with a six-digit verification page.
+5. completes native `EMAIL_OTP`, `MFA_SETUP`, or `SOFTWARE_TOKEN_MFA` server-side; and
+6. creates the normal protected session only after Cognito returns complete tokens.
 
 Challenge cookies expire after ten minutes and encode an issued-at time. Missing, malformed,
 future-dated, expired, or wrong-kind challenge state fails closed and requires sign-in to restart.
 Invalid codes retain a generic retry state. Any unimplemented Cognito challenge fails closed;
 passwords, MFA codes, setup keys, tokens, and raw Cognito errors are never logged.
 
-Cognito owns the TOTP seed. It cannot be recovered from the application. A lost authenticator is
-an administrator-assisted Cognito recovery event; never attempt to reconstruct or store its seed.
+Cognito owns email-code generation and TOTP seeds. Neither can be recovered from the application.
+A lost authenticator or inaccessible MFA mailbox is an administrator-assisted Cognito recovery
+event; never attempt to reconstruct/store a seed or bypass required MFA.
 
 ## Production account recovery
 
-Cognito password recovery uses verified email through `ForgotPassword` and
-`ConfirmForgotPassword`. The start response remains generic to prevent account enumeration.
-Production recovery mail therefore depends on the SES contract below. Recovery must not add a
-public signup route or permit an unapproved user to become a member.
+Because verified email can be an MFA factor, production uses Cognito `admin_only` account
+recovery. Production `/forgot-password` and `/reset-password` do not call the self-service APIs or
+promise a recovery email; they direct staff to the approved owner-assisted process. Development
+continues to use `ForgotPassword` and `ConfirmForgotPassword`. The operational process is in
+[`production-email-mfa.md`](./production-email-mfa.md). Recovery must not add a public signup route
+or permit an unapproved user to become a member.
 
 If an identity or pool is accidentally removed, Cognito passwords, sessions, and MFA seeds do
 not survive. The replacement identity must be administrator-provisioned, complete a new password,
-and enroll TOTP again. Existing Aurora organization, role, status, and audit history are preserved
+and configure an approved MFA factor again. Existing Aurora organization, role, status, and audit history are preserved
 through the controlled CLI and migration `0008_identity_recovery.sql`.
 
 ### Authorization and identity proof
@@ -161,16 +165,16 @@ application/identity construct expects:
 - an owned sending domain verified in `us-west-2`;
 - Easy DKIM records published and verification complete;
 - an approved sender address on that exact verified domain, preferably a role address;
-- SES production access before real invitations or recovery messages;
+- SES production access before real invitations or email-MFA messages;
 - aligned MAIL FROM/SPF and monitored DMARC rollout;
 - a monitored reply-to/operations path;
 - bounce and complaint notifications, suppression-list handling, alert thresholds, and an owned
-  procedure that stops invitations/recovery when delivery reputation is unhealthy.
+  procedure that stops invitations/MFA delivery when delivery reputation is unhealthy.
 
 The production identity config requires `emailSenderMode=ses`, `sesVerifiedDomain`, and
 `sesFromEmail` plus a separately monitored `sesReplyToEmail`, and rejects a sender outside the
 verified domain. Cognito uses the From identity and Reply-To for administrator invitations,
-verification, and password recovery. Estimate/bid delivery is a
+verification, and email MFA. Estimate/bid delivery is a
 separate transactional mail path and must not reuse Cognito's delivery integration by accident.
 
 No SES SMTP password, AWS key, DKIM private material, message token, or recipient list belongs in
@@ -183,9 +187,9 @@ browser variables, source, logs, screenshots, or documentation examples.
 - [ ] Pool self-signup is disabled and `/sign-up` returns not found.
 - [ ] Owner, admin, and staff invitations are administrator-created; the general invite workflow
   accepts only admin/staff and never owner.
-- [ ] Every production role completes TOTP enrollment and subsequent MFA sign-in; SMS is not
-  enabled and unsupported challenges fail closed.
-- [ ] Challenge expiry, invalid code, lost authenticator, password recovery, sign-out/global
+- [ ] Every production role completes email MFA or TOTP and subsequent MFA sign-in; SMS and
+  passwordless email are not enabled, and unsupported challenges fail closed.
+- [ ] Challenge expiry, invalid code, lost authenticator/mailbox, administrator-assisted recovery, sign-out/global
   sign-out, refresh, and invalid-session behavior pass without secret exposure.
 - [ ] Protected `/app/*` routes fail closed before and after sign-out.
 - [ ] Owner protections, last-owner invariant, self-escalation denial, admin/staff matrix, and
@@ -196,7 +200,7 @@ browser variables, source, logs, screenshots, or documentation examples.
   Cognito temporary passwords.
 - [ ] Audit events remain append-only and cover invitation, role/state changes, profile changes,
   and controlled identity recovery.
-- [ ] SES domain/DKIM/production access, sender, bounce/complaint monitoring, and password-recovery
+- [ ] SES domain/DKIM/production access, sender, bounce/complaint monitoring, and email-MFA
   delivery are verified.
 - [ ] Identity recreation/relink preflight and a nonproduction recovery drill pass; role, status,
   organization, audit history, and tenant boundary are preserved.

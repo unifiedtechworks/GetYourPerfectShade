@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { safeNextPath } from "@/lib/auth/redirect";
 import { authenticateWithPassword } from "@/lib/auth/cognito/client";
+import { challengeDestination } from "@/lib/auth/cognito/challenge-routing";
 import {
   AUTH_COOKIES,
   challengeCookieOptions,
@@ -20,34 +21,15 @@ export async function signIn(formData: FormData) {
   if (result.status === "configuration-error") {
     redirect(`/sign-in?error=configuration&next=${encodeURIComponent(next)}`);
   }
-  if (result.status === "new-password-required") {
+  const destination = challengeDestination(result, next);
+  if (destination) {
     const cookieStore = await cookies();
     cookieStore.set(
       AUTH_COOKIES.challenge,
-      encodeChallenge(createChallenge({
-        kind: "new-password",
-        username: result.username,
-        session: result.session,
-        next,
-      })),
+      encodeChallenge(createChallenge(destination.challenge)),
       challengeCookieOptions(),
     );
-    redirect("/auth/new-password");
-  }
-  if (result.status === "mfa-setup-required" || result.status === "mfa-code-required") {
-    const cookieStore = await cookies();
-    const setup = result.status === "mfa-setup-required";
-    cookieStore.set(
-      AUTH_COOKIES.challenge,
-      encodeChallenge(createChallenge({
-        kind: setup ? "mfa-setup" : "software-token-mfa",
-        username: result.username,
-        session: result.session,
-        next,
-      })),
-      challengeCookieOptions(),
-    );
-    redirect(setup ? "/auth/mfa/setup" : "/auth/mfa/verify");
+    redirect(destination.path);
   }
   if (result.status !== "authenticated") {
     const error = result.status === "unsupported-challenge" ? "challenge" : "credentials";

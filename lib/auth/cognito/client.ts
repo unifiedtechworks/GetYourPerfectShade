@@ -34,6 +34,18 @@ export type SignInResult =
   | { status: "new-password-required"; username: string; session: string }
   | { status: "mfa-setup-required"; username: string; session: string }
   | { status: "mfa-code-required"; username: string; session: string }
+  | {
+      status: "email-mfa-code-required";
+      username: string;
+      session: string;
+      challengeName: EmailMfaChallengeName;
+    }
+  | {
+      status: "mfa-selection-required";
+      username: string;
+      session: string;
+      methods: MfaMethod[];
+    }
   | { status: "unsupported-challenge" }
   | { status: "configuration-error" }
   | { status: "credentials-error" }
@@ -46,9 +58,30 @@ export type MfaSetupResult =
 
 type AuthenticationResponse = Readonly<{
   AuthenticationResult?: AuthenticationResultType;
-  ChallengeName?: ChallengeNameType;
+  ChallengeName?: ChallengeNameType | "EMAIL_MFA";
+  ChallengeParameters?: Readonly<Record<string, string>>;
   Session?: string;
 }>;
+
+export type EmailMfaChallengeName = "EMAIL_OTP" | "EMAIL_MFA";
+export type MfaMethod = "email" | "software-token";
+
+function selectableMfaMethods(value: string | undefined): MfaMethod[] {
+  if (!value) return [];
+  let values: unknown;
+  try {
+    values = JSON.parse(value);
+  } catch {
+    values = value.split(",").map((item) => item.trim());
+  }
+  if (!Array.isArray(values)) return [];
+  const methods: MfaMethod[] = [];
+  if (values.some((item) => item === "EMAIL_OTP" || item === "EMAIL_MFA")) {
+    methods.push("email");
+  }
+  if (values.includes("SOFTWARE_TOKEN_MFA")) methods.push("software-token");
+  return methods;
+}
 
 export function authenticationResponse(
   response: AuthenticationResponse,
@@ -66,6 +99,28 @@ export function authenticationResponse(
   }
   if (response.ChallengeName === ChallengeNameType.SOFTWARE_TOKEN_MFA) {
     return { status: "mfa-code-required", username, session: response.Session };
+  }
+  if (
+    response.ChallengeName === ChallengeNameType.EMAIL_OTP ||
+    response.ChallengeName === "EMAIL_MFA"
+  ) {
+    return {
+      status: "email-mfa-code-required",
+      username,
+      session: response.Session,
+      challengeName: response.ChallengeName,
+    };
+  }
+  if (response.ChallengeName === ChallengeNameType.SELECT_MFA_TYPE) {
+    const methods = selectableMfaMethods(response.ChallengeParameters?.MFAS_CAN_SELECT);
+    if (methods.length > 0) {
+      return {
+        status: "mfa-selection-required",
+        username,
+        session: response.Session,
+        methods,
+      };
+    }
   }
   return { status: "unsupported-challenge" };
 }
@@ -168,6 +223,50 @@ export function createCognitoAuthService(client: CognitoClient, clientId: string
       }
     },
 
+    async selectMfaType(
+      username: string,
+      session: string,
+      method: MfaMethod,
+    ): Promise<SignInResult> {
+      try {
+        const response = await client.send(new RespondToAuthChallengeCommand({
+          ClientId: clientId,
+          ChallengeName: ChallengeNameType.SELECT_MFA_TYPE,
+          Session: session,
+          ChallengeResponses: {
+            USERNAME: username,
+            ANSWER: method === "email" ? ChallengeNameType.EMAIL_OTP :
+              ChallengeNameType.SOFTWARE_TOKEN_MFA,
+          },
+        })) as AuthenticationResponse;
+        return authenticationResponse(response, username);
+      } catch {
+        return { status: "mfa-code-error" };
+      }
+    },
+
+    async completeEmailMfa(
+      username: string,
+      session: string,
+      code: string,
+      challengeName: EmailMfaChallengeName,
+    ): Promise<SignInResult> {
+      try {
+        const challengeResponses: Record<string, string> = challengeName === "EMAIL_MFA"
+          ? { USERNAME: username, EMAIL_MFA_CODE: code }
+          : { USERNAME: username, EMAIL_OTP_CODE: code };
+        const response = await client.send(new RespondToAuthChallengeCommand({
+          ClientId: clientId,
+          ChallengeName: challengeName as ChallengeNameType,
+          Session: session,
+          ChallengeResponses: challengeResponses,
+        })) as AuthenticationResponse;
+        return authenticationResponse(response, username);
+      } catch {
+        return { status: "mfa-code-error" };
+      }
+    },
+
     async startPasswordRecovery(username: string) {
       try {
         await client.send(new ForgotPasswordCommand({ ClientId: clientId, Username: username }));
@@ -237,6 +336,25 @@ export async function completeMfaSetup(username: string, session: string, code: 
 
 export async function completeSoftwareMfa(username: string, session: string, code: string) {
   return configuredClient()?.completeSoftwareMfa(username, session, code) ??
+    { status: "configuration-error" as const };
+}
+
+export async function selectMfaType(
+  username: string,
+  session: string,
+  method: MfaMethod,
+) {
+  return configuredClient()?.selectMfaType(username, session, method) ??
+    { status: "configuration-error" as const };
+}
+
+export async function completeEmailMfa(
+  username: string,
+  session: string,
+  code: string,
+  challengeName: EmailMfaChallengeName,
+) {
+  return configuredClient()?.completeEmailMfa(username, session, code, challengeName) ??
     { status: "configuration-error" as const };
 }
 

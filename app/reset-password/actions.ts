@@ -3,8 +3,16 @@
 import { redirect } from "next/navigation";
 import { confirmPasswordRecovery } from "@/lib/auth/cognito/client";
 import { validateStaffPassword } from "@/lib/auth/password-policy";
+import { getPasswordRecoveryPolicy } from "@/lib/auth/cognito/config";
 
 export async function updatePassword(formData: FormData) {
+  const policy = getPasswordRecoveryPolicy();
+  if (policy === "administrator-only") {
+    redirect("/forgot-password?recovery=administrator");
+  }
+  if (policy === "configuration-error") {
+    redirect("/reset-password?error=configuration");
+  }
   const password = String(formData.get("password") ?? "");
   const email = String(formData.get("email") ?? "").trim();
   const code = String(formData.get("code") ?? "").trim();

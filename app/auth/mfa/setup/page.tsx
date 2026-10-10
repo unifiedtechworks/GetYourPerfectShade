@@ -18,8 +18,8 @@ export default async function MfaSetupPage() {
         <Link className={styles.brand} href="/">Perfect Shade</Link>
         <h1>Protect your staff account</h1>
         <p>
-          Production staff accounts require a time-based one-time password from an authenticator
-          app. Perfect Shade does not store your authenticator setup key.
+          Set up the authenticator application you selected for this required verification step.
+          Perfect Shade does not store your authenticator setup key.
         </p>
         <MfaSetupForm startAllowed={startAllowed} />
         <div className={styles.links}><Link href="/sign-in">Restart sign in</Link></div>
