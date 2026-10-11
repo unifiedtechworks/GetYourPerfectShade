@@ -13,6 +13,7 @@
     "bootstrap:owner": "node --experimental-strip-types backend/admin/bootstrap-owner.mts",
     "owner:add": "node --experimental-strip-types backend/admin/add-owner.mts",
     "recover:identity": "node --experimental-strip-types backend/admin/relink-identity.mts",
+    "recover:account": "node --experimental-strip-types backend/admin/cognito-recovery-preflight.mts",
     "lint": "tsc --noEmit",
     "test": "vitest run",
     "validate:amplify-environment": "node scripts/validate-amplify-environment.mjs",
@@ -35,6 +36,8 @@
     "react-dom": "latest"
   },
   "devDependencies": {
+    "@aws-sdk/client-sts": "3.1101.0",
+    "@aws-sdk/credential-provider-sso": "3.973.11",
     "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",

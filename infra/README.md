@@ -156,6 +156,20 @@ so app-level development values cannot pass accidentally. Remove the release mar
 approved job. The current development values must not remain as app-level defaults when
 production hosting is enabled.
 
+## Recovery access is a separate opt-in app
+
+`bin/recovery-access.ts` defines `PerfectShadeRecoveryAccess` independently of either backend.
+It has one pool-scoped `PerfectShadeProductionRecovery` Identity Center permission set (PT1H),
+no broad managed policies, and no assignments by default. Its assignment activation requires
+two distinct reviewed USER IDs, MFA/emergency review references, and read-only directory checks.
+Never deploy the main production stack merely to configure operator access. See
+[`docs/identity-center-recovery-access.md`](../docs/identity-center-recovery-access.md).
+
+`bin/recovery-drill.ts` is a separate guarded disposable Cognito-only app, with no automatic users
+and no existing-pool references. Synthesis is not billable-resource approval. See
+[`docs/recovery-drill.md`](../docs/recovery-drill.md). Neither entrypoint is invoked by the existing
+`cdk.json` development/production app; backend synthesis behavior remains unchanged.
+
 ## Application handler ownership
 
 - `GET /v1/account`, the protected `/v1/account/team*` administration routes, and

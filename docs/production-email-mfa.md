@@ -184,6 +184,12 @@ and [`AdminUpdateUserAttributes`](https://docs.aws.amazon.com/cognito-user-ident
 
 ## Recovery operator IAM boundary
 
+The preferred implementation is now the separate access-only Identity Center permission set and
+SSO-only preflight tooling in [identity-center-recovery-access.md](./identity-center-recovery-access.md).
+Keep `recoveryOperatorPrincipalArn` unset for that direct-assignment design. The older optional IAM
+role below remains an alternative for a separately reviewed IAM-user trust model, not a federation
+MFA shortcut. No access configuration or live recovery is authorized by this source checkpoint.
+
 Read-only inventory on 2026-10-10 found no dedicated Perfect Shade recovery role or customer-managed
 recovery policy. The production account Lambda has only `AdminCreateUser`, `AdminGetUser`, and
 `ListUsers`; it cannot reset passwords, replace emails, change MFA preferences, or globally sign a
@@ -238,6 +244,10 @@ owner decisions; this runbook does not invent them.
 - [ ] Review CloudTrail, revoke operator sessions if needed, close the incident, and escalate any unexplained change.
 
 ## Isolated recovery drill plan
+
+The guarded, disposable infrastructure definition and detailed acceptance/cleanup plan are in
+[recovery-drill.md](./recovery-drill.md). Current operator tooling is deliberately preflight-only;
+approved non-echoing secret delivery and a reviewed live drill harness remain execution gates.
 
 Provisioning this drill requires separate authorization. Use a disposable, separately named
 nonproduction Cognito pool—not production, existing development, or a real owner identity—with the
