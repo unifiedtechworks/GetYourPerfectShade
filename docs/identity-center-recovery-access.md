@@ -2,6 +2,13 @@
 
 ## Source-only checkpoint
 
+The owner has selected one routine operator (Seth) plus a separately protected emergency AWS
+authentication path, not a second human. The guarded `protected-emergency` alternative is described
+in [Protected emergency AWS access](./protected-emergency-aws-access.md). It remains inactive until
+deployment, manual assurance, and actual AWS tests are separately approved and verified. The
+original `two-human` mode below remains the default/backward-compatible option. Authentication-path
+redundancy does not provide human-availability redundancy.
+
 This definition does not authorize provisioning, assignment activation, user recovery, or the
 disposable drill. Production email MFA remains a separately approved rollout. Never deploy
 `PerfectShadeProduction` just to configure recovery access: it also contains pending Cognito
@@ -34,7 +41,9 @@ Required synthesis context (values are explicit inputs, never guessed):
 | `recoveryIdentityCenterInstanceArn` | Verified organization-instance ARN, not an account instance |
 | `recoveryIdentityStoreId` | Verified store belonging to that instance |
 | `activateRecoveryAssignments` | Default `false`; no assignments or directory lookups |
-| `primaryRecoveryUserId`, `backupRecoveryUserId` | Leave unset by default; two distinct confirmed USER IDs for activation |
+| `recoveryOperatorMode` | Default `two-human`; alternative `protected-emergency` requires live verification |
+| `primaryRecoveryUserId`, `backupRecoveryUserId` | Unset by default; two-human requires both, protected-emergency requires only primary and forbids backup |
+| `recoveryEmergencyEvidencePath` | Private typed evidence JSON outside Git; only for protected-emergency activation |
 | `recoveryIdentityReviewReference` | Non-sensitive owner approval of the actual human-to-ID mappings |
 | `recoveryMfaReviewReference` | Non-sensitive record of MFA/enrollment review for both people |
 | `recoveryEmergencyReviewReference` | Reviewed independent emergency-access/revocation procedure |
@@ -46,13 +55,13 @@ Example synthesis invocation, from `infra/`, with private reviewed values suppli
 npx cdk synth --app "npx ts-node --prefer-ts-exts bin/recovery-access.ts" --no-lookups --context confirmRecoveryAccessSynthesis=true --context recoveryTargetAccount=906467472082 --context recoveryIdentityCenterInstanceArn=<VERIFIED_INSTANCE_ARN> --context recoveryIdentityStoreId=<VERIFIED_STORE_ID>
 ```
 
-Assignment activation is a separate approval. The entrypoint checks the instance owner/store and
+Assignment activation is a separate approval. In two-human mode, the entrypoint checks the instance owner/store and
 uses read-only DescribeUser calls for both IDs before synthesis. Unknown users, duplicate IDs,
 wildcards, wrong accounts/stores, and missing reviews fail closed. This verifies existence, not
 the intended human: owner verification of both mappings is mandatory. Assignments reference only
 the newly defined restricted permission set, never an input AdministratorAccess permission set.
 Do not bypass the guarded entrypoint with a custom CDK app. A protected emergency-only alternative
-to a second human needs separate design/review; do not fabricate a backup ID to satisfy this gate.
+to a second human now has its own guarded definition and verification; do not fabricate a backup ID.
 
 ## MFA, credentials, revocation, and backup
 
@@ -77,10 +86,12 @@ checks do not prove a recent MFA challenge. Do not replace MFA enforcement with 
 `MFA=true` session tag or remove the old trust conditions. A strict 15-minute step-up requirement
 needs separately reviewed IdP assurance; the one-hour session is not equivalent to that condition.
 
-Nominate a second human with separately controlled credentials/MFA. Sheri's application owner
+In two-human mode, nominate a second human with separately controlled credentials/MFA. Sheri's application owner
 role does not imply AWS access. If Seth loses application access, a separately authenticated AWS
 operator can still act after owner identity verification. If Seth loses AWS access or his MFA,
-the independent operator must remain usable. If Identity Center itself is unavailable, use the
+the independent operator must remain usable. In the owner's protected-emergency mode there is no
+independent human: use the separately protected IAM authentication path and accept the sole-operator
+availability limitation. If Identity Center itself is unavailable, use the
 separately approved, protected emergency administrative process. Root is not routine recovery;
 root MFA/no-access-key indicators alone do not prove independent custody or recoverability.
 
@@ -98,9 +109,10 @@ this account, without expanding the six-operation recovery permission set.
    for an application incident. Loss of Seth's AWS identity/MFA instead goes to the separately
    designated Identity Center/upstream IdP administrator; the recovery permission set cannot reset
    AWS MFA or administer the directory.
-3. If Identity Center is unavailable, two approved emergency custodians follow the protected
-   administrative-access procedure using separately controlled MFA and escrowed recovery material.
-   The custodian identities and access path must be recorded and tested before activation. Do not
+3. If Identity Center is unavailable, follow the selected protected emergency path using separately
+   controlled MFA and escrowed recovery material. The owner's selected model retains Seth as sole
+   human custodian; it does not silently require/invent a second person. Optional dual-human custody
+   remains available under a different approved model. Custody and the path must be privately tested before activation. Do not
    store emergency credentials in this repository or use root for routine application recovery.
 4. The access administrator revokes affected portal and issued AWS-role sessions through the
    reviewed AWS/IdP procedure; independently test denial of old credentials. Restore/re-enroll the
@@ -197,7 +209,7 @@ membership/incident-containment workflow.
 
 ## Next approvals and order
 
-1. Confirm primary and independent backup human-to-ID mappings, MFA policy, emergency custody,
+1. Confirm the primary mapping and selected emergency model (or both humans in two-human mode), MFA policy, emergency custody,
    session-revocation owner, and permitted token-containment window.
 2. Approve the access-only permission set and assignments; verify SSO, least privilege, and backup
    access without changing production Cognito or disabling existing administration.

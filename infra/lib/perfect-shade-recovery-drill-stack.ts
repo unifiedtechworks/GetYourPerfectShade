@@ -3,12 +3,16 @@ import * as cognito from "aws-cdk-lib/aws-cognito";
 import * as sso from "aws-cdk-lib/aws-sso";
 import type { Construct } from "constructs";
 import { PRODUCTION_RECOVERY_ACTIONS } from "./constructs/production-recovery-operator";
-import { RECOVERY_ACCOUNT, RECOVERY_REGION, validateRecoveryAccessConfig, type RecoveryAccessConfig } from "./recovery-access-config";
+import { RECOVERY_ACCOUNT, RECOVERY_REGION, assignmentUsers, validateRecoveryAccessConfig, type RecoveryAccessConfig } from "./recovery-access-config";
+import { EmergencyRecoveryConstruct } from "./constructs/emergency-recovery";
 
 export interface RecoveryDrillConfig extends RecoveryAccessConfig {
   readonly runId: string;
   readonly sesFromEmail: string;
   readonly sesReplyToEmail: string;
+  readonly prepareEmergencyPath?: boolean;
+  readonly emergencyConsoleCliLogin?: boolean;
+  readonly emergencyCliAuthenticationReviewReference?: string;
 }
 
 /** Disposable Cognito-only definition. Never imports or alters either existing User Pool. */
@@ -19,6 +23,8 @@ export class PerfectShadeRecoveryDrillStack extends Stack {
       throw new Error("Recovery drill must target the exact approved account and region.");
     }
     validateRecoveryAccessConfig(config);
+    if (config.emergencyConsoleCliLogin && !config.prepareEmergencyPath) throw new Error("Drill CLI grant needs an explicitly prepared emergency path.");
+    if (config.assignments?.mode === "protected-emergency") throw new Error("Drill primary-only assignments need separate test-pool-specific activation review; production evidence must never authorize a drill.");
     if (!/^\d{8}-[a-z0-9]{6}$/.test(config.runId) ||
       config.sesFromEmail !== "notifications@getyourperfectshade.com" ||
       !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(config.sesReplyToEmail)) {
@@ -56,12 +62,18 @@ export class PerfectShadeRecoveryDrillStack extends Stack {
       tags: [{ key: "Project", value: "PerfectShade" }, { key: "Environment", value: "recovery-drill" }],
     });
     if (config.assignments) {
-      for (const [name, principalId] of Object.entries({ Primary: config.assignments.primaryUserId, Backup: config.assignments.backupUserId })) {
+      for (const [name, principalId] of Object.entries(assignmentUsers(config))) {
         new sso.CfnAssignment(this, `${name}DisposableAssignment`, {
           instanceArn: config.instanceArn, permissionSetArn: permissionSet.attrPermissionSetArn,
           principalId, principalType: "USER", targetId: RECOVERY_ACCOUNT, targetType: "AWS_ACCOUNT",
         });
       }
+    }
+    if (config.prepareEmergencyPath) {
+      new EmergencyRecoveryConstruct(this, "DisposableEmergency", {
+        userName: `ps-drill-emergency-${config.runId}`, roleName: `ps-drill-recovery-${config.runId}`, poolArn: pool.attrArn,
+        consoleCliLogin: config.emergencyConsoleCliLogin, cliAuthenticationReviewReference: config.emergencyCliAuthenticationReviewReference,
+      });
     }
     new CfnOutput(this, "DisposableUserPoolId", { value: pool.ref });
     new CfnOutput(this, "DisposableClientId", { value: client.ref });

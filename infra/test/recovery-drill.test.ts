@@ -31,4 +31,13 @@ describe("disposable recovery drill definition", { timeout: 30_000 }, () => {
     expect(ps.Properties?.SessionDuration).toBe("PT1H");
     expect(ps.Properties?.InlinePolicy.Statement[0].Resource).toEqual({ "Fn::GetAtt": [expect.any(String), "Arn"] });
   });
+  it("prepares an optional isolated emergency user/role with no production grants, password, or keys", () => {
+    const t = Template.fromStack(new PerfectShadeRecoveryDrillStack(new App(), "Drill", { config: { ...config, prepareEmergencyPath: true }, env: { account: RECOVERY_ACCOUNT, region: RECOVERY_REGION } }));
+    t.resourceCountIs("AWS::IAM::User", 1); t.resourceCountIs("AWS::IAM::Role", 1); t.resourceCountIs("AWS::IAM::AccessKey", 0);
+    const role: any = Object.values(t.findResources("AWS::IAM::Role"))[0];
+    expect(role.Properties.Policies[0].PolicyDocument.Statement[0].Resource).toEqual({ "Fn::GetAtt": [expect.any(String), "Arn"] });
+    expect(JSON.stringify(t.toJSON())).not.toContain(RECOVERY_POOL_ARN);
+    expect(JSON.stringify(t.toJSON())).not.toContain("us-west-2_m3pQO05z8");
+    expect(JSON.stringify(t.toJSON())).not.toContain("LoginProfile");
+  });
 });

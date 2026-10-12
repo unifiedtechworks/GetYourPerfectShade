@@ -186,6 +186,10 @@ and [`AdminUpdateUserAttributes`](https://docs.aws.amazon.com/cognito-user-ident
 
 The preferred implementation is now the separate access-only Identity Center permission set and
 SSO-only preflight tooling in [identity-center-recovery-access.md](./identity-center-recovery-access.md).
+The owner selected one primary routine operator plus protected emergency IAM access instead of a
+second human. See [protected-emergency-aws-access.md](./protected-emergency-aws-access.md) for the
+independent opt-in definition, actual-test activation gates, console/CLI feasibility, root fallback,
+private custody, and the remaining sole-human availability limitation. Nothing is activated here.
 Keep `recoveryOperatorPrincipalArn` unset for that direct-assignment design. The older optional IAM
 role below remains an alternative for a separately reviewed IAM-user trust model, not a federation
 MFA shortcut. No access configuration or live recovery is authorized by this source checkpoint.
@@ -211,23 +215,24 @@ It grants no user creation/deletion, pool administration/deletion, IAM, database
 Secrets Manager access. The existing production management-events CloudTrail records these Cognito
 and STS control-plane calls. The role uses a one-hour maximum session and requires a recent IAM MFA
 context at assumption. AWS notes that `aws:MultiFactorAuthPresent` is not present for federated
-identities; if IAM Identity Center or another federation method is selected, replace—not remove—the
-condition with a reviewed MFA session-tag/assertion control before deployment.
+identities. The preferred direct Identity Center permission-set design enforces MFA upstream and
+does not use this role-assumption hop. Do not weaken these conditions or accept an editable MFA
+session tag as assurance merely to make a federated session work.
 
 Nothing in this design adds a browser, API Gateway, account Lambda, or public recovery endpoint.
 Unauthenticated users and application sessions cannot assume or invoke the operator role.
 
-Do not supply the context or deploy the role until owners select the exact primary and backup
-operator principals and validate their MFA trust model. Prefer federated, short-lived credentials;
+Do not supply this older role context or deploy it for the selected protected-emergency model.
+Its alternative trust principals still require separate review. Prefer federated, short-lived credentials;
 do not issue long-lived access keys. A role limits only sessions using that role, so an operator
 with existing broad direct Cognito permissions must not be treated as constrained by it.
 
 Seth's Perfect Shade application owner account is not AWS operator access. Sheri likewise does not
 gain AWS recovery ability merely from being an application owner. The production plan needs a
 second authorized human operator or a protected emergency administrative-access process that still
-works when Seth loses both application MFA and AWS access. The backup operator, trust principal,
-MFA enforcement mechanism, credential revocation owner, and escalation contact remain explicit
-owner decisions; this runbook does not invent them.
+works when Seth loses both application MFA and AWS access. The owner chose the protected emergency
+authentication path, without a second human. Its MFA/custody, administrative/root fallback,
+revocation owner, and live tests remain gated; this does not solve Seth's unavailability.
 
 ## Practical operator checklist
 

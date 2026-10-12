@@ -34,6 +34,37 @@ npx cdk synth --app "npx ts-node --prefer-ts-exts bin/recovery-drill.ts" --no-lo
 
 ## Three synthetic users and controlled inboxes
 
+### Selected single-human emergency model
+
+`prepareDrillEmergencyPath=true` optionally adds a separately named IAM user/role and restrictive
+boundaries to the disposable definition. The role and boundary reference **only the new test pool**;
+the user can assume **only that test role** with fresh IAM MFA. There is no password, access key,
+MFA registration, or production/development pool grant. Defaults remain unchanged.
+
+After separate review, `enableDrillEmergencyConsoleCliLogin=true` plus
+`drillEmergencyCliAuthenticationReviewReference` prepares the same local-only Sign-In authentication
+exception for the test user, never the production user. No CloudShell permissions. Console password,
+two physical security keys, and setup remain manual, separately authorized work.
+
+Use a disposable permission-set/profile for the primary's SSO tests, not the production recovery
+profile. Existing automatic assignments still use the two-human guard; primary-only **test**
+assignment preparation is deliberately not authorized by production evidence. Its explicit
+test-provisioner workflow must confirm the exact primary directory identity/MFA and assign only the
+disposable permission set under the drill approval. Do not fabricate a backup or weaken production
+activation to bootstrap the drill. No test assignment is created by default.
+
+Run all three scenarios below twice: (1) test-only SSO, (2) test-only IAM console login → temporary
+credentials → fresh-MFA test role. Verify both keys, subject continuity, safe delivery, collisions,
+authorization denial, no direct user Cognito access, and denied production/development operations.
+Test no-MFA/stale-MFA/wrong-user/federated/cross-account trust denial with an approved harness or
+reviewed policy simulation; local unit tests are not live proof. Include admin revocation and denied
+reuse of the same issued role session. Require real alert receipt and private custody review.
+The local Sign-In transport's MFA context must actually satisfy the trust; do not assume it does.
+
+The selected model has one human. Simulate loss of SSO/device/vault access, not loss of human
+availability: a second physical/authentication path cannot act if Seth is unavailable.
+See [protected emergency access](./protected-emergency-aws-access.md) for stop/approval gates.
+
 | Fixture | Setup | Recovery case |
 | --- | --- | --- |
 | A | Approved inbox A, password + email MFA | Forgotten password with mailbox available |

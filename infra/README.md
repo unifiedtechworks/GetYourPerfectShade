@@ -161,7 +161,9 @@ production hosting is enabled.
 `bin/recovery-access.ts` defines `PerfectShadeRecoveryAccess` independently of either backend.
 It has one pool-scoped `PerfectShadeProductionRecovery` Identity Center permission set (PT1H),
 no broad managed policies, and no assignments by default. Its assignment activation requires
-two distinct reviewed USER IDs, MFA/emergency review references, and read-only directory checks.
+two distinct reviewed USER IDs in the default mode. The separately guarded `protected-emergency`
+mode permits one primary only after current IAM state and real MFA/role-use/revocation events verify.
+Approval strings alone do not activate it. MFA enforcement/custody still need actual manual review.
 Never deploy the main production stack merely to configure operator access. See
 [`docs/identity-center-recovery-access.md`](../docs/identity-center-recovery-access.md).
 
@@ -169,6 +171,13 @@ Never deploy the main production stack merely to configure operator access. See
 and no existing-pool references. Synthesis is not billable-resource approval. See
 [`docs/recovery-drill.md`](../docs/recovery-drill.md). Neither entrypoint is invoked by the existing
 `cdk.json` development/production app; backend synthesis behavior remains unchanged.
+
+`bin/emergency-recovery.ts` is a third independent app, empty by default. Its explicitly enabled
+definition creates a console-password-free/key-free IAM user and exact-principal, fresh-MFA,
+one-hour Cognito recovery role with restrictive boundaries. Optional local-only CLI authentication
+and existing-trail/SNS alerts need separate guarded inputs and approvals. See
+[`docs/protected-emergency-aws-access.md`](../docs/protected-emergency-aws-access.md); never deploy
+the production backend merely to configure emergency access.
 
 ## Application handler ownership
 

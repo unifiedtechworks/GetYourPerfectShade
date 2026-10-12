@@ -10,12 +10,17 @@ async function main() {
     throw new Error("Explicit recovery-drill synthesis guard required; not billable-resource approval.");
   }
   const config = loadRecoveryAccessConfig(app);
+  const prepareEmergencyPath = app.node.tryGetContext("prepareDrillEmergencyPath") ?? "false";
+  if (prepareEmergencyPath !== "true" && prepareEmergencyPath !== "false") throw new Error("Explicit drill emergency boolean required.");
+  const consoleCliLogin = app.node.tryGetContext("enableDrillEmergencyConsoleCliLogin") ?? "false";
+  if (consoleCliLogin !== "true" && consoleCliLogin !== "false") throw new Error("Explicit drill CLI boolean required.");
   if (config.assignments) await verifyRecoveryDirectory(config, cliDirectoryReader(app.node.tryGetContext("recoveryProvisionerProfile") ?? ""));
   new PerfectShadeRecoveryDrillStack(app, "PerfectShadeRecoveryDrill", {
     env: { account: RECOVERY_ACCOUNT, region: RECOVERY_REGION },
     config: { ...config, runId: app.node.tryGetContext("recoveryDrillRunId") ?? "",
       sesFromEmail: app.node.tryGetContext("recoveryDrillSesFromEmail") ?? "",
-      sesReplyToEmail: app.node.tryGetContext("recoveryDrillReplyToEmail") ?? "" },
+      sesReplyToEmail: app.node.tryGetContext("recoveryDrillReplyToEmail") ?? "", prepareEmergencyPath: prepareEmergencyPath === "true",
+      emergencyConsoleCliLogin: consoleCliLogin === "true", emergencyCliAuthenticationReviewReference: app.node.tryGetContext("drillEmergencyCliAuthenticationReviewReference") },
     description: "Opt-in disposable Cognito recovery drill; separate billable-resource authorization required",
   });
   app.synth();
