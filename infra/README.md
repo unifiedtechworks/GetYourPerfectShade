@@ -179,6 +179,16 @@ and existing-trail/SNS alerts need separate guarded inputs and approvals. See
 [`docs/protected-emergency-aws-access.md`](../docs/protected-emergency-aws-access.md); never deploy
 the production backend merely to configure emergency access.
 
+## Production notification repair is not a backend deployment
+
+The operations topic's CloudWatch publishing grant is defined on its existing CDK-managed policy.
+Never deploy pending Cognito changes to repair notifications. The offline
+`bin/prepare-operations-alert-maintenance.ts` prepares a reviewed deployed-template-only,
+two-stage subscription repair without AWS calls. It does not authorize change sets, subscriptions,
+policy updates or test messages. See
+[`docs/production-operations-alert-readiness.md`](../docs/production-operations-alert-readiness.md)
+for ownership, exact scope, confirmation/testing and rollback gates.
+
 ## Application handler ownership
 
 - `GET /v1/account`, the protected `/v1/account/team*` administration routes, and

@@ -213,6 +213,11 @@ procedure with privately held ownership evidence; do not improvise security-ques
 
 ## CloudTrail alerts and delivery
 
+The source-only [production operations notification repair](production-operations-alert-readiness.md)
+records the missing subscriptions and CloudWatch publishing authorization, with an ownership-safe
+maintenance proposal. Integrating that fix is not deployment or proof of delivery; the five emergency
+alerts remain disabled until separate activation and receipt-test approval.
+
 Existing production trail was read-only verified logging multi-region/global, all read/write
 management events, with CloudWatch delivery. It captures root/admin activity; this is not proof
 that a human currently receives an alert. The operations topic currently has zero confirmed,

@@ -351,6 +351,32 @@ describe("PerfectShadeProductionStack", { timeout: 120_000 }, () => {
     }
   });
 
+  it("allows only production CloudWatch alarm publishing and preserves EventBridge and SES policies", () => {
+    const template = templateFor();
+    const topics = template.findResources("AWS::SNS::Topic");
+    const operationsId = Object.keys(topics).find(id =>
+      topics[id]!.Properties.TopicName === "perfect-shade-production-operational-alarms")!;
+    const policies = Object.values(template.findResources("AWS::SNS::TopicPolicy"));
+    expect(policies).toHaveLength(2);
+    const operations = policies.find(policy =>
+      JSON.stringify(policy.Properties.Topics) === JSON.stringify([{ Ref: operationsId }]))!;
+    expect(operations.Properties.PolicyDocument.Statement).toEqual([
+      { Sid: "0", Effect: "Allow", Principal: { Service: "events.amazonaws.com" },
+        Action: "sns:Publish", Resource: { Ref: operationsId } },
+      { Sid: "AllowProductionCloudWatchAlarms", Effect: "Allow",
+        Principal: { Service: "cloudwatch.amazonaws.com" }, Action: "sns:Publish",
+        Resource: { Ref: operationsId }, Condition: {
+          StringEquals: { "aws:SourceAccount": "111111111111" },
+          ArnLike: { "aws:SourceArn": { "Fn::Join": ["", ["arn:", { Ref: "AWS::Partition" },
+            ":cloudwatch:us-west-2:111111111111:alarm:perfect-shade-production-*"]] } },
+        } },
+    ]);
+    const feedback = policies.find(policy => policy !== operations)!;
+    expect(feedback.Properties.PolicyDocument.Statement).toHaveLength(1);
+    expect(feedback.Properties.PolicyDocument.Statement[0].Principal).toEqual({ Service: "ses.amazonaws.com" });
+    expect(JSON.stringify(feedback)).not.toContain("cloudwatch.amazonaws.com");
+  });
+
   it("wires protected routes, operational notifications, audit, and the production budget", () => {
     const template = templateFor();
     template.resourceCountIs("AWS::ApiGatewayV2::Route", 18);

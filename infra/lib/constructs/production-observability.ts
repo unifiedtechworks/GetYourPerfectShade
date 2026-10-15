@@ -1,4 +1,4 @@
-import { Duration } from "aws-cdk-lib";
+import { ArnFormat, Duration, Stack } from "aws-cdk-lib";
 import * as budgets from "aws-cdk-lib/aws-budgets";
 import * as ce from "aws-cdk-lib/aws-ce";
 import * as cloudwatch from "aws-cdk-lib/aws-cloudwatch";
@@ -11,8 +11,10 @@ import type * as rds from "aws-cdk-lib/aws-rds";
 import * as sns from "aws-cdk-lib/aws-sns";
 import * as subscriptions from "aws-cdk-lib/aws-sns-subscriptions";
 import * as logs from "aws-cdk-lib/aws-logs";
+import * as iam from "aws-cdk-lib/aws-iam";
 import { Construct } from "constructs";
 import type { PerfectShadeProductionConfig } from "../production-config";
+import { operationsAlarmPublishStatement } from "../operations-alarm-publishing";
 
 export interface ProductionObservabilityProps {
   readonly config: PerfectShadeProductionConfig;
@@ -180,6 +182,17 @@ export class ProductionObservabilityConstruct extends Construct {
       },
       targets: [new eventTargets.SnsTopic(this.alarmTopic)],
     });
+
+    // Append to the existing policy, after EventBridge's grant, retaining its statement unchanged.
+    const stack = Stack.of(this);
+    this.alarmTopic.addToResourcePolicy(iam.PolicyStatement.fromJson(
+      operationsAlarmPublishStatement(this.alarmTopic.topicArn, stack.account, stack.formatArn({
+        service: "cloudwatch",
+        resource: "alarm",
+        resourceName: `${config.resourcePrefix}-*`,
+        arnFormat: ArnFormat.COLON_RESOURCE_NAME,
+      })),
+    ));
 
     for (const [idSuffix, metricName, threshold] of [
       ["SesBounce", "Reputation.BounceRate", 0.05],
