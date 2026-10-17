@@ -2,12 +2,29 @@
 
 ## Source-only checkpoint
 
-The owner has selected one routine operator (Seth) plus a separately protected emergency AWS
-authentication path, not a second human. The guarded `protected-emergency` alternative is described
-in [Protected emergency AWS access](./protected-emergency-aws-access.md). It remains inactive until
-deployment, manual assurance, and actual AWS tests are separately approved and verified. The
-original `two-human` mode below remains the default/backward-compatible option. Authentication-path
-redundancy does not provide human-availability redundancy.
+The current owner-approved model (2026-10-17) is Seth's verified `UTAdmin` Identity Center identity
+for normal AWS operations, with existing protected management-account root credentials reserved
+for exceptional restoration of AWS administrative access. The owner confirms physical/electronic
+backups of root credentials, MFA, and recovery information. These are private owner assurances,
+not something this repository or an AWS account-summary indicator can independently prove.
+There is no new emergency IAM user, emergency role, password, TOTP escrow, or hardware purchase.
+Root is never the routine Cognito reset identity or a provider for the recovery tool.
+
+Sheri is the **sole application Owner**. After she is active she invites Seth as an **Admin** through
+Team Management. No viewer or additional Owner is needed. Those application roles are unrelated
+to AWS directory identities and confer no AWS permissions. Do not provision AWS access to make
+Seth a website Admin.
+
+Use existing authorized, suitably MFA-backed AWS administrative access for routine resets where
+available. Do not assume the broad, long-lived `default` credentials are suitable. The optional
+`PerfectShadeProductionRecovery` permission set remains the least-privilege alternative if separate
+AWS recovery access is actually needed; it is not a website-administration or mandatory launch
+dependency. No permission set or assignment is activated by this checkpoint.
+
+The new explicit `root-break-glass` mode supports that optional single-primary assignment without
+inventing a backup human or evidence for an emergency IAM deployment. `two-human` remains the
+backward-compatible default; the old `protected-emergency` implementation is retained inactive
+for future separately approved use, not part of the current launch plan.
 
 This definition does not authorize provisioning, assignment activation, user recovery, or the
 disposable drill. Production email MFA remains a separately approved rollout. Never deploy
@@ -15,11 +32,13 @@ disposable drill. Production email MFA remains a separately approved rollout. Ne
 email-MFA/recovery-policy changes. No production/development pool, database, Amplify, SES identity,
 or DNS change is part of this access implementation.
 
-The read-only review on 2026-10-10 found an active organization IAM Identity Center instance in
+The historical read-only review on 2026-10-10 found an active organization IAM Identity Center instance in
 us-west-2 with permission sets. The ordinary `default` profile used a broad IAM user, long-lived
 credentials, and no enrolled IAM MFA. Another IAM administrator also lacked MFA. Neither directory
-identity was mapped to an approved operator. Identity Center/upstream MFA enforcement remains
-unverified. Preserve existing administrative access until replacement and emergency access work;
+identity was then mapped to an approved operator. The owner subsequently confirmed Seth controls
+`UTAdmin`, the identity source is the native directory, and a password/authenticator login succeeded.
+Keep the approved context-aware MFA policy; a cached sign-in is not proof of a fresh challenge.
+No current AWS account assignment for that identity is assumed. Preserve existing administrative access until replacement and emergency access work;
 do not treat the recovery role/permission set as constraining another broad administrative session.
 
 ## Independent access-only CDK app
@@ -41,13 +60,16 @@ Required synthesis context (values are explicit inputs, never guessed):
 | `recoveryIdentityCenterInstanceArn` | Verified organization-instance ARN, not an account instance |
 | `recoveryIdentityStoreId` | Verified store belonging to that instance |
 | `activateRecoveryAssignments` | Default `false`; no assignments or directory lookups |
-| `recoveryOperatorMode` | Default `two-human`; alternative `protected-emergency` requires live verification |
-| `primaryRecoveryUserId`, `backupRecoveryUserId` | Unset by default; two-human requires both, protected-emergency requires only primary and forbids backup |
+| `recoveryOperatorMode` | Default `two-human`; explicitly select `root-break-glass` for the current optional single-primary design; legacy `protected-emergency` remains inactive |
+| `primaryRecoveryUserId`, `backupRecoveryUserId` | Unset by default; two-human requires both; root-break-glass and protected-emergency require only primary and forbid backup |
 | `recoveryEmergencyEvidencePath` | Private typed evidence JSON outside Git; only for protected-emergency activation |
 | `recoveryIdentityReviewReference` | Non-sensitive owner approval of the actual human-to-ID mappings |
 | `recoveryMfaReviewReference` | Non-sensitive record of MFA/enrollment review for the explicitly selected operator model |
 | `recoveryEmergencyReviewReference` | Reviewed independent emergency-access/revocation procedure |
 | `recoveryProvisionerProfile` | Explicit read-capable provisioning profile when activating assignments |
+| `confirmRootBreakGlassReadiness` | Literal `true`, only with explicit root-break-glass assignment activation |
+| `rootCustodyReviewReference`, `rootRecoveryReviewReference` | Non-sensitive references to the owner's private custody and exceptional AWS restoration review; no passwords, seeds, or proof contents |
+| `recoveryPrimaryMfaEventId` | Actual recent primary PASSWORD + TOTP/WEBAUTHN CloudTrail authentication event UUID; not a fabricated emergency test |
 
 Example synthesis invocation, from `infra/`, with private reviewed values supplied by the operator:
 
@@ -60,8 +82,21 @@ uses read-only DescribeUser calls for both IDs before synthesis. Unknown users, 
 wildcards, wrong accounts/stores, and missing reviews fail closed. This verifies existence, not
 the intended human: owner verification of both mappings is mandatory. Assignments reference only
 the newly defined restricted permission set, never an input AdministratorAccess permission set.
-Do not bypass the guarded entrypoint with a custom CDK app. A protected emergency-only alternative
-to a second human now has its own guarded definition and verification; do not fabricate a backup ID.
+Do not bypass the guarded entrypoint with a custom CDK app or fabricate a backup ID.
+
+For optional root-break-glass activation, the guard additionally verifies the exact account,
+active instance/store, primary user, a matching successful primary MFA event within 30 days,
+root-MFA/no-root-access-key indicators, existing management-trail logging, and a confirmed operations
+SNS subscriber. It returns an in-process verification token bound to the reviewed configuration;
+the stack rejects missing/fabricated tokens. No root login or emergency IAM drill is required or
+claimed. The real primary event is activation evidence, not proof every later context-aware SSO
+session received a new MFA challenge. Context-aware policy is unchanged. Root indicators cannot
+prove physical custody, independent recovery channels, or successful root recovery; those remain
+the owner's private assurances. Activation still requires separate assignment authorization.
+
+With `activateRecoveryAssignments=false`, leave operator IDs and root-review inputs unset. Offline
+synthesis makes no directory calls and emits no assignments. It can describe an optional permission
+set, but neither synthesis nor this source checkpoint authorizes deploying it.
 
 ## MFA, credentials, revocation, and backup
 
@@ -89,19 +124,13 @@ checks do not prove a recent MFA challenge. Do not replace MFA enforcement with 
 `MFA=true` session tag or remove the old trust conditions. A strict 15-minute step-up requirement
 needs separately reviewed IdP assurance; the one-hour session is not equivalent to that condition.
 
-In two-human mode, nominate a second human with separately controlled credentials/MFA. Sheri's application owner
-role does not imply AWS access. If Seth loses application access, a separately authenticated AWS
-operator can still act after owner identity verification. If Seth loses AWS access or his MFA,
-the independent operator must remain usable. In the owner's protected-emergency mode there is no
-independent human: use the separately protected IAM authentication path and accept the sole-operator
-availability limitation. If Identity Center itself is unavailable, use the
-separately approved, protected emergency administrative process. Root is not routine recovery;
-root MFA/no-access-key indicators alone do not prove independent custody or recoverability.
-The selected no-purchase alternative is explicit `virtual-totp` with protected seed escrow and a
-demonstrated lost-phone recovery login/use; optional `hardware-fido` retains the two-key gate.
-Both modes require real AWS evidence and private custody review. Existing hardware evidence must
-now explicitly name its mode; do not silently infer a device mode or put seeds into evidence JSON.
-See the [mode-specific gates and escrow procedure](./protected-emergency-aws-access.md#mode-specific-evidence-no-secrets).
+In the current root-break-glass model there is one human AWS operator. If Seth loses only application
+access, separately authenticated, authorized AWS administration can recover that same Cognito user.
+If Identity Center/MFA or normal AWS administration is unavailable, the owner may use protected root
+to restore normal administration, then end the root session. Accept the sole-human availability risk:
+credential backups do not help if Seth himself is unavailable. No second human is fabricated or
+required by the current decision. The old two-human and dedicated emergency IAM/MFA procedures are
+retained as inactive alternatives in [Protected emergency AWS access](./protected-emergency-aws-access.md).
 
 The owner must name an access-revocation administrator and test both portal-session and issued
 AWS-role-session revocation. Logout/removing an assignment is not proof that issued STS credentials
@@ -113,24 +142,23 @@ this account, without expanding the six-operation recovery permission set.
 
 1. Open an incident/change record; independently verify Seth and the business owner's authorization.
    Do not use the inaccessible application or lost mailbox as the only identity-proof channel.
-2. If the independent operator's SSO/MFA works, use that operator's restricted recovery session
-   for an application incident. Loss of Seth's AWS identity/MFA instead goes to the separately
-   designated Identity Center/upstream IdP administrator; the recovery permission set cannot reset
-   AWS MFA or administer the directory.
-3. If Identity Center is unavailable, follow the selected protected emergency path using separately
-   controlled MFA and escrowed recovery material. The owner's selected model retains Seth as sole
-   human custodian; it does not silently require/invent a second person. Optional dual-human custody
-   remains available under a different approved model. Custody and the path must be privately tested before activation. Do not
-   store emergency credentials in this repository or use root for routine application recovery.
+2. For an application incident, use an existing explicitly authorized MFA-backed administrative
+   session, or the optional restricted SSO recovery session if separately activated. The restricted
+   permission set cannot reset AWS MFA or administer Identity Center.
+3. If normal AWS access is unavailable, use the existing protected root recovery path only to
+   restore administrative access. Independently verify identity, review the root sign-in in existing
+   CloudTrail, and end the root session promptly. No new emergency IAM user, role, MFA device, or
+   local-client Sign-In exception is part of this procedure. Do not record root secrets in Git.
 4. The access administrator revokes affected portal and issued AWS-role sessions through the
    reviewed AWS/IdP procedure; independently test denial of old credentials. Restore/re-enroll the
-   legitimate operator's MFA only after identity proof, then test both primary and backup access.
+   legitimate operator's MFA only after identity proof, then verify restored primary administration.
 5. Review CloudTrail/IdP evidence, reconcile any authorized application email change through Chat 2,
    rotate exposed emergency material if needed under separate authority, and close the incident.
    Preserve existing broad IAM access until replacement and this emergency path have passed.
 
-This procedure is not executable readiness until the independent people, custody, revocation
-administrator, and emergency access path are approved. No IAM changes are authorized here.
+The owner has approved the root fallback and privately confirmed backups. Routine AWS operator
+authorization, an appropriate authenticated session, and the recovery execution/handoff procedure
+still need verification before an actual account reset. No IAM changes are authorized here.
 
 ## Preflight-only recovery command
 
@@ -183,7 +211,7 @@ preflight-only. No password is generated, displayed, prompted, stored, or passed
 implementation. Before adding execution, approve an audited non-echoing input/generation tool
 and one-time secret delivery channel. Pass the secret directly in memory to the SDK, never through
 shell arguments, environment variables, files, transcripts, normal output, or reusable history.
-Test that exact mechanism in the isolated drill. Do not substitute the old `recover:identity`
+Test that exact mechanism with a separately authorized synthetic identity before a real recovery. Do not substitute the old `recover:identity`
 command: it relinks different identities and is not this same-subject recovery workflow.
 
 Proposed secret-handling design for the later execution review: generate at least 20 characters
@@ -217,18 +245,35 @@ membership/incident-containment workflow.
 
 ## Next approvals and order
 
-1. Confirm the primary mapping and selected emergency model (or both humans in two-human mode), MFA policy, emergency custody,
-   session-revocation owner, and permitted token-containment window.
-2. Approve the access-only permission set and assignments; verify SSO, least privilege, and backup
-   access without changing production Cognito or disabling existing administration.
-3. Select/implement/review secret delivery and recovery execution under separate authority.
-4. Separately authorize the [disposable recovery drill](./recovery-drill.md), including inboxes,
-   synthetic identities, costs, cleanup, and operator/session revocation tests.
-5. After the drill passes, deploy matching Amplify challenge handling through the production gate,
-   remove the release marker afterward, keep auto-build off, then review/deploy only the approved
-   in-place Cognito email-MFA/admin-only-recovery diff. Do not run migrations or change DNS.
-6. Obtain separate authorization for any production acceptance identity. Bootstrap Sheri just in
-   time only after the accepted readiness gates; never use the sole owner as a recovery experiment.
+1. Verify an existing authorized, MFA-backed AWS administrative path suitable for Cognito resets.
+   Preserve current access; do not treat un-MFA long-lived `default` keys as the approved routine path.
+   If none is suitable, separately approve the optional six-operation SSO assignment; it is not
+   needed merely for Seth's application Admin role. Keep Identity Center context-aware.
+2. Select the private one-time password handoff and implement/review the small local executor.
+   The current SSO-only `recover:account` remains read-only and must not gain a default/root fallback.
+   A future existing-admin adapter needs an exact approved temporary caller allowlist, STS/pool/sub
+   checks, redaction, and per-incident authorization, not arbitrary credential-provider fallback.
+3. Separately authorize one synthetic non-Sheri identity and controlled inboxes for the minimum
+   password/email/TOTP recovery acceptance in the existing production pool. No Aurora owner or new
+   pool is needed for Cognito-only checks. Provisioning/cleanup uses existing authorized administration,
+   never adds user-create/delete grants to the six-operation permission set. A larger
+   [disposable drill](./recovery-drill.md) remains optional, not a new launch infrastructure gate.
+4. Review the complete production diff, deploy compatible application challenge handling through
+   the release guard first, then separately approve only the required in-place Cognito email-MFA/
+   admin-only-recovery change. Verify synthetic sign-in/recovery before creating the real owner.
+   Required MFA and TOTP remain on, SMS/signup off; no pool replacement or migration.
+5. Confirm Sheri's login email (do not infer it from the contact Gmail), then authorize the one
+   `Perfect Shade` owner bootstrap. Sheri privately completes NEW_PASSWORD_REQUIRED and required
+   MFA; she then invites Seth with role **Admin**, not Owner, using Team Management.
+6. Complete owner/Admin acceptance on the guarded production hosting, then separately approve
+   the [domain association/cutover](./public-launch-cutover.md). No DNS action is authorized here.
+
+The abandoned emergency-IAM CREATE change set was deleted on 2026-10-17 after confirming it was
+unexecuted and its stack had zero resources. Its empty `PerfectShadeEmergencyRecovery`
+`REVIEW_IN_PROGRESS` placeholder remained; deleting that placeholder requires separate approval.
+Do not recreate or execute the canceled change set. The uncommitted notification-completion
+runbook evidence in the separate alert-readiness worktree must be checkpointed separately, not
+discarded or silently included in this source branch.
 
 References: [permission sets](https://docs.aws.amazon.com/singlesignon/latest/userguide/howtocmp.html),
 [MFA context](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_mfa_configure-api-require.html),

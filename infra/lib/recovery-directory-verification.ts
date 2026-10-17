@@ -30,10 +30,10 @@ export function cliAwsReader(profile: string) {
   return async function read(args: string[], region = RECOVERY_REGION) {
     const allowed: Record<string, readonly string[]> = {
       sts: ["get-caller-identity"], "sso-admin": ["list-instances"], identitystore: ["describe-user"],
-      cloudtrail: ["lookup-events"], sns: ["get-topic-attributes", "get-subscription-attributes"],
+      cloudtrail: ["lookup-events", "get-trail-status"], sns: ["get-topic-attributes", "get-subscription-attributes"],
       iam: ["get-user", "get-role", "get-login-profile", "list-access-keys", "list-groups-for-user", "list-attached-user-policies",
         "list-attached-role-policies", "list-user-policies", "list-role-policies", "get-user-policy", "get-role-policy", "get-policy",
-        "get-policy-version", "list-mfa-devices", "get-mfa-device"],
+        "get-policy-version", "list-mfa-devices", "get-mfa-device", "get-account-summary"],
     };
     if (!args[0] || !args[1] || !allowed[args[0]]?.includes(args[1])) throw new Error("Only the reviewed read-only inspection operations are allowed.");
     if (![RECOVERY_REGION, "us-east-1"].includes(region)) throw new Error("Unapproved read region.");

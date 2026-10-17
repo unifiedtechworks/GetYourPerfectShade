@@ -1,5 +1,44 @@
 # Production Email MFA and Staff Recovery
 
+## Current launch decisions and remaining operational gap
+
+The owner-approved 2026-10-17 plan makes Sheri the **sole Perfect Shade application Owner**.
+After activation, Sheri invites Seth as an **Admin** through existing Team Management; no viewer
+role or second Owner is needed. `UTAdmin` is Seth's separate AWS Identity Center identity, not his
+Perfect Shade application user. Do not provision AWS permissions for website administration.
+
+Use an existing authorized, suitably MFA-backed AWS administrative session for routine Cognito
+resets where available. Its exact permissions/authentication must be verified, not inferred from
+an application's Admin role or from the broad `default` IAM keys. The optional six-operation
+Identity Center recovery permission set is useful least privilege, not a mandatory new deployment.
+The owner accepts existing protected root access solely to restore AWS administration in an
+exceptional lockout. No dedicated emergency IAM identity/role or second human is required.
+The [recovery access guard](./identity-center-recovery-access.md) supports this explicitly without
+fabricated backup IDs or emergency-IAM test evidence. Context-aware Identity Center MFA remains.
+
+`pnpm recover:account` is still **preflight only**, uses only its explicitly approved SSO profile,
+and rejects default/root/ordinary IAM fallback. It cannot reset a password or replace an email.
+Before enabling production email MFA, the smallest tooling gap is a reviewed local SDK executor
+or equivalently reviewed existing-admin procedure: explicit temporary caller/account/pool checks,
+immutable subject and authorization checks, cryptographic in-memory/non-echoing password handling,
+`AdminSetUserPassword(Permanent=false)`, secure one-time handoff, and redacted incident/CloudTrail
+audit. An existing-admin adapter must allow only the separately reviewed caller, never arbitrary
+credential fallback. No website recovery API or new AWS service is needed. The owner must select
+the private delivery method; this repository must not generate, print, or store a password meanwhile.
+AWS does not deliver a password set by AdminSetUserPassword: the operator must arrange that handoff.
+
+All recovery keeps the same Cognito user/sub, organization membership, role, and prior audit history.
+For a lost mailbox, prove control of an actually enrolled TOTP before choosing it; otherwise prove
+the replacement mailbox independently, repeat collision checks, and authorize the minimum email
+change. Never transfer an alias, create a replacement user, disable required pool MFA, or manually
+edit Aurora. Any stale `email_snapshot` needs the separately approved tenant-scoped audited
+reconciliation workflow. Its executor remains a real prerequisite for claiming complete lost-mailbox
+application recovery, even if the Cognito-only test succeeds.
+
+Production email MFA is not claimed enabled by this source checkpoint. No user, pool, database,
+Amplify, SES, or DNS mutation is authorized here. The old dedicated emergency-IAM and disposable
+pool drill designs remain inactive optional future plans, not requirements to add infrastructure.
+
 ## Scope and approved design
 
 Perfect Shade production uses Cognito-native email MFA as an additional option for internal staff.
@@ -107,7 +146,8 @@ Every recovery begins with the same authorization gate:
 3. Record the active-owner approval, recovery scenario, exact pool and immutable Cognito subject,
    and a non-sensitive incident/change reference. Keep passwords, codes, tokens, mailbox proof,
    AWS credentials, and private identity facts out of that record.
-4. The operator assumes the recovery role with an MFA-authenticated temporary session and uses
+4. The operator uses an explicitly authorized MFA-backed AWS administrative temporary session (or
+   the optional scoped recovery permission set when separately activated) and uses
    `AdminGetUser` to record only the safe state needed for the decision: enabled/status,
    `email_verified`, immutable `sub`, `UserMFASettingList`, and preferred MFA setting. Confirm the
    Aurora membership and role read-only. Stop on any identity, subject, tenant, or authorization
@@ -184,12 +224,13 @@ and [`AdminUpdateUserAttributes`](https://docs.aws.amazon.com/cognito-user-ident
 
 ## Recovery operator IAM boundary
 
-The preferred implementation is now the separate access-only Identity Center permission set and
-SSO-only preflight tooling in [identity-center-recovery-access.md](./identity-center-recovery-access.md).
-The owner selected one primary routine operator plus protected emergency IAM access instead of a
-second human. See [protected-emergency-aws-access.md](./protected-emergency-aws-access.md) for the
-independent opt-in definition, actual-test activation gates, console/CLI feasibility, root fallback,
-private custody, and the remaining sole-human availability limitation. Nothing is activated here.
+The optional least-privilege implementation is the separate access-only Identity Center permission
+set and SSO-only preflight tooling in [identity-center-recovery-access.md](./identity-center-recovery-access.md).
+Existing authorized MFA-backed AWS administration may instead be reviewed for routine resets;
+no new AWS permissions are required for website administration. The owner selected existing
+protected root only as the exceptional AWS administrative fallback, not protected emergency IAM
+access or another human. The old independent IAM definition remains inactive in
+[protected-emergency-aws-access.md](./protected-emergency-aws-access.md). Nothing is activated here.
 Keep `recoveryOperatorPrincipalArn` unset for that direct-assignment design. The older optional IAM
 role below remains an alternative for a separately reviewed IAM-user trust model, not a federation
 MFA shortcut. No access configuration or live recovery is authorized by this source checkpoint.
@@ -222,17 +263,16 @@ session tag as assurance merely to make a federated session work.
 Nothing in this design adds a browser, API Gateway, account Lambda, or public recovery endpoint.
 Unauthenticated users and application sessions cannot assume or invoke the operator role.
 
-Do not supply this older role context or deploy it for the selected protected-emergency model.
+Do not supply this older role context or deploy it for the current root-break-glass model.
 Its alternative trust principals still require separate review. Prefer federated, short-lived credentials;
 do not issue long-lived access keys. A role limits only sessions using that role, so an operator
 with existing broad direct Cognito permissions must not be treated as constrained by it.
 
-Seth's Perfect Shade application owner account is not AWS operator access. Sheri likewise does not
-gain AWS recovery ability merely from being an application owner. The production plan needs a
-second authorized human operator or a protected emergency administrative-access process that still
-works when Seth loses both application MFA and AWS access. The owner chose the protected emergency
-authentication path, without a second human. Its MFA/custody, administrative/root fallback,
-revocation owner, and live tests remain gated; this does not solve Seth's unavailability.
+Seth's Perfect Shade application **Admin** account is not AWS operator access. Sheri's sole Owner
+role likewise grants no AWS permissions. The owner has selected existing protected root recovery
+of AWS administration instead of a second human or dedicated emergency IAM identity. Root custody
+is owner-confirmed privately; AWS indicators alone do not prove it. This does not solve Seth's
+human unavailability. Never require routine root login for a Cognito account reset.
 
 ## Practical operator checklist
 
@@ -240,7 +280,7 @@ revocation owner, and live tests remain gated; this does not solve Seth's unavai
 - [ ] Obtain active-owner authorization, strong out-of-band identity proof, and a non-sensitive change reference.
 - [ ] Obtain a second reviewer for Scenario C when practical.
 - [ ] Confirm the exact production pool, immutable subject, expected organization, role, and enabled state.
-- [ ] Assume only the scoped recovery role with fresh MFA-backed temporary credentials.
+- [ ] Verify the approved MFA-backed temporary AWS caller; use existing authorized administration or the optional scoped recovery session, never routine root or silent default-key fallback.
 - [ ] Run collision checks before any email update; stop on any ambiguous or duplicate identity.
 - [ ] Apply only the scenario's minimum operation; never disable pool-wide MFA or create/delete a user.
 - [ ] Preserve the Cognito `sub`; record safe before/after state without secrets or private proof.
@@ -249,6 +289,11 @@ revocation owner, and live tests remain gated; this does not solve Seth's unavai
 - [ ] Review CloudTrail, revoke operator sessions if needed, close the incident, and escalate any unexplained change.
 
 ## Isolated recovery drill plan
+
+This larger disposable-pool design is retained as an optional separately approved test, not a
+mandatory launch deployment. The minimum launch acceptance below can use one synthetic identity
+in the existing production pool with separate explicit test-user authorization and controlled
+inboxes. It must never use Sheri or create an Aurora Owner merely to test Cognito mechanics.
 
 The guarded, disposable infrastructure definition and detailed acceptance/cleanup plan are in
 [recovery-drill.md](./recovery-drill.md). Current operator tooling is deliberately preflight-only;
@@ -299,10 +344,28 @@ No step below is authorized by committing this source change. After owner review
    recovery role must be a separate reviewed deployment decision.
 4. Deploy the compatible application challenge handling before enabling email MFA in Cognito.
 5. Obtain explicit approval for the recovery-policy consequence, then deploy the CDK update.
-6. Run acceptance with an approved non-owner test identity before provisioning the production
-   owners. Do not use the only owner as the recovery experiment.
-7. Bootstrap Sheri, complete permanent-password plus email-MFA sign-in, then follow the controlled
-   additional-owner process for Seth. Validate TOTP as the alternative in a separate session.
+6. With separate authorization, use one synthetic non-Sheri identity and controlled inboxes in the
+   existing production pool. Verify password/email-MFA sign-in, TOTP enrollment/fallback, a temporary
+   password recovery with NEW_PASSWORD_REQUIRED, unchanged `sub`, collision/unauthorized denial,
+   and redacted audit. Test lost-mailbox replacement with a second controlled mailbox; no real
+   customer's mail or application data. Global sign-out cannot invalidate every offline JWT before
+   its expiry (currently up to one hour). Existing authorized administration handles test creation/
+   cleanup; do not expand the six-operation recovery policy. No test is authorized by this document.
+7. Confirm Sheri's actual login email explicitly; the contact/Reply-To Gmail is not automatically
+   her account. Authorize only her `Perfect Shade` owner bootstrap, first with `--dry-run`, then
+   live through `pnpm bootstrap:owner` with explicit production pool/Aurora outputs. Never print or
+   supply an invitation password; Cognito sends the native initial invitation. Handle any partial
+   failure through the reviewed resume path, not a duplicate user. Sheri privately completes
+   NEW_PASSWORD_REQUIRED and required email MFA, and validates her sole Owner role. TOTP remains
+   supported and should be enrolled/tested as an alternative; never infer enrollment from preference.
+8. Sheri opens `/app/account/team`, invites Seth's confirmed application email with role **Admin**,
+   and Seth privately completes his invitation/password/MFA flow. Validate estimate editing and staff
+   administration while Owner-only protections remain; do not run `owner:add` or bootstrap for Seth.
+9. Complete hosted production acceptance before separately authorizing the Amplify domain
+   association and [controlled DNS cutover](./public-launch-cutover.md). Recheck the existing
+   Route 53 authority, save current Wix web targets, use only AWS-returned certificate/web targets,
+   preserve all SES/SPF/DKIM/DMARC records and no-MX decision, and retain a Wix rollback plan. No
+   registrar/delegation migration is needed if Route 53 is already authoritative. Never guess targets.
 
 To roll back, first move affected users to a functioning retained MFA factor, then disable email
 MFA in Cognito, and only then roll back application handling. Do not restore `EMAIL_ONLY` recovery
@@ -322,8 +385,7 @@ while a user still uses email MFA. Never delete/recreate the retained pool or cl
   enrollment.
 - [ ] Scenario C proves collision-safe replacement-email sign-in/email MFA, unchanged `sub`, and an
   explicitly tracked Aurora email-snapshot reconciliation without altering membership or role.
-- [ ] The recovery operator uses the exact pool-scoped role and an MFA-backed temporary session;
-  the independently authorized backup-access path is tested.
+- [ ] The recovery operator uses explicitly reviewed existing administration or the optional exact pool-scoped recovery role, with an MFA-backed temporary session; existing protected root remains an exceptional AWS restoration path, not routine account recovery.
 - [ ] Public signup remains disabled and `/sign-up` remains absent.
 - [ ] SES sender, Reply-To, DKIM, configuration set, bounce/complaint/reject monitoring, and SNS
   feedback delivery remain intact.

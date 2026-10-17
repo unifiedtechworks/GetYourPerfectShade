@@ -1,6 +1,35 @@
 # Protected emergency AWS access
 
-## Owner decision and source-only status
+## Current decision: dedicated emergency IAM deployment canceled
+
+On 2026-10-17 the owner superseded the dedicated emergency IAM design below. Keep the existing
+protected AWS management-account root credentials, MFA, and physical/electronic recovery backups
+as the last-resort path to restore AWS administration. Root is not for routine application resets.
+Seth's verified `UTAdmin` Identity Center identity remains separate from his application identity;
+context-aware Identity Center MFA stays unchanged. Prefer existing authorized MFA-backed AWS
+administration for resets, with the six-operation SSO permission set only an optional separately
+approved least-privilege alternative. No new AWS access is needed for website administration.
+
+Sheri will be the sole application Owner. Once active, she invites Seth as an application Admin
+through Team Management. Do not bootstrap Seth as another Owner, add a viewer role, or infer that
+either application role grants AWS access.
+
+The exact unexecuted change set
+`perfect-shade-emergency-access-20261017-bc20c03bc6bb/35dedc00-b4b0-4d2b-95be-fc7d7922d807`
+was deleted after checking the account, CREATE_COMPLETE/AVAILABLE review state, four proposed
+additions, absent IAM identities/boundaries, and zero stack resources. No IAM resources were created.
+The `PerfectShadeEmergencyRecovery` placeholder remained `REVIEW_IN_PROGRESS` with zero resources;
+its deletion is not authorized by the change-set-only cancellation. Do not recreate/execute the
+change set or follow credential-enrollment instructions below under the current plan.
+
+The previous implementation and procedures are retained **inactive for possible future use**,
+not discarded and not launch prerequisites. No separate emergency password, phone enrollment,
+seed escrow, hardware purchase, Sign-In exception, or emergency role drill is now required.
+See [current recovery access and launch order](./identity-center-recovery-access.md#next-approvals-and-order).
+Owner-confirmed notification delivery evidence in the separate alert-readiness worktree is
+preserved uncommitted for its own documentation checkpoint; it is not overwritten by this update.
+
+## Historical design: owner decision and source-only status
 
 Seth / Unified Techworks is the primary routine operator. The owner chose a separately protected
 AWS authentication path under Seth's control instead of a second human recovery operator.

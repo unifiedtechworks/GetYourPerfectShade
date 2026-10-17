@@ -11,6 +11,14 @@ Perfect Shade has no public signup or customer identity flow. Production users a
 `owner`, `admin`, or `staff` members provisioned with Cognito administrator APIs in the trusted
 account Lambda. The browser never receives Cognito administrator permissions.
 
+Current owner decisions (2026-10-17): Sheri is the sole application Owner. After her first login,
+she invites Seth as an application Admin through Team Management; no viewer or second Owner is
+needed. Seth's `UTAdmin` AWS Identity Center identity is separate. Website administration does not
+require new AWS permissions. Routine Cognito resets may use reviewed existing MFA-backed AWS
+administration; the restricted SSO recovery set remains optional. Existing protected root is only
+the exceptional fallback to restore AWS administration. The dedicated emergency IAM deployment was
+canceled; see the [current launch/recovery sequence](./production-email-mfa.md#deployment-and-rollback-sequence).
+
 ## Environment isolation contract
 
 Each deployed web environment must set its own complete, non-secret values:

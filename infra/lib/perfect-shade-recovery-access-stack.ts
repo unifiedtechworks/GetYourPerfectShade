@@ -8,15 +8,19 @@ import {
   assignmentUsers,
 } from "./recovery-access-config";
 import { hasVerifiedEmergency, type VerifiedEmergency } from "./emergency-activation-verification";
+import { hasVerifiedRootReadiness, type VerifiedRootReadiness } from "./root-break-glass-verification";
 
 export class PerfectShadeRecoveryAccessStack extends Stack {
-  constructor(scope: Construct, id: string, props: StackProps & { config: RecoveryAccessConfig; emergencyVerification?: VerifiedEmergency }) {
+  constructor(scope: Construct, id: string, props: StackProps & { config: RecoveryAccessConfig; emergencyVerification?: VerifiedEmergency; rootReadinessVerification?: VerifiedRootReadiness }) {
     if (props.env?.account !== RECOVERY_ACCOUNT || props.env?.region !== RECOVERY_REGION) {
       throw new Error("Recovery access must target the exact approved account and region.");
     }
     validateRecoveryAccessConfig(props.config);
     if (props.config.assignments?.mode === "protected-emergency" && !hasVerifiedEmergency(props.emergencyVerification, props.config)) {
       throw new Error("Actual emergency deployment/test verification is required before primary-only assignment.");
+    }
+    if (props.config.assignments?.mode === "root-break-glass" && !hasVerifiedRootReadiness(props.rootReadinessVerification, props.config)) {
+      throw new Error("Root break-glass owner review and actual primary MFA/readiness verification are required before assignment.");
     }
     super(scope, id, props);
     const permissionSet = new sso.CfnPermissionSet(this, "RecoveryPermissionSet", {

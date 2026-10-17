@@ -12,6 +12,12 @@ export const EMERGENCY_ROLE_NAME = "perfect-shade-production-emergency-recovery"
 export const EMERGENCY_USER_ARN = `arn:aws:iam::${RECOVERY_ACCOUNT}:user/${EMERGENCY_USER_NAME}`;
 export const EMERGENCY_ROLE_ARN = `arn:aws:iam::${RECOVERY_ACCOUNT}:role/${EMERGENCY_ROLE_NAME}`;
 export const REVIEW_REFERENCE_PATTERN = /^[A-Za-z][A-Za-z0-9_-]{2,63}$/;
+export interface RootBreakGlassReview {
+  readonly ownerReadinessConfirmed: boolean;
+  readonly rootCustodyReviewReference: string;
+  readonly rootRecoveryReviewReference: string;
+  readonly primaryMfaEventId: string;
+}
 export interface EmergencyEvidence {
   readonly mfaMode: "hardware-fido" | "virtual-totp";
   readonly virtualTotpRecovery?: Readonly<{
@@ -40,8 +46,9 @@ export interface RecoveryAccessConfig {
   readonly assignments?: Readonly<{
     primaryUserId: string;
     backupUserId?: string;
-    mode?: "two-human" | "protected-emergency";
+    mode?: "two-human" | "protected-emergency" | "root-break-glass";
     emergency?: EmergencyEvidence;
+    rootBreakGlass?: RootBreakGlassReview;
     identityReviewReference: string;
     mfaReviewReference: string;
     emergencyReviewReference: string;
@@ -58,7 +65,7 @@ export function validateRecoveryAccessConfig(config: RecoveryAccessConfig): void
   if (config.assignments) {
     const { primaryUserId, backupUserId, identityReviewReference, mfaReviewReference, emergencyReviewReference } = config.assignments;
     const mode = config.assignments.mode ?? "two-human";
-    if (mode !== "two-human" && mode !== "protected-emergency") throw new Error("Unknown recovery operator mode.");
+    if (!["two-human", "protected-emergency", "root-break-glass"].includes(mode)) throw new Error("Unknown recovery operator mode.");
     if (mode === "two-human" && (!USER_ID_PATTERN.test(primaryUserId) || !USER_ID_PATTERN.test(backupUserId ?? "") || primaryUserId === backupUserId)) {
       throw new Error("Two distinct, explicitly confirmed Identity Center USER IDs are required.");
     }
@@ -66,6 +73,20 @@ export function validateRecoveryAccessConfig(config: RecoveryAccessConfig): void
     if (mode === "protected-emergency") {
       if (!USER_ID_PATTERN.test(primaryUserId) || backupUserId !== undefined) throw new Error("Protected emergency mode requires one exact primary USER ID, never a fabricated backup.");
       validateEmergencyEvidence(config.assignments.emergency);
+    }
+    if (mode !== "root-break-glass" && config.assignments.rootBreakGlass !== undefined) throw new Error("Do not mix recovery operator models.");
+    if (mode === "root-break-glass") {
+      const root = config.assignments.rootBreakGlass;
+      if (!USER_ID_PATTERN.test(primaryUserId) || backupUserId !== undefined || config.assignments.emergency !== undefined) {
+        throw new Error("Root break-glass requires one reviewed primary USER ID, no backup user or emergency IAM evidence.");
+      }
+      if (!root || typeof root !== "object" || Array.isArray(root) ||
+        Object.keys(root).some(key => !["ownerReadinessConfirmed", "rootCustodyReviewReference", "rootRecoveryReviewReference", "primaryMfaEventId"].includes(key)) ||
+        root.ownerReadinessConfirmed !== true ||
+        [root.rootCustodyReviewReference, root.rootRecoveryReviewReference].some(value => typeof value !== "string" || !REVIEW_REFERENCE_PATTERN.test(value)) ||
+        typeof root.primaryMfaEventId !== "string" || !/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/.test(root.primaryMfaEventId)) {
+        throw new Error("Explicit root readiness/custody review and a real primary MFA event ID are required; never include secrets.");
+      }
     }
     if ([identityReviewReference, mfaReviewReference, emergencyReviewReference].some(value =>
       typeof value !== "string" || !REVIEW_REFERENCE_PATTERN.test(value))) {
@@ -76,7 +97,7 @@ export function validateRecoveryAccessConfig(config: RecoveryAccessConfig): void
 
 export function assignmentUsers(config: RecoveryAccessConfig): Record<string, string> {
   if (!config.assignments) return {};
-  return config.assignments.mode === "protected-emergency"
+  return ["protected-emergency", "root-break-glass"].includes(config.assignments.mode ?? "two-human")
     ? { Primary: config.assignments.primaryUserId }
     : { Primary: config.assignments.primaryUserId, Backup: config.assignments.backupUserId! };
 }
@@ -137,12 +158,15 @@ export function loadRecoveryAccessConfig(app: App): RecoveryAccessConfig {
   if (!["true", "false"].includes(activate)) throw new Error("activateRecoveryAssignments must be true or false.");
   const primary = context("primaryRecoveryUserId"), backup = context("backupRecoveryUserId");
   const mode = context("recoveryOperatorMode") ?? "two-human";
-  if (mode !== "two-human" && mode !== "protected-emergency") throw new Error("Unknown recovery operator mode.");
+  if (!["two-human", "protected-emergency", "root-break-glass"].includes(mode)) throw new Error("Unknown recovery operator mode.");
   if (activate === "false" && (primary !== undefined || backup !== undefined || context("recoveryEmergencyEvidencePath") !== undefined)) {
     throw new Error("Leave operator IDs unset until assignment activation is separately approved.");
   }
   let emergency: EmergencyEvidence | undefined;
   if (activate === "true" && mode === "two-human" && context("recoveryEmergencyEvidencePath") !== undefined) throw new Error("Do not mix recovery operator models.");
+  const rootKeys = ["confirmRootBreakGlassReadiness", "rootCustodyReviewReference", "rootRecoveryReviewReference", "recoveryPrimaryMfaEventId"];
+  if ((activate !== "true" || mode !== "root-break-glass") && rootKeys.some(key => context(key) !== undefined)) throw new Error("Root readiness inputs require explicit root-break-glass assignment activation.");
+  if (mode === "root-break-glass" && context("recoveryEmergencyEvidencePath") !== undefined) throw new Error("Root break-glass does not use emergency IAM evidence.");
   if (activate === "true" && mode === "protected-emergency") {
     const path = context("recoveryEmergencyEvidencePath");
     if (typeof path !== "string" || !path) throw new Error("Private emergency test evidence is required.");
@@ -156,6 +180,12 @@ export function loadRecoveryAccessConfig(app: App): RecoveryAccessConfig {
     primaryUserId: primary,
     backupUserId: backup,
     emergency,
+    rootBreakGlass: mode === "root-break-glass" ? {
+      ownerReadinessConfirmed: context("confirmRootBreakGlassReadiness") === "true",
+      rootCustodyReviewReference: context("rootCustodyReviewReference"),
+      rootRecoveryReviewReference: context("rootRecoveryReviewReference"),
+      primaryMfaEventId: context("recoveryPrimaryMfaEventId"),
+    } : undefined,
     identityReviewReference: context("recoveryIdentityReviewReference"),
     mfaReviewReference: context("recoveryMfaReviewReference"),
     emergencyReviewReference: context("recoveryEmergencyReviewReference"),

@@ -4,6 +4,7 @@ import { loadRecoveryAccessConfig, RECOVERY_ACCOUNT, RECOVERY_REGION } from "../
 import { cliDirectoryReader, verifyRecoveryDirectory } from "../lib/recovery-directory-verification";
 import { PerfectShadeRecoveryAccessStack } from "../lib/perfect-shade-recovery-access-stack";
 import { verifyEmergencyActivation, cliEmergencyActivationReader } from "../lib/emergency-activation-verification";
+import { verifyRootReadiness, cliRootReadinessReader } from "../lib/root-break-glass-verification";
 
 async function main() {
   const app = new App();
@@ -13,8 +14,10 @@ async function main() {
   }
   const emergencyVerification = config.assignments?.mode === "protected-emergency"
     ? await verifyEmergencyActivation(config, cliEmergencyActivationReader(app.node.tryGetContext("recoveryProvisionerProfile") ?? "")) : undefined;
+  const rootReadinessVerification = config.assignments?.mode === "root-break-glass"
+    ? await verifyRootReadiness(config, cliRootReadinessReader(app.node.tryGetContext("recoveryProvisionerProfile") ?? "")) : undefined;
   new PerfectShadeRecoveryAccessStack(app, "PerfectShadeRecoveryAccess", {
-    config, emergencyVerification, env: { account: RECOVERY_ACCOUNT, region: RECOVERY_REGION },
+    config, emergencyVerification, rootReadinessVerification, env: { account: RECOVERY_ACCOUNT, region: RECOVERY_REGION },
     description: "Opt-in Perfect Shade Identity Center access only; no backend changes",
   });
   app.synth();

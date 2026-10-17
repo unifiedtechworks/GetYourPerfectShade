@@ -14,14 +14,24 @@ Approved public-domain behavior:
 - HTTPS is valid on both hostnames; and
 - `www` serves the accepted production Amplify `main` build.
 
+2026-10-17 launch-plan clarification: Sheri is the sole application Owner; she invites Seth as
+an application **Admin** after her first login. No second Owner, viewer role, emergency IAM identity,
+or AWS permission deployment is needed for website administration. Complete the
+[email-MFA/recovery and invitation acceptance sequence](./production-email-mfa.md#deployment-and-rollback-sequence)
+before separately authorized website cutover. No DNS change is authorized by this update.
+The DNS inventory below is historical, not a fresh observation: Route 53 staging/delegation has
+since been performed under separate tasks. Revalidate current authoritative DNS before cutover;
+do not repeat the old registrar/nameserver transition if it is already complete.
+
 Recorded owner decisions:
 
 - Perfect Shade does not currently use an `@getyourperfectshade.com` mailbox.
 - The approved customer reply/contact address is `ps.getyourperfectshade@gmail.com`.
 - Future domain-hosted email is optional and is not part of this cutover.
-- Sheri is the primary production Perfect Shade owner.
-- Seth / Unified Techworks also requires owner-level application access for troubleshooting,
-  maintenance, and future improvements. Account provisioning remains outside this runbook.
+- Sheri is the sole production Perfect Shade application Owner.
+- Seth / Unified Techworks requires application **Admin** access for estimates, company operations,
+  and staff administration, invited by Sheri through Team Management. No second Owner is authorized.
+  Application provisioning remains outside this runbook and requires no AWS permissions merely for that role.
 - The Wix `/events` page is intentionally retired; prefer HTTP `410 Gone` when practical and do
   not redirect it to unrelated content.
 - The staged Wix-to-Route 53 DNS migration is the approved DNS path.
@@ -236,12 +246,14 @@ SES From/Reply-To split, SES feedback monitoring, API/Aurora/document monitoring
 Detection support, `Project=PerfectShade` tagging, CloudTrail management events, production
 Amplify release gating, approved signature configuration, and admin/runtime database credential
 isolation. Migrations through `0009` and the controlled `pnpm owner:add` workflow are implemented.
-These are completed repository capabilities; deployment and live acceptance remain outstanding.
+These are historical repository capability notes, not a fresh deployment inventory. The additional-
+owner capability remains available but is not authorized for Seth under the current sole-Owner plan.
 
 Follow [final production operations](./final-production-operations.md) for deployment context,
-SES feedback subscriptions, monitoring, release markers, and signature configuration. Follow
-[additional-owner provisioning](./additional-owner-provisioning.md) for the controlled second
-owner; never rerun initial bootstrap to add Seth or use the ordinary Team invitation workflow.
+SES feedback subscriptions, monitoring, release markers, and signature configuration. Follow the
+[current account activation sequence](./production-email-mfa.md#deployment-and-rollback-sequence):
+bootstrap Sheri only, then use ordinary Team Management to invite Seth as **Admin**. Never run
+`owner:add` or repeat initial bootstrap for Seth. No role-schema or database change is needed.
 Operational account emails and notification recipients remain operator-supplied configuration,
 not hard-coded application source.
 
@@ -255,16 +267,17 @@ SPF, DKIM, DMARC, or unrelated records as part of the website migration.
 
 The ownership design is implemented; these are live execution and verification steps:
 
-1. Apply the approved production migrations through `0009_additional_owner_provisioning.sql`
-   using the migration runner and administrative credential, then bootstrap Sheri as the initial
-   owner with `pnpm bootstrap:owner` per [initial-owner bootstrap](./initial-owner-bootstrap.md).
-2. Sheri completes the initial password change and email MFA verification.
-3. Run `pnpm owner:add` for Seth / Unified Techworks using the documented dry-run, preflight,
-   and approved execution sequence, authorized by Sheri's active owner subject.
-4. Seth completes the initial password change and his approved MFA factor; TOTP remains available.
-5. Verify both accounts independently in separate authenticated sessions: the account API must
-   return the Perfect Shade organization and `owner` role, with working protected access. Confirm
-   the Team UI cannot demote, disable, remove, or replace either owner.
+1. Verify the existing production migration history through `0009` without altering it. Existing
+   applied migrations are not rerun, and no new migration is needed for this role decision. After
+   the approved email-MFA/recovery acceptance, confirm Sheri's login email and separately authorize
+   her sole Owner bootstrap with `pnpm bootstrap:owner` per [initial-owner bootstrap](./initial-owner-bootstrap.md).
+2. Sheri completes NEW_PASSWORD_REQUIRED and required email MFA; TOTP remains supported.
+3. Sheri invites Seth / Unified Techworks as **Admin** through `/app/account/team`.
+4. Seth completes his invitation/password and required MFA flow privately.
+5. Verify both accounts independently: the account API must return Perfect Shade with **Owner**
+   for Sheri and **Admin** for Seth. Test estimate editing and permitted staff administration;
+   Seth must not remove, demote, or replace Sheri. No AWS permission or second application Owner
+   is implied by this invitation.
 
 Do not record account credentials, MFA material, operational emails, or private identifiers here.
 
@@ -414,9 +427,9 @@ Record pass/fail, timestamp, tester, device/browser, and evidence for each item.
 ### Authentication and protected application (AWS/account owner)
 
 - [ ] `/sign-up` is absent and returns 404.
-- [ ] Sheri has verified primary production owner-level application access.
-- [ ] Seth / Unified Techworks has verified owner-level application access for troubleshooting,
-  maintenance, and future improvements.
+- [ ] Sheri has verified sole production Owner application access.
+- [ ] Seth / Unified Techworks has verified Admin application access for estimates, operations,
+  and staff management, without Owner-only powers or new AWS permissions merely for the website.
 - [ ] Production sign-in uses only production Cognito/API configuration.
 - [ ] Cognito callback, logout, administrator-assisted recovery, required email/TOTP MFA, refresh,
   and sign-out pass.
@@ -481,9 +494,10 @@ are resolved:
    verification.
 6. Implemented and tested `/products` redirect plus the approved `/events` 410 or true-404
    retirement behavior.
-7. Apply production migrations through `0009`, bootstrap and activate Sheri, then use the
-   implemented additional-owner workflow for Seth; complete both password changes, TOTP
-   enrollments, and owner-access checks. No unresolved ownership architecture remains.
+7. Verify the existing migration history through `0009`; do not reapply it for this decision.
+   After email-MFA/recovery acceptance, bootstrap and activate Sheri as sole Owner, then have
+   Sheri invite Seth as Admin through Team Management. Complete both password/MFA and role checks.
+   TOTP remains supported; no additional-owner workflow or new AWS recovery infrastructure is required.
 8. Confirmation that the Wix site and subscription remain available through the rollback window.
 9. Named DNS operator, AWS operator, validation team, maintenance window,
    communication path, and rollback authority.
