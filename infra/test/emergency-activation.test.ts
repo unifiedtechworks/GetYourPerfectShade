@@ -17,7 +17,7 @@ const userId = `AIDA${"1".repeat(17)}`, roleId = `AROA${"2".repeat(17)}`;
 const sessionArn = `arn:aws:sts::${RECOVERY_ACCOUNT}:assumed-role/${EMERGENCY_ROLE_NAME}/fixture-session`;
 const roleIdentity = { arn: sessionArn, accessKeyId: "synthetic-session-not-a-credential", sessionContext: { attributes: { creationDate: time(9) }, sessionIssuer: { arn: EMERGENCY_ROLE_ARN, principalId: roleId } } };
 const revokePolicy = { Version: "2012-10-17", Statement: [{ Effect: "Deny", Action: "*", Resource: "*", Condition: { DateLessThan: { "aws:TokenIssueTime": time(7) } } }] };
-const evidence = { userArn: EMERGENCY_USER_ARN, roleArn: EMERGENCY_ROLE_ARN, userId, roleId, primaryDirectoryFingerprint: directoryFingerprint(primary),
+const evidence = { mfaMode: "hardware-fido" as const, userArn: EMERGENCY_USER_ARN, roleArn: EMERGENCY_ROLE_ARN, userId, roleId, primaryDirectoryFingerprint: directoryFingerprint(primary),
   deviceSerialNumbers: [`arn:aws:iam::${RECOVERY_ACCOUNT}:u2f/user/key-a`, `arn:aws:iam::${RECOVERY_ACCOUNT}:u2f/user/key-b`],
   custodyReviewReference: "custody-1", cliAuthenticationReviewReference: "cli-1", primaryMfaEventId: id(10), consoleLoginEventIds: [id(11), id(12)],
   notificationSubscriptionArn: `arn:aws:sns:${RECOVERY_REGION}:${RECOVERY_ACCOUNT}:perfect-shade-production-operational-alarms:${id(20)}`,
@@ -77,6 +77,90 @@ function reader(change: (args: string[], value: any) => any = (_, value) => valu
     return change(args, structuredClone(value));
   } };
 }
+
+function virtualFixture(method: "escrow-restore" | "independent-device" = "escrow-restore") {
+  const proof = { ...evidence, mfaMode: "virtual-totp" as const,
+    deviceSerialNumbers: [`arn:aws:iam::${RECOVERY_ACCOUNT}:mfa/emergency-phone`,
+      ...(method === "independent-device" ? [`arn:aws:iam::${RECOVERY_ACCOUNT}:mfa/emergency-backup`] : [])],
+    virtualTotpRecovery: { method, recoveryReviewReference: "recovery-drill-1", passwordSeparationReviewReference: "separate-custody-1", recoveryConsoleLoginEventId: id(12) } };
+  const value: RecoveryAccessConfig = { ...config, assignments: { ...config.assignments!, emergency: proof } };
+  const devices = proof.deviceSerialNumbers.map(SerialNumber => ({ SerialNumber, UserName: EMERGENCY_USER_NAME, EnableDate: time(30) }));
+  const read = (change: (args: string[], result: any) => any = (_, result) => result, eventValues = events()) => reader((args, result) => {
+    if (["get-mfa-device", "list-virtual-mfa-devices"].includes(args[1]!)) throw Error("Must not request FIDO metadata or enrollment material for TOTP");
+    return change(args, args[1] === "list-mfa-devices" ? { MFADevices: devices } : result);
+  }, eventValues);
+  return { proof, value, devices, read };
+}
+
+describe("explicit virtual TOTP activation without changing IAM trust", () => {
+  it.each(["escrow-restore", "independent-device"] as const)("requires enrolled metadata and real recovery/use evidence for %s", async method => {
+    const fixture = virtualFixture(method);
+    validateRecoveryAccessConfig(fixture.value);
+    const token = await verifyEmergencyActivation(fixture.value, fixture.read(), now);
+    expect(hasVerifiedEmergency(token, fixture.value)).toBe(true);
+    expect(hasVerifiedEmergency(token, config)).toBe(false);
+    expect(emergencyTrust().Statement[0]!.Condition).toEqual({ Bool: { "aws:MultiFactorAuthPresent": "true" }, NumericLessThanEquals: { "aws:MultiFactorAuthAge": "900" } });
+    expect(emergencyRolePolicy().Statement[0]!.Resource).toBe(`arn:aws:cognito-idp:${RECOVERY_REGION}:${RECOVERY_ACCOUNT}:userpool/${RECOVERY_POOL}`);
+  });
+  it("emits one assignment only after the TOTP verifier succeeds, not merely on review strings", async () => {
+    const fixture = virtualFixture();
+    expect(() => new PerfectShadeRecoveryAccessStack(new App(), "Denied", { config: fixture.value, env: { account: RECOVERY_ACCOUNT, region: RECOVERY_REGION } })).toThrow(/Actual emergency/);
+    const token = await verifyEmergencyActivation(fixture.value, fixture.read(), now);
+    const t = Template.fromStack(new PerfectShadeRecoveryAccessStack(new App(), "Access", { config: fixture.value, emergencyVerification: token, env: { account: RECOVERY_ACCOUNT, region: RECOVERY_REGION } }));
+    t.resourceCountIs("AWS::SSO::Assignment", 1);
+    t.resourceCountIs("AWS::IAM::AccessKey", 0);
+  }, 30_000);
+  it("rejects implicit/mixed modes, absent reviews, seed-shaped fields and fabricated device independence", () => {
+    const fixture = virtualFixture();
+    for (const change of [
+      { mfaMode: undefined }, { mfaMode: "unknown" }, { mfaMode: "hardware-fido" }, { virtualTotpRecovery: undefined },
+      { deviceSerialNumbers: [] }, { deviceSerialNumbers: [evidence.deviceSerialNumbers[0]] },
+      { virtualTotpRecovery: { ...fixture.proof.virtualTotpRecovery, passwordSeparationReviewReference: "" } },
+      { virtualTotpRecovery: { ...fixture.proof.virtualTotpRecovery, recoveryReviewReference: "" } },
+      { virtualTotpRecovery: { ...fixture.proof.virtualTotpRecovery, recoveryConsoleLoginEventId: id(11) } },
+      { virtualTotpRecovery: { ...fixture.proof.virtualTotpRecovery, seed: "not-a-real-secret" } },
+      { virtualTotpRecovery: { ...fixture.proof.virtualTotpRecovery, method: "independent-device" } },
+      { deviceSerialNumbers: [fixture.proof.deviceSerialNumbers[0], fixture.proof.deviceSerialNumbers[0]] },
+    ]) {
+      expect(() => validateRecoveryAccessConfig({ ...fixture.value, assignments: { ...fixture.value.assignments!, emergency: { ...fixture.proof, ...change } as any } })).toThrow();
+    }
+  });
+  it.each([11, 12, 13, 14, 15, 16, 17, 18])("cannot substitute reviews for missing AWS event %s", async n => {
+    const fixture = virtualFixture(), values = events(); delete values[id(n)];
+    await expect(verifyEmergencyActivation(fixture.value, fixture.read(undefined, values), now)).rejects.toThrow(/no private details/);
+  });
+  it("rejects unassigned, wrong-user, missing/future enrollment and unreviewed extra devices", async () => {
+    const fixture = virtualFixture();
+    for (const devices of [[], [{ ...fixture.devices[0], UserName: "other" }],
+      [{ ...fixture.devices[0], EnableDate: undefined }], [{ ...fixture.devices[0], EnableDate: time(-1) }],
+      [{ ...fixture.devices[0], EnableDate: time(20) }], [...fixture.devices, fixture.devices[0]]]) {
+      await expect(verifyEmergencyActivation(fixture.value, fixture.read((args, result) => args[1] === "list-mfa-devices" ? { MFADevices: devices } : result), now)).rejects.toThrow(/failed verification/);
+    }
+  });
+  it("keeps recovery login, MFA freshness/denials, exact pool, revocation and alert receipt gates", async () => {
+    const fixture = virtualFixture();
+    for (const mutate of [
+      (v: Record<string, any>) => { v[id(12)].additionalEventData.MFAUsed = "No"; },
+      (v: Record<string, any>) => { v[id(12)].eventTime = time(26); },
+      (v: Record<string, any>) => { v[id(13)].userIdentity.sessionContext.attributes.mfaAuthenticated = "false"; },
+      (v: Record<string, any>) => { v[id(13)].eventTime = time(-1); },
+      (v: Record<string, any>) => { v[id(14)].requestParameters.userPoolId = "us-west-2_other"; },
+      (v: Record<string, any>) => { delete v[id(17)].errorCode; },
+      (v: Record<string, any>) => { v[id(18)].userIdentity.sessionContext.attributes.creationDate = time(2); },
+      (v: Record<string, any>) => { v[id(16)].userIdentity.accessKeyId = "different-synthetic-session"; },
+    ]) {
+      const values = events(); mutate(values);
+      await expect(verifyEmergencyActivation(fixture.value, fixture.read(undefined, values), now)).rejects.toThrow(/failed verification/);
+    }
+    await expect(verifyEmergencyActivation(fixture.value, fixture.read((args, result) => args[1] === "get-subscription-attributes" ? { Attributes: { PendingConfirmation: "true" } } : result), now)).rejects.toThrow(/failed verification/);
+  });
+  it("never requests virtual seed metadata and sanitizes failures", async () => {
+    await expect(cliAwsReader("review-reader")(["iam", "list-virtual-mfa-devices"])).rejects.toThrow(/read-only inspection/);
+    const fixture = virtualFixture();
+    await expect(verifyEmergencyActivation(fixture.value, fixture.read(() => { throw Error("private TOTP backup material"); }), now))
+      .rejects.toThrow("Protected emergency activation denied: AWS state, MFA, identity, or live test evidence failed verification; no private details printed.");
+  });
+});
 describe("primary-only activation requires actual readback and tests", () => {
   it("blocks mutating CLI operations before launching a process", async () => {
     const read = cliAwsReader("review-reader");

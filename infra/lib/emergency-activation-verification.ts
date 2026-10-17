@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { cliAwsReader } from "./recovery-directory-verification";
 import { EMERGENCY_USER_ARN, EMERGENCY_ROLE_ARN, EMERGENCY_USER_NAME, EMERGENCY_ROLE_NAME,
-  RECOVERY_ACCOUNT, RECOVERY_REGION, RECOVERY_POOL, type RecoveryAccessConfig } from "./recovery-access-config";
+  RECOVERY_ACCOUNT, RECOVERY_REGION, RECOVERY_POOL, validateRecoveryAccessConfig, type RecoveryAccessConfig } from "./recovery-access-config";
 import { emergencyTrust, emergencyUserPolicy, emergencyRolePolicy } from "./emergency-recovery-policy";
 
 export interface EmergencyActivationReader {
@@ -41,6 +41,7 @@ function check(value: unknown) { if (!value) throw Error("evidence"); }
 /** Reads actual AWS state/events. Never assumes a role, generates credentials, or tests mutations itself. */
 export async function verifyEmergencyActivation(config: RecoveryAccessConfig, reader: EmergencyActivationReader, now = Date.now()): Promise<VerifiedEmergency> {
   try {
+    validateRecoveryAccessConfig(config);
     const assignment = config.assignments;
     check(assignment?.mode === "protected-emergency");
     const proof = assignment!.emergency!;
@@ -77,10 +78,18 @@ export async function verifyEmergencyActivation(config: RecoveryAccessConfig, re
       same(version.Document, expectedPolicy);
     }
     const devices = (await read(["iam", "list-mfa-devices", "--user-name", EMERGENCY_USER_NAME])).MFADevices;
-    check(Array.isArray(devices) && devices.length === 2 && devices.every((device: any) => proof.deviceSerialNumbers.includes(device.SerialNumber)));
-    for (const serial of proof.deviceSerialNumbers) {
-      const device = await read(["iam", "get-mfa-device", "--user-name", EMERGENCY_USER_NAME, "--serial-number", serial]);
-      check(device.UserName === EMERGENCY_USER_NAME && device.SerialNumber === serial && !!device.Certifications?.FIDO);
+    check(Array.isArray(devices) && devices.length === proof.deviceSerialNumbers.length &&
+      new Set(devices.map((device: any) => device.SerialNumber)).size === devices.length &&
+      devices.every((device: any) => proof.deviceSerialNumbers.includes(device.SerialNumber)));
+    if (proof.mfaMode === "hardware-fido") {
+      for (const serial of proof.deviceSerialNumbers) {
+        const device = await read(["iam", "get-mfa-device", "--user-name", EMERGENCY_USER_NAME, "--serial-number", serial]);
+        check(device.UserName === EMERGENCY_USER_NAME && device.SerialNumber === serial && !!device.Certifications?.FIDO);
+      }
+    } else {
+      // User-scoped assigned metadata only; never request virtual enrollment seed/QR responses.
+      check(devices.every((device: any) => device.UserName === EMERGENCY_USER_NAME &&
+        Number.isFinite(Date.parse(device.EnableDate)) && Date.parse(device.EnableDate) <= now));
     }
     // Event history is region-local. IAM/console/global STS evidence may be in us-east-1.
     async function event(id: string) {
@@ -104,6 +113,13 @@ export async function verifyEmergencyActivation(config: RecoveryAccessConfig, re
     const logins = await Promise.all(proof.consoleLoginEventIds.map(event));
     for (const value of logins) check(value.eventName === "ConsoleLogin" && value.eventSource === "signin.amazonaws.com" && value.userIdentity?.arn === proof.userArn &&
       value.userIdentity?.principalId === proof.userId && value.responseElements?.ConsoleLogin === "Success" && value.additionalEventData?.MFAUsed === "Yes" && !value.errorCode);
+    if (proof.mfaMode === "virtual-totp") {
+      check(logins[1].eventID === proof.virtualTotpRecovery?.recoveryConsoleLoginEventId &&
+        Date.parse(logins[1].eventTime) > Date.parse(logins[0].eventTime) &&
+        devices.every((device: any) => Date.parse(device.EnableDate) <= Date.parse(logins[0].eventTime)));
+      // AWS proves sign-in/use, not restoration or physical/password separation. Private reviews
+      // must attest those facts for this separately identified real recovery login.
+    }
     const assumption = await event(proof.assumeRoleEventId);
     const assumedArn = assumption.responseElements?.assumedRoleUser?.arn;
     const newestLogin = Math.max(...logins.map(value => Date.parse(value.eventTime)));

@@ -8,6 +8,31 @@ This is **authentication-path redundancy, not human-availability redundancy**. I
 unavailable, these credentials/devices do not create another person able or authorized to act.
 The existing two-human Identity Center model remains available for organizations that choose it.
 
+### No-purchase MFA decision
+
+The owner selected `virtual-totp`: one genuinely enrolled IAM virtual MFA device on the existing
+phone, with a separately protected enrollment-secret backup and a demonstrated restore/login
+procedure. Two FIDO2 purchases are **not** required. TOTP is less phishing-resistant; the owner
+accepts that tradeoff, not disabled MFA. Keep `hardware-fido` as an explicit optional stronger mode.
+Seth confirmed control of `UTAdmin`, the Identity Center directory source, and a password plus
+authenticator login. Identity Center remains **context-aware** by owner decision; do not change it.
+Trusted-context SSO reuse is not evidence of a fresh MFA challenge.
+Production notification delivery has passed owner-confirmed end-to-end tests. Preserve and integrate
+the separate uncommitted notification completion checkpoint; older inventory observations below
+describe the pre-repair state, not a newly observed delivery failure.
+
+| Existing-equipment option | Decision and independence requirement |
+| --- | --- |
+| Phone TOTP plus protected offline/encrypted seed escrow | Recommended simplest no-purchase path. Restore and test the backup with the normal phone unavailable. One seed copied/restored is **one AWS enrollment**, not two independent factors. |
+| Two independently enrolled virtual devices | Optional if a second trusted existing device is available. Run two separate AWS enrollments with different seeds and serial ARNs, and test each. Two entries on the same phone are not device independence. |
+| Existing-device passkey | AWS supports compatible synced/device-bound passkeys; recovery must not depend on the lost phone, the same password vault, or inaccessible SSO. Windows Hello local registration is not currently supported by IAM. Not a substitute for the selected TOTP gate. |
+| YubiKey FIPS 4 Series / 4.4.5, U2F-only | Specific enrollment compatibility is unverified. AWS documents FIDO2/WebAuthn and deprecated U2F; the historical `u2f/` ARN does not prove protocol support. Do not rely on this key unless an approved enrollment/use drill succeeds. |
+
+Flipper Zero is not an approved production factor. Do not buy equipment or enroll any factor as
+part of this source-only checkpoint. [AWS virtual MFA](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_mfa_enable_virtual.html),
+[passkey compatibility](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_mfa_fido_supported_configurations.html),
+[FIDO registration caveat](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_mfa_enable_fido.html).
+
 This checkpoint is source-only. No user, password, key, MFA registration, role, assignment, alert,
 test pool, or recovery operation has been created/performed. Do not deploy either backend for
 access setup. Keep production email MFA disabled live until access, delivery, and drill gates pass.
@@ -111,6 +136,25 @@ The practical execution path remains gated on the local Sign-In exception, MFA-c
 secure harness, and temporary-password transfer selection. **Stop before deployment if these cannot
 be established.** Never solve a failure by weakening role trust or allowing permanent IAM keys.
 
+Virtual TOTP does not change this transport gate. AWS documents browser sign-in and temporary
+CLI credentials, but does not establish that this particular login/refresh path supplies both IAM
+MFA context keys required by our trust. No live transport was tested here. Use a distinct local
+login profile, a fresh browser MFA challenge, protected CLI cache, and an audited in-memory SDK
+harness. Never run credential export visibly or put a TOTP code in shell arguments, logs, or files.
+The CLI refreshes cached credentials; prove refresh cannot defeat the 900-second freshness limit.
+The optional local-client Sign-In grant stays disabled and separately approved in both user policy
+and boundary. `aws configure mfa-login`/GetSessionToken with permanent keys is not an alternative.
+
+If login credentials do not carry the required MFA context, stop. Fresh TOTP-authenticated IAM
+console Switch Role remains a keyless alternative for operations actually supported by the console;
+it is not a promise of parity for all six recovery APIs. A separately reviewed SDK harness could
+evaluate fresh `SerialNumber`/`TokenCode` on STS AssumeRole using temporary login credentials,
+with non-echoing code input and real AWS proof; it is not implemented or automatically accepted
+by the current verifier. Do not relax the trust or manufacture proof to make either path pass.
+If no supported keyless path passes the drill, application recovery stays blocked.
+[AWS console-login credentials/cache](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-sign-in.html),
+[MFA-protected API access](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_mfa_configure-api-require.html).
+
 ## Primary-only activation: AWS evidence, not an approval string
 
 `recoveryOperatorMode=protected-emergency` is an alternative to default `two-human`. Activation
@@ -119,7 +163,7 @@ MFA-policy, emergency/revocation review references. A backup USER ID is forbidde
 
 `recoveryEmergencyEvidencePath` names a private JSON evidence file outside Git. It contains only
 the typed `EmergencyEvidence` fields in `recovery-access-config.ts`: exact user/role ARNs and
-immutable IDs, reviewed directory fingerprint, two registered FIDO device ARNs, custody/CLI review
+immutable IDs, reviewed directory fingerprint, explicit `mfaMode`, registered device ARNs, custody/CLI review
 references, reviewed SNS subscription/recipient fingerprint and private receipt-review reference,
 and CloudTrail IDs for primary MFA sign-in, two emergency console logins, successful
 AssumeRole, no-MFA/stale-MFA assumption denials, role-scoped pool read, administrative revocation,
@@ -129,7 +173,7 @@ No passwords, keys, sessions, codes, seeds, mailbox addresses, or private custod
 The guarded entrypoint reads STS, organization-instance ownership/store, DescribeUser, current
 IAM login/policies/boundaries/groups/access keys/MFA registrations, and real CloudTrail event history.
 It requires an enabled console password without pending first-login reset, zero keys/groups/broad
-attachments, exact least-privilege policies, matching immutable user/role IDs, two FIDO registrations,
+attachments, exact least-privilege policies, matching immutable user/role IDs, mode-specific registrations,
 one-hour role settings, and completed MFA-backed test use. It verifies a native primary sign-in with
 PASSWORD + TOTP/WEBAUTHN, not an EXTERNAL_IDP assertion with unknown assurance. An upstream IdP
 needs a separately reviewed assurance adapter; do not relax the gate.
@@ -161,6 +205,71 @@ mandatory **in addition**. If this manual assurance is unavailable, do not autho
 
 ## Private custody and manual setup checklist
 
+### Mode-specific evidence (no secrets)
+
+There is no implicit MFA-mode fallback. The private `EmergencyEvidence` must explicitly select:
+
+- `mfaMode=hardware-fido`: exactly two reviewed FIDO registration ARNs; existing certification,
+  AWS sign-in, role use, denial, revocation and custody gates remain intact.
+- `mfaMode=virtual-totp`: assigned virtual device ARN(s), plus `virtualTotpRecovery` containing
+  only `method`, `recoveryReviewReference`, `passwordSeparationReviewReference`, and
+  `recoveryConsoleLoginEventId`. Use `method=escrow-restore` for exactly one AWS enrollment;
+  `method=independent-device` requires two distinct AWS enrollments and privately verified devices.
+
+The ordered `consoleLoginEventIds` are the normal-phone login followed by a distinct recovery
+login while the normal phone is unavailable. `recoveryConsoleLoginEventId` must equal the second
+ID. Both must be successful MFA-authenticated events for the exact immutable emergency IAM user,
+after enrollment. The successful role assumption and pool-scoped read must follow the recovery
+login; absent/reused/out-of-order events fail. All event evidence remains at most 30 days old.
+Existing no-MFA/stale-MFA denial, one-hour role, same-issued-session revocation, least-privilege,
+zero-access-key, primary SSO MFA and confirmed operational-email receipt gates are unchanged.
+
+TOTP enrollment is read through user-scoped `ListMFADevices` (exact assigned ARN, username,
+enable time). It does not fetch seed/QR data or call account-wide `ListVirtualMFADevices`.
+ConsoleLogin proves AWS accepted MFA, not which physical device/seed copy was used. AWS metadata
+cannot prove independence, restored-backup provenance, or password/seed separation: those require
+the owner's private witnessed drill/custody review **as well as**, never instead of, AWS events.
+Schema rejects unknown/seed-shaped fields; no seed belongs in the evidence JSON.
+
+### Private TOTP escrow and lost-phone drill
+
+1. Select existing protected storage before enrollment. Prefer encrypted offline storage with an
+   independently available unlock method; a sealed paper seed in genuinely protected physical
+   custody is an alternative. Neither the seed nor its unlock/retrieval instructions may depend on
+   the phone being recovered, inaccessible SSO, the same password vault, or the emergency password.
+   Do not assume any particular password manager or second device exists. If no suitable existing
+   trusted restoration host and independent storage are available, readiness remains blocked.
+2. Only after separate setup authorization, an approved administrator opens IAM → Users → emergency
+   user → Security credentials → Assign MFA device → Authenticator app. The owner privately retains
+   the initial enrollment seed directly into the chosen protected storage and completes two OTPs.
+   No agent/screen capture, shared screenshot, chat, repository, ordinary unencrypted file, shell
+   history, CloudFormation parameter, clipboard automation or Codex log may contain seed/QR/codes.
+3. Confirm normal phone authentication. Then put the phone out of use, unlock the backup without
+   phone/SSO access, restore into a trusted existing authenticator host, and perform a fresh AWS
+   MFA sign-in and exact-role read. This is still one registered AWS virtual device. Record only
+   non-sensitive event IDs/review references. Keep the original factor until recovery is proven.
+   Remove unintended plaintext/cache copies and dispose of the drill-only seed copy privately;
+   preserve the approved protected backup. A second independent device instead requires a separate
+   AWS enrollment/seed and its own login test—not importing the same seed twice.
+4. A recoverable seed can be cloned; exposure lets an attacker generate future OTPs. TOTP remains
+   phishable. Do not co-store emergency password and seed (even two entries in one unlocked vault),
+   cloud-sync both through one account, or treat encryption without independent key access as backup.
+5. If the phone is genuinely lost, restore the protected backup without disabling AWS MFA. If loss
+   may expose the seed, an authorized administrator replaces that enrollment after secure access is
+   restored, rotates exposed passwords, revokes affected console/login and role sessions, and proves
+   old-session denial. The restricted emergency user cannot reset its own IAM MFA. If backup fails,
+   use independently verified administration/root recovery to repair only the IAM factor under an
+   incident authorization; never remove MFA as an ordinary bypass or mutate Cognito to repair AWS.
+
+Root needs its own independently recoverable MFA and privately verified email/phone contact path;
+the same lost phone must not be the only route to root, SSO, seed decryption, and emergency mail.
+An MFA-enabled indicator alone proves none of this. A root alternate MFA device, if already
+available, or AWS's controlled root recovery procedure must be reviewed and tested privately.
+Do not purchase two hardware keys or use root for routine application recovery. Seth remains the
+sole human: illness/absence and correlated device/vault compromise are unresolved availability risks
+until reviewed; this design must not be called fully independent before a successful recovery drill.
+[AWS IAM/root recovery procedures](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_mfa_lost-or-broken.html).
+
 This is a non-sensitive procedure template. Maintain the completed inventory and instructions
 only in the approved private vault/offline escrow—not Git, Codex logs, screenshots, or shared notes.
 Record private pointers, not secrets, in change evidence. The owner must select the custody strategy.
@@ -172,20 +281,17 @@ Record private pointers, not secrets, in change evidence. The owner must select 
 3. Through an already verified administrator session, have Seth privately set a strong unique console
    password (recommend at least 20 random characters). No CDK LoginProfile or scripted password.
    Complete any initial reset under controlled setup; the recovery user has no ChangePassword policy.
-4. Register two non-syncable hardware security keys with administrator-assisted enrollment; the user
-   has no automatic IAM self-service rights. Physically test each in a clean IAM sign-in. Verify IAM
-   reports both registrations and record their inventory privately. Store them separately so loss/fire
-   of one location does not lose both. Do not depend on the routine SSO/IdP password vault to retrieve
-   the emergency password or instructions. Use a separately unlockable vault plus protected offline
-   escrow, with audited access and no publicly documented custody locations.
-5. Privately verify management-account root has at least two independently stored backup MFA devices,
-   no access keys, a unique password, and controlled recovery email/phone independent of the normal
-   IdP and primary vault. Avoid a single device/location/mailbox controlling all three access paths.
+4. Complete the selected explicit mode: the virtual TOTP escrow/recovery drill above, or optional
+   two-key hardware enrollment. The user has no automatic IAM self-service rights. Physically test
+   the normal and recovery paths, verify AWS enrollment metadata, and keep custody details private.
+5. Privately verify root has independently recoverable MFA, no access keys, a unique password, and
+   controlled recovery email/phone independent of the normal IdP, phone and primary vault. Use
+   additional existing factors where available; do not assume device count/contact control is verified.
 6. Establish and test alerts, the approved local temporary-credential harness, and role-session
    revocation. Complete the disposable drill first; collect redacted pass/fail evidence and AWS IDs.
-7. If one key is lost, use the separately stored key; a verified administrator removes/replaces only
-   the lost registration under approval. If both are lost, use the protected administrative/root
-   process to restore AWS access—not Cognito identity deletion or bypassing MFA.
+7. For hardware mode, use the separately stored key if one is lost; replace only the lost registration
+   under approval. For TOTP, follow the protected restore/reset procedure above. If all factors/backup
+   fail, use protected administrative/root recovery—not Cognito identity deletion or bypassing MFA.
 8. After use/compromise, review CloudTrail, revoke issued sessions through verified administration,
    rotate exposed passwords/escrow material and replace compromised keys under separate approval.
    Cache logout alone is not revocation. Rehearse at least quarterly and after significant changes.

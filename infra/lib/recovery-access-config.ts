@@ -13,6 +13,13 @@ export const EMERGENCY_USER_ARN = `arn:aws:iam::${RECOVERY_ACCOUNT}:user/${EMERG
 export const EMERGENCY_ROLE_ARN = `arn:aws:iam::${RECOVERY_ACCOUNT}:role/${EMERGENCY_ROLE_NAME}`;
 export const REVIEW_REFERENCE_PATTERN = /^[A-Za-z][A-Za-z0-9_-]{2,63}$/;
 export interface EmergencyEvidence {
+  readonly mfaMode: "hardware-fido" | "virtual-totp";
+  readonly virtualTotpRecovery?: Readonly<{
+    method: "escrow-restore" | "independent-device";
+    recoveryReviewReference: string;
+    passwordSeparationReviewReference: string;
+    recoveryConsoleLoginEventId: string;
+  }>;
   readonly userArn: string; readonly roleArn: string;
   readonly userId: string; readonly roleId: string;
   readonly primaryDirectoryFingerprint: string;
@@ -76,7 +83,7 @@ export function assignmentUsers(config: RecoveryAccessConfig): Record<string, st
 
 export function validateEmergencyEvidence(value: EmergencyEvidence | undefined): asserts value is EmergencyEvidence {
   const uuid = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/;
-  const fields = ["userArn", "roleArn", "userId", "roleId", "primaryDirectoryFingerprint", "deviceSerialNumbers", "custodyReviewReference", "cliAuthenticationReviewReference",
+  const fields = ["mfaMode", "virtualTotpRecovery", "userArn", "roleArn", "userId", "roleId", "primaryDirectoryFingerprint", "deviceSerialNumbers", "custodyReviewReference", "cliAuthenticationReviewReference",
     "notificationSubscriptionArn", "notificationRecipientFingerprint", "notificationReceiptReviewReference",
     "primaryMfaEventId", "consoleLoginEventIds", "assumeRoleEventId", "successfulReadEventId", "revocationEventId", "revokedReadEventId", "noMfaDeniedEventId", "staleMfaDeniedEventId"];
   if (!value || Object.keys(value).some(key => !fields.includes(key)) || value.userArn !== EMERGENCY_USER_ARN || value.roleArn !== EMERGENCY_ROLE_ARN ||
@@ -87,14 +94,34 @@ export function validateEmergencyEvidence(value: EmergencyEvidence | undefined):
     !REVIEW_REFERENCE_PATTERN.test(value.notificationReceiptReviewReference ?? "") ||
     !/^[0-9a-f]{64}$/.test(value.notificationRecipientFingerprint ?? "") ||
     !/^arn:aws:sns:us-west-2:906467472082:perfect-shade-production-operational-alarms:[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/.test(value.notificationSubscriptionArn ?? "") ||
-    !Array.isArray(value.deviceSerialNumbers) || value.deviceSerialNumbers.length !== 2 ||
-    new Set(value.deviceSerialNumbers).size !== 2 ||
-    value.deviceSerialNumbers.some(serial => typeof serial !== "string" || !/^arn:aws:iam::906467472082:u2f\/[A-Za-z0-9+=,.@_\/-]+$/.test(serial)) ||
+    !Array.isArray(value.deviceSerialNumbers) ||
+    !["hardware-fido", "virtual-totp"].includes(value.mfaMode) ||
+    new Set(value.deviceSerialNumbers).size !== value.deviceSerialNumbers.length ||
     !Array.isArray(value.consoleLoginEventIds) || value.consoleLoginEventIds.length !== 2 ||
     new Set(value.consoleLoginEventIds).size !== 2 ||
     [...value.consoleLoginEventIds, value.primaryMfaEventId, value.assumeRoleEventId, value.successfulReadEventId, value.revocationEventId, value.revokedReadEventId, value.noMfaDeniedEventId, value.staleMfaDeniedEventId]
       .some(id => typeof id !== "string" || !uuid.test(id))) {
     throw new Error("Exact emergency identities, device registrations, private reviews, and real CloudTrail test event IDs are required.");
+  }
+  if (value.mfaMode === "hardware-fido") {
+    if (value.virtualTotpRecovery !== undefined || value.deviceSerialNumbers.length !== 2 ||
+      value.deviceSerialNumbers.some(serial => typeof serial !== "string" || !/^arn:aws:iam::906467472082:u2f\/[A-Za-z0-9+=,.@_\/-]+$/.test(serial))) {
+      throw new Error("Hardware mode requires two exact FIDO registrations and no virtual recovery fields.");
+    }
+  } else {
+    const recovery = value.virtualTotpRecovery;
+    const keys = ["method", "recoveryReviewReference", "passwordSeparationReviewReference", "recoveryConsoleLoginEventId"];
+    if (!recovery || Object.keys(recovery).some(key => !keys.includes(key)) ||
+      !["escrow-restore", "independent-device"].includes(recovery.method) ||
+      typeof recovery.recoveryReviewReference !== "string" ||
+      typeof recovery.passwordSeparationReviewReference !== "string" ||
+      !REVIEW_REFERENCE_PATTERN.test(recovery.recoveryReviewReference ?? "") ||
+      !REVIEW_REFERENCE_PATTERN.test(recovery.passwordSeparationReviewReference ?? "") ||
+      recovery.recoveryConsoleLoginEventId !== value.consoleLoginEventIds[1] ||
+      value.deviceSerialNumbers.length !== (recovery.method === "escrow-restore" ? 1 : 2) ||
+      value.deviceSerialNumbers.some(serial => typeof serial !== "string" || !/^arn:aws:iam::906467472082:mfa\/[A-Za-z0-9+=,.@_\/-]+$/.test(serial))) {
+      throw new Error("Virtual TOTP requires explicit enrolled devices, separate custody reviews, and a real recovery sign-in event; never include secrets.");
+    }
   }
 }
 

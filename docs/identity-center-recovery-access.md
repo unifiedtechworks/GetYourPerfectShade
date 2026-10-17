@@ -45,7 +45,7 @@ Required synthesis context (values are explicit inputs, never guessed):
 | `primaryRecoveryUserId`, `backupRecoveryUserId` | Unset by default; two-human requires both, protected-emergency requires only primary and forbids backup |
 | `recoveryEmergencyEvidencePath` | Private typed evidence JSON outside Git; only for protected-emergency activation |
 | `recoveryIdentityReviewReference` | Non-sensitive owner approval of the actual human-to-ID mappings |
-| `recoveryMfaReviewReference` | Non-sensitive record of MFA/enrollment review for both people |
+| `recoveryMfaReviewReference` | Non-sensitive record of MFA/enrollment review for the explicitly selected operator model |
 | `recoveryEmergencyReviewReference` | Reviewed independent emergency-access/revocation procedure |
 | `recoveryProvisionerProfile` | Explicit read-capable provisioning profile when activating assignments |
 
@@ -67,8 +67,11 @@ to a second human now has its own guarded definition and verification; do not fa
 
 Before assigning access, the owner/Identity Center administrator must inspect Settings →
 Authentication (or the upstream IdP), confirm required MFA enrollment and enforcement, and verify
-an actual MFA-backed sign-in for each approved operator. For the native directory, prefer MFA at
-every sign-in and required enrollment rather than a bypass for unenrolled users. For an external
+an actual MFA-backed sign-in for each approved operator. Seth has confirmed `UTAdmin` control,
+the native directory source and a password/authenticator login. The owner explicitly retains
+context-aware MFA; do not change it to always-on. Cached/trusted-context sign-in is not proof of
+a fresh challenge: the activation evidence still needs actual PASSWORD + TOTP/WEBAUTHN events.
+For an external
 IdP, verify its enforced MFA/step-up and recovery policy; directory existence is not MFA proof.
 
 The routine CLI profile is `perfect-shade-recovery`, configured with `aws configure sso` and
@@ -94,6 +97,11 @@ independent human: use the separately protected IAM authentication path and acce
 availability limitation. If Identity Center itself is unavailable, use the
 separately approved, protected emergency administrative process. Root is not routine recovery;
 root MFA/no-access-key indicators alone do not prove independent custody or recoverability.
+The selected no-purchase alternative is explicit `virtual-totp` with protected seed escrow and a
+demonstrated lost-phone recovery login/use; optional `hardware-fido` retains the two-key gate.
+Both modes require real AWS evidence and private custody review. Existing hardware evidence must
+now explicitly name its mode; do not silently infer a device mode or put seeds into evidence JSON.
+See the [mode-specific gates and escrow procedure](./protected-emergency-aws-access.md#mode-specific-evidence-no-secrets).
 
 The owner must name an access-revocation administrator and test both portal-session and issued
 AWS-role-session revocation. Logout/removing an assignment is not proof that issued STS credentials
