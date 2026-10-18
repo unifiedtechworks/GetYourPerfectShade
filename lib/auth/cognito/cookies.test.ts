@@ -50,7 +50,10 @@ describe("administrator-created user challenge state", () => {
       username: "staff@example.com",
       session: "opaque-session",
       next: "/app",
-      mfaMethods: ["email", "software-token"],
+      mfaMethods: [
+        { method: "email", answer: "EMAIL_OTP" },
+        { method: "software-token", answer: "SOFTWARE_TOKEN_MFA" },
+      ],
     }, now);
 
     expect(decodeChallenge(encodeChallenge(email), now)).toEqual(email);
@@ -62,6 +65,21 @@ describe("administrator-created user challenge state", () => {
     expect(decodeChallenge(encodeChallenge({
       ...selection,
       mfaMethods: [],
+    }), now)).toBeNull();
+    expect(decodeChallenge(encodeChallenge({
+      ...selection,
+      mfaMethods: [{ method: "email", answer: "SOFTWARE_TOKEN_MFA" }],
+    } as never), now)).toBeNull();
+    expect(decodeChallenge(encodeChallenge({
+      ...selection,
+      mfaMethods: [{ method: "software-token", answer: "SMS_MFA" }],
+    } as never), now)).toBeNull();
+    expect(decodeChallenge(encodeChallenge({
+      ...selection,
+      mfaMethods: [
+        { method: "email", answer: "EMAIL_OTP" },
+        { method: "email", answer: "EMAIL_MFA" },
+      ],
     }), now)).toBeNull();
   });
 });

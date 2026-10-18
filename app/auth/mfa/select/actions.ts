@@ -20,12 +20,15 @@ export async function chooseMfaMethod(formData: FormData) {
   const challenge = decodeChallenge(cookieStore.get(AUTH_COOKIES.challenge)?.value);
   if (
     !challenge || challenge.kind !== "mfa-selection" ||
-    !challenge.mfaMethods?.includes(method)
+    !challenge.mfaMethods?.some((selection) => selection.method === method)
   ) {
     redirect("/sign-in?error=challenge");
   }
 
-  const result = await selectMfaType(challenge.username, challenge.session, method);
+  const selection = challenge.mfaMethods.find((item) => item.method === method);
+  if (!selection) redirect("/sign-in?error=challenge");
+
+  const result = await selectMfaType(challenge.username, challenge.session, selection.answer);
   if (result.status === "authenticated") {
     setSessionCookies(cookieStore, result.tokens);
     redirect(safeNextPath(challenge.next));

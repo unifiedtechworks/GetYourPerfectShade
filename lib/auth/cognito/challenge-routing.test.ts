@@ -42,10 +42,18 @@ describe("server-controlled Cognito challenge routing", () => {
       status: "mfa-selection-required",
       username: "staff@example.com",
       session: "selection-session",
-      methods: ["email", "software-token"],
+      methods: [
+        { method: "email", answer: "EMAIL_OTP" },
+        { method: "software-token", answer: "SOFTWARE_TOKEN_MFA" },
+      ],
     }, "/app")).toMatchObject({
       path: "/auth/mfa/select",
-      challenge: { mfaMethods: ["email", "software-token"] },
+      challenge: {
+        mfaMethods: [
+          { method: "email", answer: "EMAIL_OTP" },
+          { method: "software-token", answer: "SOFTWARE_TOKEN_MFA" },
+        ],
+      },
     });
   });
 });

@@ -44,7 +44,7 @@ export type SignInResult =
       status: "mfa-selection-required";
       username: string;
       session: string;
-      methods: MfaMethod[];
+      methods: MfaSelection[];
     }
   | { status: "unsupported-challenge" }
   | { status: "configuration-error" }
@@ -65,22 +65,76 @@ type AuthenticationResponse = Readonly<{
 
 export type EmailMfaChallengeName = "EMAIL_OTP" | "EMAIL_MFA";
 export type MfaMethod = "email" | "software-token";
+export type MfaSelectionAnswer = EmailMfaChallengeName | "SOFTWARE_TOKEN_MFA";
+export type MfaSelection = Readonly<{
+  method: MfaMethod;
+  answer: MfaSelectionAnswer;
+}>;
 
-function selectableMfaMethods(value: string | undefined): MfaMethod[] {
-  if (!value) return [];
+function parsedMfaValues(value: string | undefined): string[] | null {
+  const trimmed = value?.trim();
+  if (!trimmed) return null;
+
   let values: unknown;
-  try {
-    values = JSON.parse(value);
-  } catch {
-    values = value.split(",").map((item) => item.trim());
+  if (trimmed.startsWith("[")) {
+    try {
+      values = JSON.parse(trimmed);
+    } catch {
+      return null;
+    }
+  } else {
+    values = trimmed.split(",").map((item) => item.trim());
   }
-  if (!Array.isArray(values)) return [];
-  const methods: MfaMethod[] = [];
-  if (values.some((item) => item === "EMAIL_OTP" || item === "EMAIL_MFA")) {
-    methods.push("email");
+
+  if (
+    !Array.isArray(values) || values.length === 0 ||
+    values.some((item) => typeof item !== "string" || item.trim().length === 0)
+  ) return null;
+
+  return values.map((item) => (item as string).trim());
+}
+
+function parsedMfaSelections(value: string | undefined): MfaSelection[] | null {
+  const values = parsedMfaValues(value);
+  if (!values) return null;
+
+  let emailAnswer: EmailMfaChallengeName | undefined;
+  let offersSoftwareToken = false;
+  for (const value of values) {
+    if (value === "EMAIL_OTP" || value === "EMAIL_MFA") {
+      if (emailAnswer && emailAnswer !== value) return null;
+      emailAnswer = value;
+    } else if (value === "SOFTWARE_TOKEN_MFA") {
+      offersSoftwareToken = true;
+    } else {
+      return null;
+    }
   }
-  if (values.includes("SOFTWARE_TOKEN_MFA")) methods.push("software-token");
-  return methods;
+
+  const selections: MfaSelection[] = [];
+  if (emailAnswer) selections.push({ method: "email", answer: emailAnswer });
+  if (offersSoftwareToken) {
+    selections.push({ method: "software-token", answer: "SOFTWARE_TOKEN_MFA" });
+  }
+  return selections.length > 0 ? selections : null;
+}
+
+function selectableMfaMethods(
+  parameters: Readonly<Record<string, string>> | undefined,
+): MfaSelection[] {
+  const values = [parameters?.MFAS_CAN_CHOOSE, parameters?.MFAS_CAN_SELECT]
+    .filter((value): value is string => value !== undefined);
+  if (values.length === 0) return [];
+
+  const selections = values.map(parsedMfaSelections);
+  if (selections.some((selection) => selection === null)) return [];
+  const [first, ...rest] = selections as MfaSelection[][];
+  if (rest.some((selection) => JSON.stringify(selection) !== JSON.stringify(first))) return [];
+  return first;
+}
+
+function isMfaSelectionAnswer(value: string): value is MfaSelectionAnswer {
+  return value === "EMAIL_OTP" || value === "EMAIL_MFA" || value === "SOFTWARE_TOKEN_MFA";
 }
 
 export function authenticationResponse(
@@ -112,7 +166,7 @@ export function authenticationResponse(
     };
   }
   if (response.ChallengeName === ChallengeNameType.SELECT_MFA_TYPE) {
-    const methods = selectableMfaMethods(response.ChallengeParameters?.MFAS_CAN_SELECT);
+    const methods = selectableMfaMethods(response.ChallengeParameters);
     if (methods.length > 0) {
       return {
         status: "mfa-selection-required",
@@ -226,8 +280,9 @@ export function createCognitoAuthService(client: CognitoClient, clientId: string
     async selectMfaType(
       username: string,
       session: string,
-      method: MfaMethod,
+      answer: MfaSelectionAnswer,
     ): Promise<SignInResult> {
+      if (!isMfaSelectionAnswer(answer)) return { status: "mfa-code-error" };
       try {
         const response = await client.send(new RespondToAuthChallengeCommand({
           ClientId: clientId,
@@ -235,8 +290,7 @@ export function createCognitoAuthService(client: CognitoClient, clientId: string
           Session: session,
           ChallengeResponses: {
             USERNAME: username,
-            ANSWER: method === "email" ? ChallengeNameType.EMAIL_OTP :
-              ChallengeNameType.SOFTWARE_TOKEN_MFA,
+            ANSWER: answer,
           },
         })) as AuthenticationResponse;
         return authenticationResponse(response, username);
@@ -342,9 +396,9 @@ export async function completeSoftwareMfa(username: string, session: string, cod
 export async function selectMfaType(
   username: string,
   session: string,
-  method: MfaMethod,
+  answer: MfaSelectionAnswer,
 ) {
-  return configuredClient()?.selectMfaType(username, session, method) ??
+  return configuredClient()?.selectMfaType(username, session, answer) ??
     { status: "configuration-error" as const };
 }
 

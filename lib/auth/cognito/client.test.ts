@@ -140,12 +140,12 @@ describe("Cognito MFA challenge state machine", () => {
     )).resolves.toEqual({ status: "authenticated", tokens });
   });
 
-  it("offers only supported methods from SELECT_MFA_TYPE and selects email", async () => {
+  it("reads the production MFAS_CAN_CHOOSE field and selects its EMAIL_OTP offer", async () => {
     const client = new FakeCognitoClient([
       {
         ChallengeName: ChallengeNameType.SELECT_MFA_TYPE,
         ChallengeParameters: {
-          MFAS_CAN_SELECT: '["EMAIL_OTP","SOFTWARE_TOKEN_MFA","SMS_MFA"]',
+          MFAS_CAN_CHOOSE: '["EMAIL_OTP","SOFTWARE_TOKEN_MFA"]',
         },
         Session: "selection-session",
       },
@@ -158,18 +158,73 @@ describe("Cognito MFA challenge state machine", () => {
       "not-recorded",
     )).resolves.toMatchObject({
       status: "mfa-selection-required",
-      methods: ["email", "software-token"],
+      methods: [
+        { method: "email", answer: "EMAIL_OTP" },
+        { method: "software-token", answer: "SOFTWARE_TOKEN_MFA" },
+      ],
     });
     await expect(service.selectMfaType(
       "staff@example.com",
       "selection-session",
-      "email",
+      "EMAIL_OTP",
     )).resolves.toMatchObject({ status: "email-mfa-code-required" });
     expect(client.commands[1]).toMatchObject({
       input: {
         ChallengeName: "SELECT_MFA_TYPE",
         ChallengeResponses: { ANSWER: "EMAIL_OTP" },
       },
+    });
+  });
+
+  it("keeps MFAS_CAN_SELECT compatibility and parses comma-delimited offers", async () => {
+    const client = new FakeCognitoClient([{
+      ChallengeName: ChallengeNameType.SELECT_MFA_TYPE,
+      ChallengeParameters: {
+        MFAS_CAN_SELECT: "EMAIL_OTP, SOFTWARE_TOKEN_MFA",
+      },
+      Session: "selection-session",
+    }]);
+
+    await expect(createCognitoAuthService(client, "client-id").authenticateWithPassword(
+      "staff@example.com",
+      "not-recorded",
+    )).resolves.toMatchObject({
+      status: "mfa-selection-required",
+      methods: [
+        { method: "email", answer: "EMAIL_OTP" },
+        { method: "software-token", answer: "SOFTWARE_TOKEN_MFA" },
+      ],
+    });
+  });
+
+  it("preserves and submits the legacy EMAIL_MFA offer", async () => {
+    const client = new FakeCognitoClient([
+      {
+        ChallengeName: ChallengeNameType.SELECT_MFA_TYPE,
+        ChallengeParameters: { MFAS_CAN_CHOOSE: '["EMAIL_MFA"]' },
+        Session: "selection-session",
+      },
+      { ChallengeName: "EMAIL_MFA", Session: "legacy-email-session" },
+    ]);
+    const service = createCognitoAuthService(client, "client-id");
+
+    await expect(service.authenticateWithPassword(
+      "staff@example.com",
+      "not-recorded",
+    )).resolves.toMatchObject({
+      status: "mfa-selection-required",
+      methods: [{ method: "email", answer: "EMAIL_MFA" }],
+    });
+    await expect(service.selectMfaType(
+      "staff@example.com",
+      "selection-session",
+      "EMAIL_MFA",
+    )).resolves.toMatchObject({
+      status: "email-mfa-code-required",
+      challengeName: "EMAIL_MFA",
+    });
+    expect(client.commands[1]).toMatchObject({
+      input: { ChallengeResponses: { ANSWER: "EMAIL_MFA" } },
     });
   });
 
@@ -183,7 +238,7 @@ describe("Cognito MFA challenge state machine", () => {
     await expect(service.selectMfaType(
       "staff@example.com",
       "selection-session",
-      "software-token",
+      "SOFTWARE_TOKEN_MFA",
     )).resolves.toMatchObject({ status: "mfa-code-required" });
     expect(client.commands[0]).toMatchObject({
       input: {
@@ -203,7 +258,7 @@ describe("Cognito MFA challenge state machine", () => {
     await expect(service.selectMfaType(
       "staff@example.com",
       "selection-session",
-      "software-token",
+      "SOFTWARE_TOKEN_MFA",
     )).resolves.toEqual({
       status: "mfa-setup-required",
       username: "staff@example.com",
@@ -311,5 +366,40 @@ describe("Cognito MFA challenge state machine", () => {
     await expect(createCognitoAuthService(client, "client-id")
       .authenticateWithPassword("staff@example.com", "not-recorded"))
       .resolves.toEqual({ status: "unsupported-challenge" });
+  });
+
+  it.each([
+    ["missing metadata", undefined],
+    ["malformed JSON", { MFAS_CAN_CHOOSE: '["EMAIL_OTP"' }],
+    ["non-array JSON", { MFAS_CAN_CHOOSE: '{"method":"EMAIL_OTP"}' }],
+    ["unknown method", { MFAS_CAN_CHOOSE: '["EMAIL_OTP","CUSTOM_MFA"]' }],
+    ["mixed SMS method", { MFAS_CAN_CHOOSE: '["EMAIL_OTP","SMS_MFA"]' }],
+    ["conflicting email aliases", { MFAS_CAN_CHOOSE: '["EMAIL_OTP","EMAIL_MFA"]' }],
+    ["conflicting fields", {
+      MFAS_CAN_CHOOSE: '["EMAIL_OTP"]',
+      MFAS_CAN_SELECT: '["SOFTWARE_TOKEN_MFA"]',
+    }],
+  ])("fails closed for %s", async (_label, parameters) => {
+    const client = new FakeCognitoClient([{
+      ChallengeName: ChallengeNameType.SELECT_MFA_TYPE,
+      ChallengeParameters: parameters,
+      Session: "selection-session",
+    }]);
+
+    await expect(createCognitoAuthService(client, "client-id")
+      .authenticateWithPassword("staff@example.com", "not-recorded"))
+      .resolves.toEqual({ status: "unsupported-challenge" });
+  });
+
+  it("rejects a caller-supplied unsupported selection before sending to Cognito", async () => {
+    const client = new FakeCognitoClient([]);
+    const service = createCognitoAuthService(client, "client-id");
+
+    await expect(service.selectMfaType(
+      "staff@example.com",
+      "selection-session",
+      "SMS_MFA" as never,
+    )).resolves.toEqual({ status: "mfa-code-error" });
+    expect(client.commands).toHaveLength(0);
   });
 });

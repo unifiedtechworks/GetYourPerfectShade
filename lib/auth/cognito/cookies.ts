@@ -1,4 +1,5 @@
 import type { AuthenticationResultType } from "@aws-sdk/client-cognito-identity-provider";
+import type { MfaSelection } from "./client";
 
 export const AUTH_COOKIES = {
   access: "ps_cognito_access",
@@ -66,7 +67,7 @@ export type AuthChallenge = {
   session: string;
   next: string;
   issuedAt: number;
-  mfaMethods?: Array<"email" | "software-token">;
+  mfaMethods?: MfaSelection[];
   emailChallengeName?: "EMAIL_OTP" | "EMAIL_MFA";
 };
 
@@ -79,6 +80,21 @@ export function createChallenge(
 
 export function encodeChallenge(value: AuthChallenge) {
   return Buffer.from(JSON.stringify(value), "utf8").toString("base64url");
+}
+
+function hasValidMfaSelections(value: unknown): value is MfaSelection[] {
+  if (!Array.isArray(value) || value.length === 0) return false;
+  const methods = new Set<string>();
+  return value.every((selection: unknown) => {
+    if (typeof selection !== "object" || selection === null) return false;
+    const { method, answer } = selection as Partial<MfaSelection>;
+    if (typeof method !== "string" || methods.has(method)) return false;
+    methods.add(method);
+    return (
+      (method === "email" && (answer === "EMAIL_OTP" || answer === "EMAIL_MFA")) ||
+      (method === "software-token" && answer === "SOFTWARE_TOKEN_MFA")
+    );
+  });
 }
 
 export function decodeChallenge(
@@ -114,13 +130,7 @@ export function decodeChallenge(
       now - (parsed as AuthChallenge).issuedAt <= AUTH_CHALLENGE_MAX_AGE_SECONDS * 1_000 &&
       (
         (parsed as AuthChallenge).kind !== "mfa-selection" ||
-        (
-          Array.isArray((parsed as AuthChallenge).mfaMethods) &&
-          (parsed as AuthChallenge).mfaMethods!.length > 0 &&
-          (parsed as AuthChallenge).mfaMethods!.every((method) =>
-            method === "email" || method === "software-token"
-          )
-        )
+        hasValidMfaSelections((parsed as AuthChallenge).mfaMethods)
       ) &&
       (
         (parsed as AuthChallenge).kind !== "email-mfa" ||

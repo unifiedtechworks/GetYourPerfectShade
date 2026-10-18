@@ -15,7 +15,9 @@ export default async function SelectMfaPage({
     (await cookies()).get(AUTH_COOKIES.challenge)?.value,
   );
   const { error } = await searchParams;
-  const methods = challenge?.kind === "mfa-selection" ? challenge.mfaMethods ?? [] : [];
+  const methods = challenge?.kind === "mfa-selection"
+    ? (challenge.mfaMethods ?? []).map(({ method }) => method)
+    : [];
 
   return (
     <main className={styles.page}>
