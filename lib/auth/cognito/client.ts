@@ -97,6 +97,8 @@ function parsedMfaValues(value: string | undefined): string[] | null {
 function parsedMfaSelections(value: string | undefined): MfaSelection[] | null {
   const values = parsedMfaValues(value);
   if (!values) return null;
+  // Reject repeated raw offers before canonicalizing them into application choices.
+  if (new Set(values).size !== values.length) return null;
 
   let emailAnswer: EmailMfaChallengeName | undefined;
   let offersSoftwareToken = false;
