@@ -9,16 +9,19 @@ API, bucket, document, user, or environment value.
 
 Approved business inputs:
 
-- organization: `Perfect Shade`;
+- organization: `Perfect Shade LLC`;
 - primary production owner: Sheri;
-- secondary owner-level access: Seth / Unified Techworks through the separately controlled Chat 2
-  administrative workflow, never by rerunning initial-owner bootstrap;
+- sole application Owner: Sheri; Seth / Unified Techworks is an application Admin invited through
+  Team Management, never a second Owner or a rerun of initial-owner bootstrap;
 - SES From: `notifications@getyourperfectshade.com`;
-- SES Reply-To: `ps.getyourperfectshade@gmail.com`; and
+- SES Reply-To: `ps.perfectshade@gmail.com`; and
 - no inbound mailbox or MX records are required for `getyourperfectshade.com`.
 
 The From address does not need a mailbox. SES authorizes it through the verified domain identity.
 Replies go to the monitored Gmail mailbox. Do not add MX records.
+
+The corrected mailbox is source-approved; live profile/Reply-To maintenance and releases require
+separate authorization. See [post-onboarding email corrections](post-onboarding-email-corrections.md).
 
 The `getyourperfectshade.com` SES domain identity is pre-existing and externally managed.
 `PerfectShadeProduction` imports it by name and does not own the identity or its Easy DKIM DNS
@@ -32,7 +35,7 @@ Production synthesis and deployment require separate context values for `sesFrom
 
 ```text
 sesFromEmail=notifications@getyourperfectshade.com
-sesReplyToEmail=ps.getyourperfectshade@gmail.com
+sesReplyToEmail=ps.perfectshade@gmail.com
 sesVerifiedDomain=getyourperfectshade.com
 operationsNotificationEmail=<approved operations recipient>
 budgetNotificationEmail=<approved budget recipient>
@@ -62,7 +65,7 @@ the corrected stack is deployed and before production sending.
 4. Wait until SES reports both domain identity verification and DKIM status as successful. Query
    the authoritative nameservers and at least one independent resolver before acceptance.
 5. Configure Cognito with From `notifications@getyourperfectshade.com` and Reply-To
-   `ps.getyourperfectshade@gmail.com`. Send replies only to the Gmail mailbox; the From address is
+   `ps.perfectshade@gmail.com`. Send replies only to the Gmail mailbox; the From address is
    intentionally send-only.
 6. Request SES production access for transactional staff invitation, verification, and email-MFA
    mail. Describe the staff-only, low-volume use case and the monitored complaint/bounce

@@ -38,7 +38,7 @@ The deployed template and approved production configuration identify the intende
 **both separate subscriptions** as `seth@unifiedtechworks.com`. The owner must reconfirm that this
 is the monitored mailbox before recreation. Recipients remain configuration inputs, not new
 hard-coded CDK defaults. Do not change SES From `notifications@getyourperfectshade.com` or Reply-To
-`ps.getyourperfectshade@gmail.com`.
+`ps.perfectshade@gmail.com`.
 
 CloudTrail shows successful CloudFormation `Subscribe` calls with `returnSubscriptionArn=true`
 on October 7 at 15:57:29Z (operations) and 15:57:31Z (feedback). Stack creation completed for each.

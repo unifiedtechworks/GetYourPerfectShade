@@ -25,7 +25,7 @@ const config: PerfectShadeProductionConfig = {
   accountRecoveryMode: "admin-only",
   emailSenderMode: "ses",
   sesFromEmail: "notifications@getyourperfectshade.com",
-  sesReplyToEmail: "ps.getyourperfectshade@gmail.com",
+  sesReplyToEmail: "ps.perfectshade@gmail.com",
   sesVerifiedDomain: "getyourperfectshade.com",
   sesSenderDomain: "getyourperfectshade.com",
   enableBudget: true,
@@ -46,7 +46,7 @@ function validProductionContext(overrides: Record<string, string> = {}) {
     logoutUrls: "https://www.getyourperfectshade.com/sign-in",
     allowedCorsOrigins: "https://www.getyourperfectshade.com",
     sesFromEmail: "notifications@getyourperfectshade.com",
-    sesReplyToEmail: "ps.getyourperfectshade@gmail.com",
+    sesReplyToEmail: "ps.perfectshade@gmail.com",
     sesVerifiedDomain: "getyourperfectshade.com",
     operationsNotificationEmail: "operations@example.invalid",
     budgetNotificationEmail: "budget@example.invalid",
@@ -203,7 +203,7 @@ describe("PerfectShadeProductionStack", { timeout: 120_000 }, () => {
       DeletionProtection: "ACTIVE",
       EmailConfiguration: Match.objectLike({
         From: "Perfect Shade <notifications@getyourperfectshade.com>",
-        ReplyToEmailAddress: "ps.getyourperfectshade@gmail.com",
+        ReplyToEmailAddress: "ps.perfectshade@gmail.com",
         ConfigurationSet: Match.anyValue(),
       }),
     });

@@ -1,7 +1,8 @@
-import { PDFDocument } from "pdf-lib";
+import { PDFDocument, PDFRawStream, decodePDFRawStream } from "pdf-lib";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { inflateRawSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
 import type { EstimateDetail } from "../aws/api/estimate-contracts";
 import {
@@ -83,6 +84,28 @@ function estimate(overrides: Partial<EstimateDetail> = {}): EstimateDetail {
 
 const GENERATED_AT = new Date("2026-08-09T12:34:56.000Z");
 
+function readZipEntry(bytes: Uint8Array, filename: string): string {
+  const zip = Buffer.from(bytes);
+  const end = zip.lastIndexOf(Buffer.from([0x50, 0x4b, 0x05, 0x06]));
+  if (end < 0) throw new Error("Missing ZIP directory.");
+  let offset = zip.readUInt32LE(end + 16);
+  for (let entry = 0; entry < zip.readUInt16LE(end + 10); entry++) {
+    if (zip.readUInt32LE(offset) !== 0x02014b50) throw new Error("Invalid ZIP directory.");
+    const nameLength = zip.readUInt16LE(offset + 28);
+    const name = zip.subarray(offset + 46, offset + 46 + nameLength).toString("utf8");
+    if (name === filename) {
+      const local = zip.readUInt32LE(offset + 42);
+      const start = local + 30 + zip.readUInt16LE(local + 26) + zip.readUInt16LE(local + 28);
+      const data = zip.subarray(start, start + zip.readUInt32LE(offset + 20));
+      const compression = zip.readUInt16LE(offset + 10);
+      if (compression !== 0 && compression !== 8) throw new Error("Unsupported ZIP compression.");
+      return (compression === 8 ? inflateRawSync(data) : data).toString("utf8");
+    }
+    offset += 46 + nameLength + zip.readUInt16LE(offset + 30) + zip.readUInt16LE(offset + 32);
+  }
+  throw new Error(`Missing ZIP entry: ${filename}`);
+}
+
 describe("Phase 4 filename and object-key safety", () => {
   it("preserves the desktop-readable core while removing unsafe path content", () => {
     expect(sanitizeFilenamePart('  ACME: West / Phase*1?  ')).toBe(
@@ -147,6 +170,31 @@ describe("Phase 4 structured JSON export", () => {
 });
 
 describe("Phase 4 DOCX and PDF generation", () => {
+  it("embeds the approved business email in actual DOCX content without rewriting its source", async () => {
+    const source = estimate({ status: "issued", issuedAt: "2026-08-02T00:00:00.000Z" });
+    const snapshot = JSON.stringify(source);
+    const jsonBefore = generateEstimateJson(source, GENERATED_AT);
+    const xml = readZipEntry(await generateEstimateDocx(source), "word/document.xml");
+    expect(xml).toContain("Email: ps.perfectshade@gmail.com");
+    expect(xml).not.toContain("ps.getyourperfectshade@gmail.com");
+    expect(JSON.stringify(source)).toBe(snapshot);
+    expect(generateEstimateJson(source, GENERATED_AT)).toEqual(jsonBefore);
+    expect(new TextDecoder().decode(jsonBefore)).not.toContain("ps.perfectshade@gmail.com");
+  });
+
+  it("embeds the approved business email in actual PDF content streams", async () => {
+    const pdf = await PDFDocument.load(await generateEstimatePdf(estimate(), GENERATED_AT));
+    const content = pdf.context.enumerateIndirectObjects()
+      .flatMap(([, value]) => value instanceof PDFRawStream
+        ? [Buffer.from(decodePDFRawStream(value).decode()).toString("latin1")]
+        : [])
+      .join("\n").toUpperCase();
+    const encoded = (value: string) => Buffer.from(value).toString("hex").toUpperCase();
+    expect(content).toContain(encoded("Email: ps.perfectshade@gmail.com"));
+    expect(content).not.toContain(encoded("ps.getyourperfectshade@gmail.com"));
+    for (const page of pdf.getPages()) expect(page.getSize()).toEqual({ width: 612, height: 792 });
+  });
+
   it("creates a valid-looking OOXML ZIP package", async () => {
     const bytes = await generateEstimateDocx(estimate());
     const packageDirectory = Buffer.from(bytes).toString("latin1");
@@ -158,8 +206,8 @@ describe("Phase 4 DOCX and PDF generation", () => {
 
   it("uses the approved wording, conditions, money, and alternate separation", () => {
     const text = buildEstimatePdfText(estimate());
-    expect(text).toContain("Email: ps.getyourperfectshade@gmail.com");
-    expect(text).not.toContain("ps.perfectshade@gmail.com");
+    expect(text).toContain("Email: ps.perfectshade@gmail.com");
+    expect(text).not.toContain("ps.getyourperfectshade@gmail.com");
     expect(text).toContain(RETAINAGE_TERM_TEXT);
     expect(text).toContain(MEASUREMENT_READINESS_TEXT);
     expect(text).toContain(CRAFTSMANSHIP_WARRANTY_TEXT);

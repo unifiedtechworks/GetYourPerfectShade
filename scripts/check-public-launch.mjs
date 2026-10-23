@@ -23,8 +23,8 @@ for (const path of publicPaths) {
   const schema = scripts.map((match) => JSON.parse(match[1]))
     .find((item) => item["@type"] === "LocalBusiness");
   assert.equal(schema?.url, canonicalOrigin, path + " schema");
-  assert.equal(schema?.email, "ps.getyourperfectshade@gmail.com", path + " schema email");
-  assert.doesNotMatch(html, /ps\.perfectshade@gmail\.com|https:\/\/getyourperfectshade\.com/i);
+  assert.equal(schema?.email, "ps.perfectshade@gmail.com", path + " schema email");
+  assert.doesNotMatch(html, /ps\.getyourperfectshade@gmail\.com|https:\/\/getyourperfectshade\.com/i);
   console.log("PASS", path, "200; canonical, OG, schema, and contact");
 }
 

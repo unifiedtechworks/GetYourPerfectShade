@@ -26,7 +26,7 @@ do not repeat the old registrar/nameserver transition if it is already complete.
 Recorded owner decisions:
 
 - Perfect Shade does not currently use an `@getyourperfectshade.com` mailbox.
-- The approved customer reply/contact address is `ps.getyourperfectshade@gmail.com`.
+- The approved customer reply/contact address is `ps.perfectshade@gmail.com`.
 - Future domain-hosted email is optional and is not part of this cutover.
 - Sheri is the sole production Perfect Shade application Owner.
 - Seth / Unified Techworks requires application **Admin** access for estimates, company operations,
@@ -96,7 +96,7 @@ The authoritative Wix server returned no published records for:
 - `_domainconnect` CNAME.
 
 The approved public contact and transactional Reply-To address is
-`ps.getyourperfectshade@gmail.com`. The owner has confirmed that the domain does not need to receive
+`ps.perfectshade@gmail.com`. The owner has confirmed that the domain does not need to receive
 inbound mail or provide custom-domain aliases or forwarding. No MX record is required or approved;
 the absence of apex MX is not a web-launch blocker. SPF can authorize senders but does not route
 inbound mail, and the observed SPF reference to Google is not evidence that Google Workspace is
@@ -105,7 +105,7 @@ mail-provider records during the website cutover.
 
 Future domain-hosted email remains optional and requires a separate approved mail project.
 Production SES uses From `notifications@getyourperfectshade.com` and Reply-To
-`ps.getyourperfectshade@gmail.com` unless a domain mailbox is intentionally added later. SES
+`ps.perfectshade@gmail.com` unless a domain mailbox is intentionally added later. SES
 sending-domain verification does not create an inbound mailbox and must not be described as one.
 
 The SPF policy also contains the `a` mechanism. Replacing the apex web target changes the hosts
@@ -297,7 +297,7 @@ steps; the public-site owner validates public behavior.
    branch to `https://www.getyourperfectshade.com`, then verify metadata base, Open Graph URLs,
    sitemap URLs, robots sitemap, and LocalBusiness JSON-LD all emit `www`. It also currently uses
    `PS.PerfectShade@gmail.com`; update the public contact and `mailto:` value to the owner-approved
-   `ps.getyourperfectshade@gmail.com` and verify every public occurrence before launch.
+   `ps.perfectshade@gmail.com` and verify every public occurrence before launch.
 4. **Configure exact production identity/API URLs.** Set and verify:
    - site origin: `https://www.getyourperfectshade.com`;
    - Cognito callback: `https://www.getyourperfectshade.com/auth/callback`;
@@ -452,18 +452,18 @@ Record pass/fail, timestamp, tester, device/browser, and evidence for each item.
   SES, or unrelated service records.
 - [x] The owner has recorded that `getyourperfectshade.com` is not expected to receive inbound
   email; no MX or Google Workspace configuration is required.
-- [ ] The approved `ps.getyourperfectshade@gmail.com` public contact and Reply-To remains published
+- [ ] The approved `ps.perfectshade@gmail.com` public contact and Reply-To remains published
   and passes an inbound reply test.
 - [ ] SPF, DKIM, and DMARC evaluation is healthy for each approved sending path.
 - [ ] No MX or mailbox-provider record was added as part of the website cutover.
-- [ ] Public contact text and `mailto:` links use `ps.getyourperfectshade@gmail.com` and work.
+- [ ] Public contact text and `mailto:` links use `ps.perfectshade@gmail.com` and work.
 - [ ] The site does not claim that `getyourperfectshade.com` hosts inbound email.
 - [ ] Existing SPF, DKIM, DMARC, verification, forwarding, and unrelated DNS records remain
   unchanged unless covered by a separate approved change.
 - [ ] Cognito recovery/invitation and application transactional email pass through the approved
   production sender, with bounce/complaint monitoring active.
 - [ ] SES From is `notifications@getyourperfectshade.com`; customer replies route to
-  `ps.getyourperfectshade@gmail.com` unless a domain mailbox was separately approved and added.
+  `ps.perfectshade@gmail.com` unless a domain mailbox was separately approved and added.
 
 ### SEO and post-cutover monitoring
 
@@ -490,7 +490,7 @@ are resolved:
    runtime/admin credential separation, monitoring, recovery, and document output. The supporting
    source is implemented; this gate requires live execution evidence.
 5. Public release fixes changing `businessInfo.url` from apex to canonical `www` and the public
-   contact email to `ps.getyourperfectshade@gmail.com`, followed by build and metadata/link
+   contact email to `ps.perfectshade@gmail.com`, followed by build and metadata/link
    verification.
 6. Implemented and tested `/products` redirect plus the approved `/events` 410 or true-404
    retirement behavior.
@@ -503,7 +503,7 @@ are resolved:
    communication path, and rollback authority.
 10. Create/verify the SES domain identity, publish its exact Easy DKIM records, obtain SES
     production sending access, and validate From `notifications@getyourperfectshade.com` with
-    Reply-To `ps.getyourperfectshade@gmail.com`. Missing inbound MX is not a gate.
+    Reply-To `ps.perfectshade@gmail.com`. Missing inbound MX is not a gate.
 11. Confirm all required SNS subscriptions and test SES feedback and operational alarm delivery;
     activate the `Project` cost-allocation tag and verify attributable costs and anomaly alerts.
 12. Configure and deploy production Amplify with the implemented release gate and production-only

@@ -11,8 +11,8 @@ vi.mock("@/data/business", async () => import("../data/business"));
 describe("public production launch contract", () => {
   it("uses the approved canonical origin and customer contact", () => {
     expect(businessInfo.url).toBe("https://www.getyourperfectshade.com");
-    expect(businessInfo.email).toBe("ps.getyourperfectshade@gmail.com");
-    expect(businessInfo.emailHref).toBe("mailto:ps.getyourperfectshade@gmail.com");
+    expect(businessInfo.email).toBe("ps.perfectshade@gmail.com");
+    expect(businessInfo.emailHref).toBe("mailto:ps.perfectshade@gmail.com");
   });
 
   it("permanently redirects only the old products path to Products Offered", async () => {
@@ -60,7 +60,7 @@ describe("public production launch contract", () => {
     expect(schema).toMatchObject({
       "@type": "LocalBusiness",
       url: "https://www.getyourperfectshade.com",
-      email: "ps.getyourperfectshade@gmail.com"
+      email: "ps.perfectshade@gmail.com"
     });
   });
 });
