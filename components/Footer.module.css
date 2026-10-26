@@ -1,6 +1,6 @@
 .footer {
   background:
-    radial-gradient(circle at 80% 0%, rgba(185, 111, 100, 0.2), transparent 28%),
+    radial-gradient(circle at 80% 0%, rgba(146, 85, 104, 0.2), transparent 28%),
     var(--color-navy);
   color: var(--color-cream);
   padding: 62px 0;
@@ -14,13 +14,19 @@
 
 .brand {
   margin: 0 0 8px;
-  font-family: var(--font-heading);
-  font-size: 1.45rem;
+  font-size: 1.35rem;
+}
+
+.brandDescriptor {
+  display: block;
+  margin-top: 6px;
+  font-size: 0.85rem;
+  font-weight: 400;
 }
 
 .credentials {
   color: var(--color-rose);
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .serviceArea {
@@ -33,6 +39,7 @@
   font-size: 0.88rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
+  font-weight: 500;
 }
 
 .footer a {

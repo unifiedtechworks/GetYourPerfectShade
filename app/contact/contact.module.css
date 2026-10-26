@@ -13,7 +13,7 @@
   border-radius: 999px;
   background: var(--color-navy);
   color: var(--color-white);
-  font-weight: 800;
+  font-weight: 500;
   padding: 12px 18px;
   box-shadow: 0 14px 30px rgba(19, 35, 63, 0.14);
   transition: transform 180ms ease, box-shadow 180ms ease;
@@ -38,6 +38,11 @@
   margin: 0 0 12px;
   color: var(--color-navy);
   font-family: var(--font-heading);
+  font-size: 1.65rem;
+}
+
+.infoBlock strong {
+  font-weight: 500;
 }
 
 .panel ul {

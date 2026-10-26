@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { businessInfo } from "@/data/business";
+import { BrandWordmark } from "@/components/BrandWordmark";
 import styles from "./Header.module.css";
 
 const navItems = [
@@ -30,7 +31,7 @@ export function Header() {
             </span>
           </span>
           <span>
-            <strong>{businessInfo.name}</strong>
+            <BrandWordmark />
             <small>Window Coverings & Solutions</small>
           </span>
         </Link>

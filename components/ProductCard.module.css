@@ -32,7 +32,7 @@
   background: rgba(19, 35, 63, 0.72);
   color: var(--color-cream);
   font-size: 0.72rem;
-  font-weight: 800;
+  font-weight: 500;
   letter-spacing: 0.04em;
   padding: 6px 10px;
   text-transform: uppercase;
@@ -57,9 +57,9 @@
   margin: 0 0 8px;
   color: var(--color-navy);
   font-family: var(--font-heading);
-  font-size: clamp(1.45rem, 2.2vw, 1.7rem);
-  font-weight: 600;
-  line-height: 1.08;
+  font-size: clamp(1.3rem, 2vw, 1.5rem);
+  font-weight: 500;
+  line-height: 1.25;
   text-wrap: balance;
 }
 
@@ -73,7 +73,7 @@
   align-items: center;
   gap: 7px;
   color: var(--color-terracotta);
-  font-weight: 800;
+  font-weight: 500;
 }
 
 .cardAction::after {

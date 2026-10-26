@@ -2,8 +2,8 @@
   position: relative;
   background:
     radial-gradient(circle at 84% 10%, rgba(255, 255, 255, 0.72), transparent 24%),
-    radial-gradient(circle at 13% 20%, rgba(244, 223, 220, 0.78), transparent 34%),
-    linear-gradient(145deg, rgba(251, 245, 234, 0.98) 0 38%, rgba(244, 223, 220, 0.82) 38% 56%, rgba(217, 170, 164, 0.28) 56% 68%, rgba(31, 52, 85, 0.84) 68% 100%),
+    radial-gradient(circle at 13% 20%, rgba(243, 226, 230, 0.78), transparent 34%),
+    linear-gradient(145deg, rgba(251, 245, 234, 0.98) 0 38%, rgba(243, 226, 230, 0.82) 38% 56%, rgba(215, 168, 180, 0.28) 56% 68%, rgba(31, 52, 85, 0.84) 68% 100%),
     var(--color-cream);
   color: var(--color-navy);
   isolation: isolate;
@@ -16,7 +16,7 @@
   z-index: -1;
   background:
     linear-gradient(90deg, rgba(251, 245, 234, 0.82) 0%, rgba(251, 245, 234, 0.48) 46%, rgba(19, 35, 63, 0.08) 100%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.42), rgba(244, 223, 220, 0.18));
+    linear-gradient(180deg, rgba(255, 255, 255, 0.42), rgba(243, 226, 230, 0.18));
 }
 
 .hero::after {
@@ -76,7 +76,7 @@
 
 .copy {
   max-width: 700px;
-  border-left: 1px solid rgba(185, 111, 100, 0.28);
+  border-left: 1px solid rgba(146, 85, 104, 0.28);
   border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
   background: linear-gradient(90deg, rgba(255, 255, 255, 0.68), rgba(251, 245, 234, 0.32) 72%, transparent);
   padding: 28px 0 30px clamp(22px, 4vw, 38px);
@@ -89,6 +89,7 @@
   gap: 14px;
   margin-bottom: 18px;
   color: var(--color-navy);
+  font-size: clamp(1.4rem, 2.5vw, 1.8rem);
 }
 
 .brandMark {
@@ -98,12 +99,12 @@
   grid-template-columns: repeat(3, 1fr);
   gap: 4px;
   align-items: end;
-  border: 1px solid rgba(185, 111, 100, 0.24);
+  border: 1px solid rgba(146, 85, 104, 0.24);
   border-radius: 50%;
   background:
     radial-gradient(circle at 76% 18%, rgba(255, 255, 255, 0.78), transparent 34%),
-    linear-gradient(145deg, var(--color-blush), rgba(217, 170, 164, 0.86));
-  box-shadow: 0 18px 42px rgba(185, 111, 100, 0.18);
+    linear-gradient(145deg, var(--color-blush), rgba(215, 168, 180, 0.86));
+  box-shadow: 0 18px 42px rgba(146, 85, 104, 0.18);
   padding: 14px;
 }
 
@@ -122,22 +123,15 @@
   height: 29px;
 }
 
-.brandLockup strong,
 .brandLockup small {
   display: block;
-}
-
-.brandLockup strong {
-  font-family: var(--font-heading);
-  font-size: clamp(1.65rem, 4vw, 2.55rem);
-  line-height: 1;
 }
 
 .brandLockup small {
   margin-top: 4px;
   color: var(--color-terracotta);
-  font-size: 0.82rem;
-  font-weight: 800;
+  font-size: 0.72rem;
+  font-weight: 500;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -151,20 +145,19 @@
   margin: 0 0 20px;
   color: var(--color-navy);
   font-family: var(--font-heading);
-  font-size: clamp(3.05rem, 6vw, 4.85rem);
-  line-height: 0.98;
+  font-size: clamp(2.4rem, 4.3vw, 3.6rem);
+  font-weight: 400;
+  line-height: 1.18;
   letter-spacing: 0;
-  max-width: 15.5ch;
+  max-width: 17ch;
   text-wrap: balance;
-  text-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.7),
-    0 18px 38px rgba(19, 35, 63, 0.12);
+  text-shadow: none;
 }
 
 .copy p {
   max-width: 590px;
   color: rgba(25, 32, 51, 0.82);
-  font-size: 1.12rem;
+  font-size: 1.04rem;
   text-shadow: none;
 }
 
@@ -173,13 +166,13 @@
 }
 
 .copy :global(.buttonSecondary) {
-  border-color: rgba(185, 111, 100, 0.28);
+  border-color: rgba(146, 85, 104, 0.28);
   background: rgba(255, 255, 255, 0.58);
   color: var(--color-navy);
 }
 
 .copy :global(.buttonSecondary:hover) {
-  border-color: rgba(185, 111, 100, 0.48);
+  border-color: rgba(146, 85, 104, 0.48);
   background: var(--color-white);
 }
 
@@ -254,7 +247,7 @@
   }
 
   .copy h1 {
-    max-width: 13ch;
+    max-width: 20ch;
   }
 
   .visual {
@@ -294,8 +287,8 @@
   }
 
   .copy h1 {
-    font-size: clamp(2.72rem, 14vw, 3.7rem);
-    max-width: 10ch;
+    font-size: clamp(2rem, 8.5vw, 2.75rem);
+    max-width: 17ch;
   }
 
   .copy p {
@@ -314,7 +307,7 @@
   }
 
   .brandLockup small {
-    font-size: 0.72rem;
+    font-size: 0.65rem;
   }
 
   .copy :global(.buttonRow) {

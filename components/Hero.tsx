@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { DecorativeLeaf } from "@/components/DecorativeLeaf";
 import { businessInfo } from "@/data/business";
+import { BrandWordmark } from "@/components/BrandWordmark";
 import styles from "./Hero.module.css";
 
 export function Hero() {
@@ -29,7 +30,7 @@ export function Hero() {
               <span />
             </span>
             <span>
-              <strong>{businessInfo.name}</strong>
+              <BrandWordmark />
               <small>Window Coverings & Solutions</small>
             </span>
           </div>

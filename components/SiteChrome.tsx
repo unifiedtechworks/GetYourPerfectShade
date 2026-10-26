@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
+import styles from "./PublicSite.module.css";
 
 const standalonePrefixes = ["/sign-in", "/forgot-password", "/reset-password", "/auth", "/app"];
 
@@ -15,10 +16,10 @@ export function SiteChrome({ children }: { children: React.ReactNode }) {
   if (standalone) return children;
 
   return (
-    <>
+    <div className={styles.site}>
       <Header />
       {children}
       <Footer />
-    </>
+    </div>
   );
 }

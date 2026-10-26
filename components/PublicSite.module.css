@@ -1,0 +1,98 @@
+/* Font names and variables are exclusive to the public website wrapper. */
+@font-face {
+  font-family: "Perfect Shade Allura";
+  src: url("/fonts/allura-latin-400.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Perfect Shade Raleway";
+  src: url("/fonts/raleway-latin-400-600.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400 600;
+  font-display: swap;
+}
+
+.site {
+  --font-body: "Perfect Shade Raleway", "Segoe UI", Arial, sans-serif;
+  --font-heading: var(--font-body);
+  --font-script: "Perfect Shade Allura", "Segoe Script", "Brush Script MT", cursive;
+  --color-terracotta: #925568;
+  --color-rose: #d7a8b4;
+  --color-blush: #f3e2e6;
+  --color-muted: #596273;
+  --color-line: #e7dce0;
+  --shadow-soft: 0 16px 42px rgba(19, 35, 63, 0.08);
+  --shadow-card: 0 12px 32px rgba(19, 35, 63, 0.07);
+  color: var(--color-ink);
+  background: var(--color-cream);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.75;
+  font-synthesis: none;
+}
+
+.site h1,
+.site h2,
+.site h3 {
+  font-weight: 500;
+  line-height: 1.25;
+}
+
+.site h1 {
+  font-size: clamp(2.15rem, 4.3vw, 3.6rem);
+  font-weight: 400;
+  line-height: 1.18;
+  overflow-wrap: anywhere;
+}
+
+.site strong {
+  font-weight: 600;
+}
+
+.site :global(.eyebrow) {
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  line-height: 1.6;
+}
+
+.site :global(.button) {
+  font-weight: 500;
+  line-height: 1.5;
+  padding: 13px 22px;
+}
+
+.site :global(.buttonPrimary:hover) {
+  background: #7e4558;
+}
+
+.site :global(.whyList) span,
+.site :global(.credentialGrid) span {
+  font-weight: 500;
+}
+
+.site :global(.pageIntro) p {
+  max-width: 62ch;
+}
+
+.site a:focus-visible {
+  outline: 3px solid var(--color-terracotta);
+  outline-offset: 4px;
+}
+
+.site footer a:focus-visible {
+  outline-color: var(--color-rose);
+}
+
+@media (max-width: 560px) {
+  .site h1 {
+    font-size: clamp(2rem, 8.5vw, 2.75rem);
+  }
+
+  .site :global(.twoColumn) {
+    gap: 30px;
+  }
+}

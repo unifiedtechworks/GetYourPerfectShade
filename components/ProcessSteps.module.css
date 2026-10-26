@@ -3,8 +3,8 @@
   margin: 0 0 34px;
   color: var(--color-navy);
   font-family: var(--font-heading);
-  font-size: clamp(2rem, 5vw, 3.4rem);
-  line-height: 1.08;
+  font-size: clamp(1.8rem, 4vw, 2.8rem);
+  line-height: 1.25;
 }
 
 .steps {
@@ -41,7 +41,7 @@
   color: var(--color-cream);
   font-family: var(--font-heading);
   font-size: 1.35rem;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .step h3 {
