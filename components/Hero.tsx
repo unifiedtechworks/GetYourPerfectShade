@@ -3,6 +3,7 @@ import Link from "next/link";
 import { DecorativeLeaf } from "@/components/DecorativeLeaf";
 import { businessInfo } from "@/data/business";
 import { BrandWordmark } from "@/components/BrandWordmark";
+import { BrandEmblem } from "@/components/BrandEmblem";
 import styles from "./Hero.module.css";
 
 export function Hero() {
@@ -24,11 +25,7 @@ export function Hero() {
         />
         <div className={styles.copy}>
           <div className={styles.brandLockup} aria-label={businessInfo.name}>
-            <span className={styles.brandMark} aria-hidden="true">
-              <span />
-              <span />
-              <span />
-            </span>
+            <BrandEmblem className={styles.brandMark} />
             <span>
               <BrandWordmark />
               <small>Window Coverings & Solutions</small>

@@ -17,6 +17,17 @@
   font-size: 1.35rem;
 }
 
+.brandLockup {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brandMark {
+  width: 58px;
+  height: auto;
+}
+
 .brandDescriptor {
   display: block;
   margin-top: 6px;

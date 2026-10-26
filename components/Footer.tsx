@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { businessInfo } from "@/data/business";
 import { BrandWordmark } from "@/components/BrandWordmark";
+import { BrandEmblem } from "@/components/BrandEmblem";
 import styles from "./Footer.module.css";
 
 export function Footer() {
@@ -9,7 +10,10 @@ export function Footer() {
       <div className={`container ${styles.grid}`}>
         <div>
           <p className={styles.brand}>
-            <BrandWordmark />
+            <span className={styles.brandLockup}>
+              <BrandEmblem className={styles.brandMark} tone="dark" />
+              <BrandWordmark />
+            </span>
             <span className={styles.brandDescriptor}>
               {businessInfo.brandPhrase.slice(businessInfo.name.length)}
             </span>

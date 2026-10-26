@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { businessInfo } from "@/data/business";
 import { BrandWordmark } from "@/components/BrandWordmark";
+import { BrandEmblem } from "@/components/BrandEmblem";
 import styles from "./Header.module.css";
 
 const navItems = [
@@ -23,13 +24,7 @@ export function Header() {
       </a>
       <div className={`container ${styles.inner}`}>
         <Link className={styles.brand} href="/" aria-label="Perfect Shade home">
-          <span className={styles.mark} aria-hidden="true">
-            <span className={styles.blindIcon}>
-              <span />
-              <span />
-              <span />
-            </span>
-          </span>
+          <BrandEmblem className={styles.mark} />
           <span>
             <BrandWordmark />
             <small>Window Coverings & Solutions</small>

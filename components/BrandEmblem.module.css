@@ -1,0 +1,34 @@
+.emblem {
+  --emblem-slat: #ad788a;
+  --emblem-curtain: #f0dce2;
+  --emblem-fold: #ad788a;
+  display: block;
+  flex-shrink: 0;
+}
+
+.onDark {
+  --emblem-slat: #e3b6c5;
+  --emblem-curtain: #f6e8ec;
+  --emblem-fold: #ca98aa;
+}
+
+.slats {
+  fill: var(--emblem-slat);
+}
+
+.cord {
+  fill: none;
+  stroke: var(--emblem-slat);
+  stroke-width: 2.4;
+}
+
+.curtain {
+  fill: var(--emblem-curtain);
+  stroke: var(--emblem-fold);
+  stroke-width: 1;
+  stroke-linejoin: round;
+}
+
+.folds {
+  fill: var(--emblem-fold);
+}
