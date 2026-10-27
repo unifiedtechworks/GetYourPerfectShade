@@ -52,11 +52,6 @@ Status terms used below:
 | Additional Terms / Exclusions | Intentional web improvement | One initial multiline row, blank suppression, 20-row cap, persistence order, and explicit Up/Down controls are supported. The section is conditional in client output. |
 | Prevailing Wage | Exact parity | Defaults off with the approved fallback wording. Custom wording is preserved while disabled and rendered only when enabled and nonblank. |
 | Lead time and pricing-valid days | Exact parity with client-ready suppression | Both remain optional free text. Blank values suppress their sentences, and trailing lead-time punctuation is normalized to prevent malformed client text found in the retained sparse desktop sample. |
-
-The lead-time portion of that historical acceptance decision is superseded by
-proposal policy v2 in migration 0010. Existing policy-v1 estimates retain the
-saved sentence; new proposals use the permanent Lead Times section and no
-editable lead-time control. Pricing-valid days remains editable.
 | Project Notes | Exact parity | Optional multiline content is stored and rendered only when nonblank. |
 | Measurement Readiness | Exact parity | The current desktop-authoritative constant heading and paragraph always render. |
 | One-Year Craftsmanship Warranty | Exact parity | The current desktop-authoritative constant warranty and exclusions always render. |
@@ -82,6 +77,11 @@ editable lead-time control. Pricing-valid days remains editable.
 | Tenant ownership/audit | Intentional web improvement | Cognito subject resolves one active membership; every query repeats organization predicates under forced RLS. Mutable records track creator/updater, and lifecycle/document events are append-only. |
 | Signature | Owner-approved development configuration | The exact verified Sheri Brannan asset remains private and deployment-controlled. The owner approved it for generated client bids, and development uses `ESTIMATE_INCLUDE_COMPANY_SIGNATURE=true`; production enablement remains part of a separately approved production deployment. |
 | Accepted/declined/expired/void, e-signature, payment, email | Deferred future feature | Schema reservations are not exposed as incomplete workflows. |
+
+The lead-time portion of that historical acceptance decision is superseded by
+proposal policy v2 in migration 0010. Existing policy-v1 estimates retain the
+saved sentence; new proposals use the permanent Lead Times section and no
+editable lead-time control. Pricing-valid days remains editable.
 
 ## Concrete defects corrected
 

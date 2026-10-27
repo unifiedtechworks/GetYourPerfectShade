@@ -127,3 +127,52 @@ For a destination AWS account or region, include 0010 in deterministic order
 after 0001–0009 and apply all required migrations before enabling the new
 Estimate Lambda. Do not deploy infrastructure with the new application contract
 against a database that stops at migration 0009.
+
+### In-flight destination-account migration dependency
+
+The separate `codex/perfect-shade-new-account-foundation` workstream has a reported
+readiness checkpoint at `c51838c24d3ed5624b3ed1241602771a12fbe0ea`. That branch,
+its worktree, and any in-progress snapshot/copy operation are outside this integration.
+Do not merge it here, alter its resources or snapshots, or restart its migration task.
+
+An Aurora rehearsal snapshot captured before 0010 represents the older schema
+checkpoint. It is not evidence that the destination supports this application version.
+Before enabling the updated Estimate Lambda in the destination, validate the restored
+schema and migration ledger/checksums together. The final data migration must deliver
+the compatible schema, complete migration history, and matching application code.
+
+Use the migration runner's status/plan checks under separately approved operational
+authority. If restored history already contains 0010 with the reviewed checksum and
+the schema is valid, do not apply it again. A mismatched checksum or schema/history
+disagreement requires investigation, not a blind rerun or manual ledger repair.
+
+Historical migration Git blobs 0001–0009 remain byte-for-byte unchanged. The existing
+main checkout's 0001 uses LF while a new Windows worktree may use CRLF. Do not normalize
+or rewrite historical migration files to force a match: validate the exact operational
+artifact checksums against the restored history before planning or applying anything.
+
+### PostgreSQL 16 validation still required before application
+
+This integration environment has no available PostgreSQL server/client or Docker
+runtime. The SQL parser, mocked transaction tests, and static migration assertions
+do not execute PostgreSQL constraints, triggers, row locks, or forced RLS. No database
+migration is executed during source integration.
+
+Before authorizing 0010 on a live/restored database, rehearse it on an isolated
+PostgreSQL 16 fixture restored through migrations 0001–0009 and verify:
+
+- Existing issued/draft estimates remain policy 1 with their saved lead-time values;
+  newly created estimates, revisions, and duplicates default to policy 2.
+- Existing document IDs, object keys, checksums, download relationships, and file
+  states remain intact, with legacy `generated_as` null until independently classified.
+- New null/invalid lifecycle inserts are rejected; new non-null snapshots and proposal
+  policy versions cannot be changed. Pending-to-ready/failed transitions still work.
+- Forced RLS and restricted-runtime privileges deny cross-tenant access, issued-content
+  mutation, and ready/failed-history updates; no DELETE or bypass privilege is added.
+- Real concurrent generation/issuance, duplicate idempotency keys, and recovery preserve
+  the reserved lifecycle/checksum or fail closed before a mismatched object is stored.
+- Migration application and its history record are atomic, a failure rolls back cleanly,
+  and an already-applied matching 0010 produces an empty plan.
+
+Schedule this rehearsal separately; its absence is an explicit production-application
+prerequisite, not a claim that mocked source tests prove Aurora compatibility.
