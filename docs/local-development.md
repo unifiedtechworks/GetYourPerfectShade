@@ -99,6 +99,7 @@ identity applies these files in order:
 7. `infra/database/migrations/0007_estimate_phase_4.sql`
 8. `infra/database/migrations/0008_identity_recovery.sql`
 9. `infra/database/migrations/0009_additional_owner_provisioning.sql`
+10. `infra/database/migrations/0010_estimate_document_lifecycle_and_policy.sql`
 
 Ordinary Lambda cold starts, Amplify builds, and CDK synthesis never apply migrations. The
 application contains no active Supabase runtime, environment variable, package, or migration

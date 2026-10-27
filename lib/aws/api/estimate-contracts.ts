@@ -87,6 +87,7 @@ export type EstimateDetail = Readonly<{
   rowVersion: string;
   issuedAt: string | null;
   issuedBy: string | null;
+  proposalPolicyVersion: "1" | "2";
   depositPercent: string;
   taxRatePercent: "0";
   includeAlternatePricing: boolean;
@@ -143,12 +144,14 @@ export type UpdateEstimateDraftResponse = Readonly<{ data: EstimateDetail }>;
 
 export type EstimateDocumentType = "docx" | "pdf" | "json";
 export type EstimateDocumentState = "pending" | "ready" | "failed";
+export type EstimateDocumentGeneratedAs = "draft" | "issued" | "unknown";
 
 export type EstimateDocumentRecord = Readonly<{
   id: string;
   estimateId: string;
   revisionNumber: string;
   type: EstimateDocumentType;
+  generatedAs: EstimateDocumentGeneratedAs;
   state: EstimateDocumentState;
   filename: string;
   contentType: string;

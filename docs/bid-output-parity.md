@@ -41,6 +41,8 @@ deployment still requires its own explicit launch authorization.
 - Addenda, additional terms, Prevailing Wage, and Project Notes require populated visible content.
 - Blank pricing-valid days suppress the corresponding term.
 - Blank lead time suppresses the corresponding term; trailing punctuation is normalized so output never contains `Estimated lead time: .`.
+- That rule now applies only to legacy proposal policy v1. Policy v2 renders the
+  permanent Lead Times section documented in `estimate-issuance-lead-times.md`.
 - A nonzero sales-tax amount renders a visually consistent tax row. Zero tax remains represented by the approved tax-treatment term instead of an empty table row.
 
 ## Architecture and intentional differences

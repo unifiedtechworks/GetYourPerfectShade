@@ -44,6 +44,7 @@ const DETAIL_ROW: SqlRow = {
   contact_information: "Owner",
   source_estimate_id: null,
   issued_by: null,
+  proposal_policy_version: "2",
   deposit_percent: "50",
   tax_rate_percent: "0",
   lead_time: "4-6 weeks",
@@ -66,6 +67,7 @@ function pendingDocument(overrides: SqlRow = {}): SqlRow {
     estimate_id: ESTIMATE_ID,
     estimate_revision: "1",
     document_type: "pdf",
+    generated_as: "draft",
     state: "pending",
     object_key: `organizations/${ORGANIZATION_ID}/estimates/${ESTIMATE_ID}/revisions/1/documents/${DOCUMENT_ID}.pdf`,
     original_filename: "2026-08-09 - Atrium - Perfect Shade Bid.pdf",
@@ -110,7 +112,7 @@ class FakeDatabase implements EstimateDatabase {
   termRows: readonly SqlRow[] = [];
   addendaRows: readonly SqlRow[] = [];
   documentInsertRows: readonly SqlRow[] = [pendingDocument()];
-  documentReservationRows: readonly SqlRow[] = [pendingDocument()];
+  documentReservationRows: readonly SqlRow[] = [];
   finalizeRows: readonly SqlRow[] = [pendingDocument({
     state: "ready",
     generated_at: "2026-08-09T12:00:00.000Z",
@@ -262,6 +264,7 @@ describe("Phase 4 revision and duplication", () => {
     expect(sql).toContain("insert into app.estimate_terms");
     expect(sql).toContain("insert into app.estimate_addenda");
     expect(sql).not.toContain("insert into app.estimate_documents");
+    expect(sql).not.toContain("proposal_policy_version");
     expect(database.commits).toBe(1);
   });
 
@@ -322,7 +325,19 @@ describe("Phase 4 generated document recovery and download", () => {
     expect(storage.puts).toHaveLength(1);
     expect(storage.puts[0].key).toBe(pendingDocument().object_key);
     expect(storage.puts[0].key).not.toContain("Atrium");
-    expect(result.data).toMatchObject({ type: "pdf", state: "ready", checksumSha256: "a".repeat(64) });
+    expect(result.data).toMatchObject({
+      type: "pdf",
+      generatedAs: "draft",
+      state: "ready",
+      checksumSha256: "a".repeat(64),
+    });
+    const reservation = database.statements.find((statement) =>
+      statement.sql.includes("insert into app.estimate_documents"),
+    );
+    expect(reservation?.parameters).toContainEqual({
+      name: "generatedAs",
+      value: "draft",
+    });
     expect(database.statements.some((statement) => statement.parameters?.some((p) => p.value === "estimate.document_generated"))).toBe(true);
   });
 
@@ -340,6 +355,20 @@ describe("Phase 4 generated document recovery and download", () => {
   it("recovers an uploaded pending object on idempotent replay without uploading again", async () => {
     const database = new FakeDatabase();
     database.documentInsertRows = [];
+    database.documentReservationRows = [pendingDocument()];
+    database.detailRows = [{
+      ...DETAIL_ROW,
+      status: "issued",
+      row_version: "5",
+      issued_at: "2026-08-09T11:55:00.000Z",
+      issued_by: "subject",
+    }];
+    database.lockRows = [{
+      ...LOCK_ROW,
+      status: "issued",
+      row_version: "5",
+      issued_at: "2026-08-09T11:55:00.000Z",
+    }];
     const storage = new FakeStorage();
     storage.headResult = storage.putResult;
     const result = await service(database, storage, DOCUMENT_ID).generate(
@@ -347,7 +376,93 @@ describe("Phase 4 generated document recovery and download", () => {
     );
     expect(storage.puts).toHaveLength(0);
     expect(result.data.replayed).toBe(true);
+    expect(result.data.generatedAs).toBe("draft");
     expect(result.data.state).toBe("ready");
+  });
+
+  it("snapshots issued generation independently from file state", async () => {
+    const database = new FakeDatabase();
+    database.detailRows = [{
+      ...DETAIL_ROW,
+      status: "issued",
+      row_version: "5",
+      issued_at: "2026-08-09T11:55:00.000Z",
+      issued_by: "subject",
+    }];
+    database.lockRows = [{
+      ...LOCK_ROW,
+      status: "issued",
+      row_version: "5",
+      issued_at: "2026-08-09T11:55:00.000Z",
+    }];
+    database.documentInsertRows = [pendingDocument({
+      generated_as: "issued",
+      source_row_version: "5",
+    })];
+    database.finalizeRows = [pendingDocument({
+      generated_as: "issued",
+      source_row_version: "5",
+      state: "ready",
+      generated_at: "2026-08-09T12:00:00.000Z",
+    })];
+
+    const result = await service(database, new FakeStorage(), DOCUMENT_ID).generate(
+      "subject", ESTIMATE_ID, "pdf", "issued-document-key", "request-id",
+    );
+
+    expect(result.data).toMatchObject({ generatedAs: "issued", state: "ready" });
+  });
+
+  it("rejects a lifecycle race before reserving or storing a mismatched document", async () => {
+    const database = new FakeDatabase();
+    database.lockRows = [{
+      ...LOCK_ROW,
+      status: "issued",
+      row_version: "5",
+      issued_at: "2026-08-09T11:59:00.000Z",
+    }];
+    const storage = new FakeStorage();
+
+    await expect(service(database, storage, DOCUMENT_ID).generate(
+      "subject", ESTIMATE_ID, "pdf", "raced-document-key", "request-id",
+    )).rejects.toMatchObject({ code: "document_source_changed", status: 409 });
+
+    expect(database.statements.some((statement) =>
+      statement.sql.includes("insert into app.estimate_documents"),
+    )).toBe(false);
+    expect(storage.puts).toHaveLength(0);
+  });
+
+  it("keeps legacy history honest instead of inferring from the current estimate", async () => {
+    const database = new FakeDatabase();
+    database.listDocumentRows = [pendingDocument({
+      generated_as: null,
+      state: "ready",
+      generated_at: "2026-08-09T12:00:00.000Z",
+    })];
+
+    const result = await service(database).listDocuments("subject", ESTIMATE_ID);
+
+    expect(result.data[0]).toMatchObject({ generatedAs: "unknown", state: "ready" });
+  });
+
+  it("keeps an older draft document labeled Draft after the estimate is issued", async () => {
+    const database = new FakeDatabase();
+    database.lockRows = [{
+      ...LOCK_ROW,
+      status: "issued",
+      row_version: "5",
+      issued_at: "2026-08-09T12:05:00.000Z",
+    }];
+    database.listDocumentRows = [pendingDocument({
+      generated_as: "draft",
+      state: "ready",
+      generated_at: "2026-08-09T12:00:00.000Z",
+    })];
+
+    const result = await service(database).listDocuments("subject", ESTIMATE_ID);
+
+    expect(result.data[0]).toMatchObject({ generatedAs: "draft", state: "ready" });
   });
 
   it("authorizes metadata before creating a short-lived download and hides the key", async () => {

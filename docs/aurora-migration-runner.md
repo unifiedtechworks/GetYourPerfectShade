@@ -79,6 +79,7 @@ table if necessary, then applies:
 7. `0007_estimate_phase_4.sql`
 8. `0008_identity_recovery.sql`
 9. `0009_additional_owner_provisioning.sql`
+10. `0010_estimate_document_lifecycle_and_policy.sql`
 
 Files are ordered deterministically by filename. A malformed `.sql` filename or duplicate
 numeric version stops every command before migration SQL runs.

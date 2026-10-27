@@ -3,7 +3,10 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { EstimateDetail } from "../../../../../lib/aws/api/estimate-contracts";
-import { DEFAULT_PREVAILING_WAGE_STATEMENT } from "../../../../../lib/estimates/presentation";
+import {
+  DEFAULT_PREVAILING_WAGE_STATEMENT,
+  LEAD_TIMES_TEXT,
+} from "../../../../../lib/estimates/presentation";
 import { EstimatePreview } from "./EstimatePreview";
 
 function estimate(overrides: Partial<EstimateDetail> = {}): EstimateDetail {
@@ -27,6 +30,7 @@ function estimate(overrides: Partial<EstimateDetail> = {}): EstimateDetail {
     rowVersion: "7",
     issuedAt: null,
     issuedBy: null,
+    proposalPolicyVersion: "2",
     depositPercent: "50",
     taxRatePercent: "0",
     includeAlternatePricing: false,
@@ -154,6 +158,7 @@ describe("protected saved-draft estimate preview", () => {
       "Terms",
       "Additional terms or exclusions:",
       "Prevailing Wage",
+      "Lead Times",
       "Measurement Readiness",
       "Craftsmanship Warranty",
       "Company Qualifications",
@@ -219,5 +224,35 @@ describe("protected saved-draft estimate preview", () => {
     expect(markup).not.toContain("Pricing is valid for  days");
     expect(markup).not.toContain("Estimated lead time: .");
     expect(markup).not.toContain("Prevailing Wage</h2>");
+  });
+
+  it("shows the permanent Lead Times section exactly once before Measurement Readiness", () => {
+    const markup = previewMarkup(estimate());
+    expect(markup.match(/<h2>Lead Times<\/h2>/g)).toHaveLength(1);
+    expect(markup.match(new RegExp(LEAD_TIMES_TEXT.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g")))
+      .toHaveLength(1);
+    expect(markup.indexOf("Lead Times")).toBeLessThan(
+      markup.indexOf("Measurement Readiness"),
+    );
+    expect(markup).not.toContain("Estimated lead time:");
+  });
+
+  it("uses the Pacific issuedAt date only for the company signature", () => {
+    const issued = previewMarkup(estimate({
+      status: "issued",
+      issuedAt: "2026-08-02T00:00:00.000Z",
+    }));
+    expect(issued.match(/08\/01\/2026/g)).toHaveLength(1);
+    expect(issued).toContain("Date: 08/01/2026");
+
+    const draft = previewMarkup(estimate());
+    expect(draft).not.toMatch(/Date: \d{2}\/\d{2}\/\d{4}/);
+  });
+
+  it("preserves legacy saved lead-time wording for an older revision", () => {
+    const markup = previewMarkup(estimate({ proposalPolicyVersion: "1" }));
+    expect(markup).toContain("Estimated lead time: 4-6 weeks.");
+    expect(markup).not.toContain("<h2>Lead Times</h2>");
+    expect(markup).not.toContain(LEAD_TIMES_TEXT);
   });
 });

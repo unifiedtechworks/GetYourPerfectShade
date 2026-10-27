@@ -895,14 +895,7 @@ export function EstimateEditor({ estimate }: { estimate: EstimateEditorEstimate 
               value={header.pricingValidDays}
             />
           </label>
-          <label>
-            Estimated Lead Time
-            <input
-              name="leadTime"
-              onChange={(event) => updateHeader("leadTime", event.target.value)}
-              value={header.leadTime}
-            />
-          </label>
+          <input name="leadTime" type="hidden" value={header.leadTime} />
         </div>
         <div className={styles.policyNotes}>
           <p>{SALES_TAX_NOTICE_TEXT}</p>

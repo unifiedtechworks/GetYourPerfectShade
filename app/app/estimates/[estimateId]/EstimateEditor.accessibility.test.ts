@@ -28,4 +28,22 @@ describe("estimate editor row controls", () => {
       expect(source).toContain(`aria-label={\`${label}`);
     }
   });
+
+  it("removes editable lead time while preserving the saved legacy value", () => {
+    const source = readFileSync(
+      join(
+        process.cwd(),
+        "app",
+        "app",
+        "estimates",
+        "[estimateId]",
+        "EstimateEditor.tsx",
+      ),
+      "utf8",
+    );
+    expect(source).not.toContain("Estimated Lead Time");
+    expect(source).toContain(
+      '<input name="leadTime" type="hidden" value={header.leadTime} />',
+    );
+  });
 });

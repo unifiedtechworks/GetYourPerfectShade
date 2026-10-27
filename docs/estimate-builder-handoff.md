@@ -4,12 +4,14 @@
 
 Phase 3 implementation and desktop-alignment decisions are recorded in
 [`docs/estimate-phase-3.md`](./estimate-phase-3.md). It extends the protected editor and existing
-estimate detail/update API with ordered terms and addenda, prevailing-wage behavior, lead time,
+estimate detail/update API with ordered terms and addenda, prevailing-wage behavior, legacy lead-time compatibility,
 pricing validity, project notes, exact constant proposal sections, and a protected saved-draft
 preview. Phase 4 now adds server-side DOCX/PDF/JSON output, recoverable S3
 document history, explicit issue, revision, and duplication commands, and
 protected lifecycle controls. Integration must apply `0007_estimate_phase_4.sql`
-before enabling the new routes.
+and the later `0010_estimate_document_lifecycle_and_policy.sql` before enabling
+the current document-history contract. Migration 0010 preserves legacy
+lead-time wording and adds generation-time Draft/Issued snapshots.
 
 ## Phase 2 draft editor
 

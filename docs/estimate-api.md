@@ -228,3 +228,13 @@ The migration expects the account migration to provide:
 Those names are supplied by `0001_account_foundation.sql`. Account and estimate clients use the
 same `NEXT_PUBLIC_API_BASE_URL` output and validated Cognito server session. No database secret,
 organization identifier, role, or actor identifier is sent by the browser.
+
+## Document lifecycle and proposal policy contract
+
+Generated-document responses expose `generatedAs` independently from `state`.
+`generatedAs` is `draft`, `issued`, or `unknown` for an unclassified legacy row;
+`state` remains `pending`, `ready`, or `failed`. The lifecycle value is captured
+when that file is reserved and is never derived from the estimate's current
+status. Estimate detail responses expose read-only `proposalPolicyVersion` so
+browser preview and document renderers preserve historical wording while new
+proposals use the permanent Lead Times section.

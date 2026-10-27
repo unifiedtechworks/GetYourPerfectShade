@@ -23,6 +23,7 @@ describe("Aurora estimate Phase 3 migration", () => {
       "0007_estimate_phase_4.sql",
       "0008_identity_recovery.sql",
       "0009_additional_owner_provisioning.sql",
+      "0010_estimate_document_lifecycle_and_policy.sql",
     ]);
   });
 

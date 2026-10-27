@@ -45,6 +45,7 @@ class DetailDatabase extends NoopDatabase {
           status: "draft",
           revision_number: "1",
           row_version: "1",
+          proposal_policy_version: "2",
           deposit_percent: "0",
           tax_rate_percent: "0",
           include_alternate_pricing: "false",

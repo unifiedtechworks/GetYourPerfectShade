@@ -43,6 +43,7 @@ export function EstimatePhase4Actions({
     createEstimateCommandKeyTracker(() => crypto.randomUUID()),
   );
   const staleDocuments = documents.filter((document) => document.isStale);
+  const generatedAsLabel = status === "draft" ? "Draft" : "Issued";
 
   function run(
     label: string,
@@ -92,6 +93,11 @@ export function EstimatePhase4Actions({
             {status === "draft" ? "Editable draft" : "Frozen issued estimate"}
             {` · Revision ${revisionNumber}`}
           </p>
+          <p className={styles.help}>
+            {status === "draft"
+              ? "Generated files keep a DRAFT label. Issue this revision separately to freeze it, then generate a new file for an ISSUED document."
+              : "This revision is frozen. New files are labeled ISSUED; earlier draft files keep their original DRAFT label."}
+          </p>
         </div>
         <div className={styles.commandButtons}>
           <button
@@ -100,7 +106,7 @@ export function EstimatePhase4Actions({
             onClick={() => generate("docx")}
             type="button"
           >
-            {active === "generate-docx" ? "Generating…" : "Generate DOCX"}
+            {active === "generate-docx" ? "Generating…" : `Generate ${generatedAsLabel} DOCX`}
           </button>
           <button
             className={styles.secondaryButton}
@@ -108,7 +114,7 @@ export function EstimatePhase4Actions({
             onClick={() => generate("pdf")}
             type="button"
           >
-            {active === "generate-pdf" ? "Generating…" : "Generate PDF"}
+            {active === "generate-pdf" ? "Generating…" : `Generate ${generatedAsLabel} PDF`}
           </button>
           <button
             className={styles.secondaryButton}
@@ -116,7 +122,7 @@ export function EstimatePhase4Actions({
             onClick={() => generate("json")}
             type="button"
           >
-            {active === "generate-json" ? "Exporting…" : "Export JSON"}
+            {active === "generate-json" ? "Exporting…" : `Export ${generatedAsLabel} JSON`}
           </button>
           <button
             className={styles.secondaryButton}
@@ -200,7 +206,8 @@ export function EstimatePhase4Actions({
               <tr>
                 <th>File</th>
                 <th>Revision</th>
-                <th>State</th>
+                <th>Generated As</th>
+                <th>File State</th>
                 <th>Generated</th>
                 <th>Download</th>
               </tr>
@@ -211,7 +218,20 @@ export function EstimatePhase4Actions({
                   <td>{item.filename}</td>
                   <td>{item.revisionNumber}</td>
                   <td className={styles.status}>
-                    {item.isStale ? "pending (stale)" : item.state}
+                    {item.generatedAs === "unknown"
+                      ? "Unknown (legacy)"
+                      : item.generatedAs === "draft"
+                        ? "Draft"
+                        : "Issued"}
+                  </td>
+                  <td className={styles.status}>
+                    {item.isStale
+                      ? "Pending (stale)"
+                      : item.state === "pending"
+                        ? "Pending"
+                        : item.state === "ready"
+                          ? "Ready"
+                          : "Failed"}
                   </td>
                   <td>{item.generatedAt ? new Date(item.generatedAt).toLocaleString() : "-"}</td>
                   <td>

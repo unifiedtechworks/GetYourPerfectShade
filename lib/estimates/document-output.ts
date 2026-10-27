@@ -32,14 +32,16 @@ import type {
 import { formatCurrencyFromMinorUnits } from "./calculations";
 import {
   COMPANY_QUALIFICATIONS_TEXT,
+  formatIssuedDateInPacific,
   coreTerms,
   CRAFTSMANSHIP_WARRANTY_TEXT,
+  LEAD_TIMES_TEXT,
   MEASUREMENT_READINESS_TEXT,
   visibleProposalSections,
 } from "./presentation";
 
 export const ESTIMATE_EXPORT_SCHEMA = "perfect-shade-estimate-export/v1";
-export const ESTIMATE_DOCUMENT_GENERATOR_VERSION = "phase-4/v1";
+export const ESTIMATE_DOCUMENT_GENERATOR_VERSION = "phase-4/v2";
 export const ESTIMATE_DOWNLOAD_TTL_SECONDS = 300;
 
 export type EstimateDocumentType = "docx" | "pdf" | "json";
@@ -455,6 +457,7 @@ function headerTable(estimate: EstimateDetail) {
 
 function signatureCell(
   side: "company" | "client",
+  companyDate: string,
   companySignaturePng?: Uint8Array,
 ) {
   const isCompany = side === "company";
@@ -491,7 +494,7 @@ function signatureCell(
         spacing: { before: 0, after: 0 },
       }),
       new Paragraph({
-        children: [docxText("Date:", {
+        children: [docxText(isCompany && companyDate ? `Date: ${companyDate}` : "Date:", {
           bold: !isCompany,
           color: isCompany ? BLACK : BLUE,
         })],
@@ -501,10 +504,11 @@ function signatureCell(
   });
 }
 
-function signatureTable(options: EstimateRenderOptions) {
+function signatureTable(estimate: EstimateDetail, options: EstimateRenderOptions) {
+  const companyDate = formatIssuedDateInPacific(estimate);
   return docxTable([new TableRow({ children: [
-    signatureCell("company", options.companySignaturePng),
-    signatureCell("client"),
+    signatureCell("company", companyDate, options.companySignaturePng),
+    signatureCell("client", companyDate),
   ] })], [50, 50], false);
 }
 
@@ -601,6 +605,12 @@ function documentChildren(
       docxParagraph(estimate.prevailingWageStatement.trim()),
     );
   }
+  if (sections.has("leadTimes")) {
+    children.push(
+      docxHeading("Lead Times"),
+      docxParagraph(LEAD_TIMES_TEXT, { bullet: true }),
+    );
+  }
   children.push(
     docxHeading("Measurement Readiness"),
     docxParagraph(MEASUREMENT_READINESS_TEXT),
@@ -618,7 +628,7 @@ function documentChildren(
   children.push(
     docxHeading("Authorization and Acceptance"),
     docxParagraph("By signing below, the client acknowledges acceptance of the scope, pricing, and terms described in this proposal."),
-    signatureTable(options),
+    signatureTable(estimate, options),
   );
   return children;
 }
@@ -919,6 +929,7 @@ function pdfProposalHeader(context: PdfContext, estimate: EstimateDetail): PdfCo
 function pdfSignatureBlock(
   context: PdfContext,
   companySignature?: Awaited<ReturnType<PDFDocument["embedPng"]>>,
+  companyDate = "",
 ): PdfContext {
   const blockHeight = 102;
   context = ensurePdfSpace(context, blockHeight);
@@ -968,7 +979,7 @@ function pdfSignatureBlock(
     thickness: 0.7,
     color: rgb(0.15, 0.15, 0.15),
   });
-  context.page.drawText("Date:", {
+  context.page.drawText(companyDate ? `Date: ${companyDate}` : "Date:", {
     x: PDF_MARGIN_X,
     y: top - 94,
     size: 10.5,
@@ -1057,6 +1068,7 @@ export function buildEstimatePdfText(estimate: EstimateDetail): readonly string[
     ...(sections.has("prevailingWage")
       ? ["Prevailing Wage", estimate.prevailingWageStatement]
       : []),
+    ...(sections.has("leadTimes") ? ["Lead Times", LEAD_TIMES_TEXT] : []),
     "Measurement Readiness",
     MEASUREMENT_READINESS_TEXT,
     "Craftsmanship Warranty",
@@ -1069,6 +1081,9 @@ export function buildEstimatePdfText(estimate: EstimateDetail): readonly string[
     "Perfect Shade Authorized Signature",
     "Sheri Brannan",
     "Authorized Signature",
+    formatIssuedDateInPacific(estimate)
+      ? `Date: ${formatIssuedDateInPacific(estimate)}`
+      : "Date:",
     "Date:",
     `Perfect Shade LLC | ${estimate.documentType}`,
   ];
@@ -1158,6 +1173,10 @@ export async function generateEstimatePdf(
       estimate.prevailingWageStatement.trim(),
     );
   }
+  if (sections.has("leadTimes")) {
+    context = pdfHeading(context, "Lead Times");
+    context = pdfBullet(context, LEAD_TIMES_TEXT);
+  }
   for (const [heading, body] of [
     ["Measurement Readiness", MEASUREMENT_READINESS_TEXT],
     ["Craftsmanship Warranty", CRAFTSMANSHIP_WARRANTY_TEXT],
@@ -1178,7 +1197,11 @@ export async function generateEstimatePdf(
     "Authorization and Acceptance",
     "By signing below, the client acknowledges acceptance of the scope, pricing, and terms described in this proposal.",
   );
-  context = pdfSignatureBlock(context, companySignature);
+  context = pdfSignatureBlock(
+    context,
+    companySignature,
+    formatIssuedDateInPacific(estimate),
+  );
 
   document.getPages().forEach((page) => {
     const footer = `Perfect Shade LLC | ${estimate.documentType}`;

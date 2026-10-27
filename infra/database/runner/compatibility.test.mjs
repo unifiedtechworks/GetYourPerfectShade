@@ -217,7 +217,7 @@ describe("legacy 0001 runtime-role compatibility", () => {
     expect(database.history).toEqual([]);
   });
 
-  it("accepts original development history through 0009 without replay or role inspection", async () => {
+  it("accepts complete history through 0010 without replay or role inspection", async () => {
     const database = new CompatibilityDatabase(null);
     database.history = migrations.map((migration) => ({
       version: migration.version, filename: migration.filename,

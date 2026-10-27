@@ -68,6 +68,7 @@ const DETAIL_ROW: SqlRow = {
   status: "draft",
   revision_number: "1",
   row_version: "3",
+  proposal_policy_version: "2",
   deposit_percent: "0.5",
   tax_rate_percent: "0",
   include_alternate_pricing: "true",

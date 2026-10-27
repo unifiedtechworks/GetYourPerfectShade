@@ -4,6 +4,8 @@ import {
   COMPANY_QUALIFICATIONS_TEXT,
   CRAFTSMANSHIP_WARRANTY_TEXT,
   DEFAULT_PREVAILING_WAGE_STATEMENT,
+  formatIssuedDateInPacific,
+  LEAD_TIMES_TEXT,
   MEASUREMENT_READINESS_TEXT,
   RETAINAGE_TERM_TEXT,
   SALES_TAX_NOTICE_TEXT,
@@ -32,6 +34,7 @@ function detail(overrides: Partial<EstimateDetail> = {}): EstimateDetail {
     rowVersion: "1",
     issuedAt: null,
     issuedBy: null,
+    proposalPolicyVersion: "2",
     depositPercent: "50",
     taxRatePercent: "0",
     includeAlternatePricing: false,
@@ -70,6 +73,9 @@ describe("desktop-aligned proposal presentation", () => {
       "Maximum retainage shall be limited to 5% of the contract amount unless otherwise agreed in writing.",
     );
     expect(SALES_TAX_NOTICE_TEXT).toContain("valid tax exemption certificate");
+    expect(LEAD_TIMES_TEXT).toBe(
+      "Lead time will be 3 weeks from final measure and receipt of deposit.",
+    );
     expect(MEASUREMENT_READINESS_TEXT).toBe(
       "Measurement Readiness: Final measurements should not be requested or scheduled until the project area is ready, accessible, and reasonably prepared for accurate measuring. If there are questions about site readiness, mounting conditions, product requirements, or any other measurement-related requirements, Customer/Contractor should contact Perfect Shade LLC before requesting or scheduling final measurements. Additional trips, re-measures, or delays caused by incomplete site conditions, inaccessible areas, unclear requirements, construction changes, or other conditions outside Perfect Shade LLC’s control may result in additional charges.",
     );
@@ -87,7 +93,6 @@ describe("desktop-aligned proposal presentation", () => {
       "Balance due upon substantial completion.",
       "Pricing is valid for 30 days unless otherwise stated.",
       "Changes to the approved scope of work may result in additional charges.",
-      "Estimated lead time: 4-6 weeks.",
       SALES_TAX_NOTICE_TEXT,
       RETAINAGE_TERM_TEXT,
     ]);
@@ -102,10 +107,40 @@ describe("desktop-aligned proposal presentation", () => {
     expect(terms.some((term) => term.startsWith("Estimated lead time:"))).toBe(false);
   });
 
-  it("normalizes trailing lead-time punctuation without changing saved wording", () => {
-    expect(coreTerms(detail({ leadTime: "4-6 weeks. " }))).toContain(
+  it("preserves legacy saved lead-time wording without using it for policy v2", () => {
+    expect(coreTerms(detail({ leadTime: "4-6 weeks. " }))).not.toContain(
       "Estimated lead time: 4-6 weeks.",
     );
+    expect(coreTerms(detail({
+      proposalPolicyVersion: "1",
+      leadTime: "4-6 weeks. ",
+    }))).toContain(
+      "Estimated lead time: 4-6 weeks.",
+    );
+  });
+
+  it("formats only a valid issued timestamp in the Pacific calendar", () => {
+    expect(formatIssuedDateInPacific(detail())).toBe("");
+    expect(formatIssuedDateInPacific(detail({
+      status: "issued",
+      issuedAt: "invalid",
+    }))).toBe("");
+    expect(formatIssuedDateInPacific(detail({
+      status: "issued",
+      issuedAt: "2026-08-02T00:00:00.000Z",
+    }))).toBe("08/01/2026");
+    expect(formatIssuedDateInPacific(detail({
+      status: "issued",
+      issuedAt: "2026-03-08T07:59:59.000Z",
+    }))).toBe("03/07/2026");
+    expect(formatIssuedDateInPacific(detail({
+      status: "issued",
+      issuedAt: "2026-03-08T08:00:00.000Z",
+    }))).toBe("03/08/2026");
+    expect(formatIssuedDateInPacific(detail({
+      status: "issued",
+      issuedAt: "2026-11-01T08:30:00.000Z",
+    }))).toBe("11/01/2026");
   });
 
   it("suppresses empty or disabled conditional sections and preserves output order", () => {
@@ -114,6 +149,7 @@ describe("desktop-aligned proposal presentation", () => {
       "scope",
       "pricing",
       "terms",
+      "leadTimes",
       "measurementReadiness",
       "warranty",
       "qualifications",
@@ -140,6 +176,7 @@ describe("desktop-aligned proposal presentation", () => {
       "terms",
       "additionalTerms",
       "prevailingWage",
+      "leadTimes",
       "measurementReadiness",
       "warranty",
       "qualifications",

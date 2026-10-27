@@ -9,6 +9,31 @@ export const SALES_TAX_NOTICE_TEXT =
 export const RETAINAGE_TERM_TEXT =
   "Maximum retainage shall be limited to 5% of the contract amount unless otherwise agreed in writing.";
 
+export const LEGACY_PROPOSAL_POLICY_VERSION = "1" as const;
+export const CURRENT_PROPOSAL_POLICY_VERSION = "2" as const;
+export const LEAD_TIMES_TEXT =
+  "Lead time will be 3 weeks from final measure and receipt of deposit.";
+
+export function formatIssuedDateInPacific(
+  estimate: Pick<EstimateDetail, "status" | "issuedAt">,
+): string {
+  if (estimate.status !== "issued" || !estimate.issuedAt) return "";
+  const issuedAt = new Date(estimate.issuedAt);
+  if (!Number.isFinite(issuedAt.getTime())) return "";
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Los_Angeles",
+    month: "2-digit",
+    day: "2-digit",
+    year: "numeric",
+  }).formatToParts(issuedAt);
+  const value = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? "";
+  const month = value("month");
+  const day = value("day");
+  const year = value("year");
+  return month && day && year ? `${month}/${day}/${year}` : "";
+}
+
 export const MEASUREMENT_READINESS_TEXT =
   "Measurement Readiness: Final measurements should not be requested or scheduled until the project area is ready, accessible, and reasonably prepared for accurate measuring. If there are questions about site readiness, mounting conditions, product requirements, or any other measurement-related requirements, Customer/Contractor should contact Perfect Shade LLC before requesting or scheduling final measurements. Additional trips, re-measures, or delays caused by incomplete site conditions, inaccessible areas, unclear requirements, construction changes, or other conditions outside Perfect Shade LLC’s control may result in additional charges.";
 
@@ -27,6 +52,7 @@ export const PROPOSAL_SECTION_ORDER = [
   "terms",
   "additionalTerms",
   "prevailingWage",
+  "leadTimes",
   "measurementReadiness",
   "warranty",
   "qualifications",
@@ -38,6 +64,7 @@ type EstimatePresentationData = Pick<
   | "depositPercent"
   | "pricingValidDays"
   | "leadTime"
+  | "proposalPolicyVersion"
   | "addenda"
   | "includeAlternatePricing"
   | "alternatePricingLines"
@@ -57,8 +84,10 @@ export function coreTerms(estimate: EstimatePresentationData): readonly string[]
     terms.push(`Pricing is valid for ${pricingValidDays} days unless otherwise stated.`);
   }
   terms.push("Changes to the approved scope of work may result in additional charges.");
-  const leadTime = estimate.leadTime.trim().replace(/[.\s]+$/g, "");
-  if (leadTime) terms.push(`Estimated lead time: ${leadTime}.`);
+  if (estimate.proposalPolicyVersion === LEGACY_PROPOSAL_POLICY_VERSION) {
+    const leadTime = estimate.leadTime.trim().replace(/[.\s]+$/g, "");
+    if (leadTime) terms.push(`Estimated lead time: ${leadTime}.`);
+  }
   terms.push(SALES_TAX_NOTICE_TEXT, RETAINAGE_TERM_TEXT);
   return terms;
 }
@@ -80,6 +109,9 @@ export function visibleProposalSections(
     if (section === "prevailingWage") {
       return estimate.includePrevailingWageStatement
         && Boolean(estimate.prevailingWageStatement.trim());
+    }
+    if (section === "leadTimes") {
+      return estimate.proposalPolicyVersion === CURRENT_PROPOSAL_POLICY_VERSION;
     }
     if (section === "projectNotes") return Boolean(estimate.projectNotes.trim());
     return true;

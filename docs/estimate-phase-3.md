@@ -8,6 +8,11 @@ terms/exclusions, lead-time and pricing-validity inputs, optional prevailing-wag
 project notes, desktop-authoritative constant proposal sections, and a protected print-style
 saved-draft preview.
 
+> **Policy v2 follow-up:** migration 0010 removes the editable lead-time control
+> for new proposal behavior and adds the permanent Lead Times section. The
+> original field remains stored only to preserve policy-v1 estimates and issued
+> commitments. See `estimate-issuance-lead-times.md`.
+
 Phase 3 does not add document download generation, estimate duplication, revision creation,
 status transitions, customer-management UI, or a replacement for the desktop tool. Those remain
 Phase 4 or later work.

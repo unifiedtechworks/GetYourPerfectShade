@@ -5,13 +5,13 @@ import { loadMigrationFiles } from "./migration-files.mjs";
 import { migrationPlan } from "./runner.mjs";
 
 describe("current Perfect Shade migration sequence", () => {
-  it("accepts deployed history through 0008 and plans only additional owner provisioning 0009", async () => {
+  it("accepts deployed history through 0009 and plans only lifecycle and policy migration 0010", async () => {
     const migrations = await loadMigrationFiles(join(
       dirname(fileURLToPath(import.meta.url)),
       "..",
       "migrations",
     ));
-    const applied = migrations.slice(0, 8).map((migration) => ({
+    const applied = migrations.slice(0, 9).map((migration) => ({
       version: migration.version,
       filename: migration.filename,
       checksum: migration.checksum,
@@ -30,8 +30,8 @@ describe("current Perfect Shade migration sequence", () => {
 
     await expect(migrationPlan(database, migrations)).resolves.toMatchObject({
       pending: [{
-        version: "0009",
-        filename: "0009_additional_owner_provisioning.sql",
+        version: "0010",
+        filename: "0010_estimate_document_lifecycle_and_policy.sql",
       }],
     });
   });

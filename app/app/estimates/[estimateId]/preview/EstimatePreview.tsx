@@ -3,6 +3,8 @@ import { formatCurrencyFromMinorUnits } from "../../../../../lib/estimates/calcu
 import {
   COMPANY_QUALIFICATIONS_TEXT,
   CRAFTSMANSHIP_WARRANTY_TEXT,
+  formatIssuedDateInPacific,
+  LEAD_TIMES_TEXT,
   MEASUREMENT_READINESS_TEXT,
   coreTerms,
   visibleProposalSections,
@@ -29,6 +31,7 @@ export function EstimatePreview({ estimate }: { estimate: PreviewEstimate }) {
   const pricingLines = estimate.pricingLines;
   const alternatePricingLines = estimate.alternatePricingLines;
   const hasSalesTax = BigInt(estimate.totals.salesTaxMinor) !== 0n;
+  const companySignatureDate = formatIssuedDateInPacific(estimate);
 
   return (
     <article className={styles.document}>
@@ -147,6 +150,13 @@ export function EstimatePreview({ estimate }: { estimate: PreviewEstimate }) {
         <section><h2>Prevailing Wage</h2><p>{estimate.prevailingWageStatement.trim()}</p></section>
       )}
 
+      {sections.has("leadTimes") && (
+        <section>
+          <h2>Lead Times</h2>
+          <ul><li>{LEAD_TIMES_TEXT}</li></ul>
+        </section>
+      )}
+
       <section><h2>Measurement Readiness</h2><p>{MEASUREMENT_READINESS_TEXT}</p></section>
       <section><h2>Craftsmanship Warranty</h2><p>{CRAFTSMANSHIP_WARRANTY_TEXT}</p></section>
       <section><h2>Company Qualifications</h2><p>{COMPANY_QUALIFICATIONS_TEXT}</p></section>
@@ -164,7 +174,7 @@ export function EstimatePreview({ estimate }: { estimate: PreviewEstimate }) {
             <p className={styles.signatureLabel}>Sheri Brannan</p>
             <div className={styles.signatureSpace} aria-hidden="true" />
             <div className={styles.signatureLine} />
-            <p>Date:</p>
+            <p>Date:{companySignatureDate ? ` ${companySignatureDate}` : ""}</p>
           </div>
           <div>
             <p className={styles.signatureLabel}>Authorized Signature</p>

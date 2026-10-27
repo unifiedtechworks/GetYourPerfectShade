@@ -285,3 +285,16 @@ low-cardinality count/age metrics when document history is read. See
 - production retention/legal-hold policy; and
 - Chat 5 CDK route, IAM, Lambda bundle, environment, deployment, and live
   migration work.
+
+## Lifecycle snapshot and proposal policy follow-up
+
+Migration `0010_estimate_document_lifecycle_and_policy.sql` extends generated
+document history with the immutable generation-time `generated_as` snapshot.
+Legacy null values are displayed honestly as `Unknown (legacy)` rather than
+being inferred from the estimate's current status. The same migration adds an
+immutable proposal wording policy: existing estimates preserve saved lead-time
+commitments under policy v1, while new proposals use the permanent Lead Times
+section under policy v2. See
+[`estimate-issuance-lead-times.md`](./estimate-issuance-lead-times.md) for the
+issuance-race guard, signature-date rules, controlled legacy classification,
+and coordinated rollout order.

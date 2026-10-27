@@ -232,12 +232,12 @@ order by sort_order
 const INSERT_DOCUMENT_SQL = `
 insert into app.estimate_documents (
   id, organization_id, estimate_id, estimate_revision, document_type,
-  state, object_key, original_filename, content_type, byte_size,
+  generated_as, state, object_key, original_filename, content_type, byte_size,
   checksum_sha256, source_row_version, idempotency_key, generator_version,
   generated_by, rendered_at, created_by, updated_by
 ) values (
   :documentId::uuid, :organizationId::uuid, :estimateId::uuid,
-  :revision::integer, :documentType, 'pending', :objectKey,
+  :revision::integer, :documentType, :generatedAs, 'pending', :objectKey,
   :filename, :contentType, :byteSize::bigint, :checksumSha256,
   :sourceRowVersion::bigint, :idempotencyKey, :generatorVersion,
   :actorId, :renderedAt::timestamptz, :actorId, :actorId
@@ -245,14 +245,14 @@ insert into app.estimate_documents (
 on conflict (organization_id, estimate_id, document_type, idempotency_key)
 do nothing
 returning id::text, estimate_id::text, estimate_revision::text, document_type,
-          state, object_key, original_filename, content_type, byte_size::text,
+          generated_as, state, object_key, original_filename, content_type, byte_size::text,
           checksum_sha256, source_row_version::text, rendered_at::text,
           generated_at::text, created_at::text
 `;
 
 const SELECT_DOCUMENT_RESERVATION_SQL = `
 select id::text, estimate_id::text, estimate_revision::text, document_type,
-       state, object_key, original_filename, content_type, byte_size::text,
+       generated_as, state, object_key, original_filename, content_type, byte_size::text,
        checksum_sha256, source_row_version::text, rendered_at::text,
        generated_at::text, created_at::text
 from app.estimate_documents
@@ -273,7 +273,7 @@ where organization_id = :organizationId::uuid
   and estimate_id = :estimateId::uuid
   and state = 'pending'
 returning id::text, estimate_id::text, estimate_revision::text, document_type,
-          state, original_filename, content_type, byte_size::text,
+          generated_as, state, original_filename, content_type, byte_size::text,
           checksum_sha256, generated_at::text, created_at::text
 `;
 
@@ -288,7 +288,7 @@ where organization_id = :organizationId::uuid
 
 const LIST_DOCUMENTS_SQL = `
 select id::text, estimate_id::text, estimate_revision::text, document_type,
-       state, original_filename, content_type, byte_size::text,
+       generated_as, state, original_filename, content_type, byte_size::text,
        checksum_sha256, generated_at::text, created_at::text
 from app.estimate_documents
 where organization_id = :organizationId::uuid
@@ -360,6 +360,10 @@ function documentRecord(
     estimateId: required(row, "estimate_id"),
     revisionNumber: required(row, "estimate_revision"),
     type: required(row, "document_type") as EstimateDocumentType,
+    generatedAs:
+      row.generated_as === "draft" || row.generated_as === "issued"
+        ? row.generated_as
+        : "unknown",
     state,
     filename: required(row, "original_filename"),
     contentType: required(row, "content_type"),
@@ -722,22 +726,21 @@ export class EstimatePhase4Service {
     requestId: string,
   ): Promise<GenerateEstimateDocumentResponse> {
     const canonical = (await new EstimateService(this.database).get(subject, estimateId)).data;
+    if (canonical.status !== "draft" && canonical.status !== "issued") {
+      throw new EstimateServiceError(
+        "document_lifecycle_unsupported",
+        "Documents can only be generated from a draft or issued estimate.",
+        409,
+      );
+    }
     let renderedAt = this.clock();
     let generated = await this.generator(canonical, type, renderedAt);
     const transactionId = await this.database.beginTransaction();
     let membership: Membership;
-    let reservation: SqlRow;
+    let reservation: SqlRow | undefined;
     let replayed = false;
     try {
       membership = await this.establishContext(transactionId, subject);
-      const documentId = this.idFactory();
-      const objectKey = buildEstimateDocumentKey({
-        organizationId: membership.organizationId,
-        estimateId,
-        revision: canonical.revisionNumber,
-        documentId,
-        type,
-      });
       const common = {
         organizationId: membership.organizationId,
         actorId: membership.actorId,
@@ -746,37 +749,99 @@ export class EstimatePhase4Service {
         documentType: type,
         idempotencyKey,
       };
-      const inserted = await this.database.execute({
-        sql: INSERT_DOCUMENT_SQL,
-        parameters: parameters({
-          ...common,
-          documentId,
-          objectKey,
-          filename: generated.filename,
-          contentType: generated.contentType,
-          byteSize: String(generated.bytes.byteLength),
-          checksumSha256: generated.checksumSha256,
-          sourceRowVersion: canonical.rowVersion,
-          generatorVersion: ESTIMATE_DOCUMENT_GENERATOR_VERSION,
-          renderedAt: renderedAt.toISOString(),
-        }),
+      const existingBeforeReservation = await this.database.execute({
+        sql: SELECT_DOCUMENT_RESERVATION_SQL,
+        parameters: parameters(common),
         transactionId,
       });
-      if (inserted.length === 1) reservation = inserted[0];
-      else {
-        const existing = await this.database.execute({
-          sql: SELECT_DOCUMENT_RESERVATION_SQL,
-          parameters: parameters(common),
+      if (existingBeforeReservation.length === 1) {
+        reservation = existingBeforeReservation[0];
+        replayed = true;
+      } else {
+        const locked = await this.database.execute({
+          sql: LOCK_ESTIMATE_SQL,
+          parameters: parameters({
+            organizationId: membership.organizationId,
+            estimateId,
+          }),
           transactionId,
         });
-        if (existing.length !== 1) throw new EstimateServiceError("idempotency_conflict", "The document request could not be replayed.", 409);
-        reservation = existing[0];
-        replayed = true;
+        const source = locked[0];
+        const sourceMatches = !(
+          locked.length !== 1 ||
+          required(source, "row_version") !== canonical.rowVersion ||
+          required(source, "revision_number") !== canonical.revisionNumber ||
+          required(source, "status") !== canonical.status ||
+          (canonical.status === "issued" && source.issued_at !== canonical.issuedAt)
+        );
+        if (!sourceMatches) {
+          const concurrentReservation = await this.database.execute({
+            sql: SELECT_DOCUMENT_RESERVATION_SQL,
+            parameters: parameters(common),
+            transactionId,
+          });
+          if (concurrentReservation.length === 1) {
+            reservation = concurrentReservation[0];
+            replayed = true;
+          } else {
+            throw new EstimateServiceError(
+              "document_source_changed",
+              "The estimate lifecycle changed before document generation was reserved. Reload and generate again.",
+              409,
+            );
+          }
+        }
+        if (!replayed) {
+          const documentId = this.idFactory();
+          const objectKey = buildEstimateDocumentKey({
+            organizationId: membership.organizationId,
+            estimateId,
+            revision: canonical.revisionNumber,
+            documentId,
+            type,
+          });
+          const inserted = await this.database.execute({
+            sql: INSERT_DOCUMENT_SQL,
+            parameters: parameters({
+              ...common,
+              documentId,
+              objectKey,
+              generatedAs: canonical.status,
+              filename: generated.filename,
+              contentType: generated.contentType,
+              byteSize: String(generated.bytes.byteLength),
+              checksumSha256: generated.checksumSha256,
+              sourceRowVersion: canonical.rowVersion,
+              generatorVersion: ESTIMATE_DOCUMENT_GENERATOR_VERSION,
+              renderedAt: renderedAt.toISOString(),
+            }),
+            transactionId,
+          });
+          if (inserted.length === 1) reservation = inserted[0];
+          else {
+            const existing = await this.database.execute({
+              sql: SELECT_DOCUMENT_RESERVATION_SQL,
+              parameters: parameters(common),
+              transactionId,
+            });
+            if (existing.length !== 1) throw new EstimateServiceError("idempotency_conflict", "The document request could not be replayed.", 409);
+            reservation = existing[0];
+            replayed = true;
+          }
+        }
       }
       await this.database.commitTransaction(transactionId);
     } catch (error) {
       await this.rollback(transactionId);
       throw error;
+    }
+
+    if (!reservation) {
+      throw new EstimateServiceError(
+        "database_contract_error",
+        "The document reservation was not returned.",
+        500,
+      );
     }
 
     if (required(reservation, "state") === "ready") {
@@ -849,6 +914,11 @@ export class EstimatePhase4Service {
         estimateId,
         revisionNumber: canonical.revisionNumber,
         type,
+        generatedAs: documentRecord(
+          finalized[0],
+          this.clock(),
+          this.pendingDocumentStaleAfterMs,
+        ).generatedAs,
         checksumSha256: stored.checksumSha256,
         byteSize: String(stored.byteSize),
       });

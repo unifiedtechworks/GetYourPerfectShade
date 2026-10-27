@@ -20,6 +20,7 @@ import {
   COMPANY_QUALIFICATIONS_TEXT,
   CRAFTSMANSHIP_WARRANTY_TEXT,
   DEFAULT_PREVAILING_WAGE_STATEMENT,
+  LEAD_TIMES_TEXT,
   MEASUREMENT_READINESS_TEXT,
   RETAINAGE_TERM_TEXT,
 } from "./presentation";
@@ -45,6 +46,7 @@ function estimate(overrides: Partial<EstimateDetail> = {}): EstimateDetail {
     rowVersion: "4",
     issuedAt: null,
     issuedBy: null,
+    proposalPolicyVersion: "2",
     depositPercent: "50",
     taxRatePercent: "0",
     includeAlternatePricing: true,
@@ -170,6 +172,14 @@ describe("Phase 4 structured JSON export", () => {
 });
 
 describe("Phase 4 DOCX and PDF generation", () => {
+  it("renders the source lifecycle without coupling generation to issuance", () => {
+    expect(buildEstimatePdfText(estimate())).toContain("DRAFT · Revision 1");
+    expect(buildEstimatePdfText(estimate({
+      status: "issued",
+      issuedAt: "2026-08-02T00:00:00.000Z",
+    }))).toContain("ISSUED · Revision 1");
+  });
+
   it("embeds the approved business email in actual DOCX content without rewriting its source", async () => {
     const source = estimate({ status: "issued", issuedAt: "2026-08-02T00:00:00.000Z" });
     const snapshot = JSON.stringify(source);
@@ -209,6 +219,10 @@ describe("Phase 4 DOCX and PDF generation", () => {
     expect(text).toContain("Email: ps.perfectshade@gmail.com");
     expect(text).not.toContain("ps.getyourperfectshade@gmail.com");
     expect(text).toContain(RETAINAGE_TERM_TEXT);
+    expect(text.filter((value) => value === LEAD_TIMES_TEXT)).toHaveLength(1);
+    expect(text.indexOf("Lead Times")).toBeLessThan(
+      text.indexOf("Measurement Readiness"),
+    );
     expect(text).toContain(MEASUREMENT_READINESS_TEXT);
     expect(text).toContain(CRAFTSMANSHIP_WARRANTY_TEXT);
     expect(text).toContain(COMPANY_QUALIFICATIONS_TEXT);
@@ -306,6 +320,68 @@ describe("Phase 4 DOCX and PDF generation", () => {
     expect(text).not.toContain("Addenda Acknowledgement");
     expect(text).not.toContain("Prevailing Wage");
     expect(text).not.toContain("Additional terms or exclusions:");
+  });
+
+  it("preserves legacy issued lead-time commitments without applying policy v2", () => {
+    const text = buildEstimatePdfText(estimate({
+      status: "issued",
+      issuedAt: "2026-08-02T00:00:00.000Z",
+      proposalPolicyVersion: "1",
+      leadTime: "4-6 weeks after approved field measurements",
+    }));
+    expect(text).toContain(
+      "Estimated lead time: 4-6 weeks after approved field measurements.",
+    );
+    expect(text).not.toContain("Lead Times");
+    expect(text).not.toContain(LEAD_TIMES_TEXT);
+  });
+
+  it("uses issuedAt for the company date while keeping draft and customer dates blank", async () => {
+    const issued = estimate({
+      status: "issued",
+      issuedAt: "2026-08-02T00:00:00.000Z",
+    });
+    const issuedText = buildEstimatePdfText(issued);
+    expect(issuedText.filter((value) => value === "Date: 08/01/2026"))
+      .toHaveLength(1);
+    expect(issuedText.filter((value) => value === "Date:"))
+      .toHaveLength(1);
+
+    const issuedXml = readZipEntry(
+      await generateEstimateDocx(issued),
+      "word/document.xml",
+    );
+    expect(issuedXml).toContain("Date: 08/01/2026");
+    expect(issuedXml.match(/08\/01\/2026/g)).toHaveLength(1);
+
+    const draftXml = readZipEntry(
+      await generateEstimateDocx(estimate()),
+      "word/document.xml",
+    );
+    expect(draftXml).not.toMatch(/Date: \d{2}\/\d{2}\/\d{4}/);
+
+    const pdf = await PDFDocument.load(
+      await generateEstimatePdf(issued, GENERATED_AT),
+    );
+    const content = pdf.context.enumerateIndirectObjects()
+      .flatMap(([, value]) => value instanceof PDFRawStream
+        ? [Buffer.from(decodePDFRawStream(value).decode()).toString("latin1")]
+        : [])
+      .join("\n")
+      .toUpperCase();
+    expect(content).toContain(
+      Buffer.from("Date: 08/01/2026").toString("hex").toUpperCase(),
+    );
+  });
+
+  it("renders the permanent Lead Times section exactly once in DOCX", async () => {
+    const xml = readZipEntry(
+      await generateEstimateDocx(estimate()),
+      "word/document.xml",
+    );
+    expect(xml.match(/Lead Times/g)).toHaveLength(1);
+    expect(xml.match(/Lead time will be 3 weeks from final measure and receipt of deposit\./g))
+      .toHaveLength(1);
   });
 
   it("embeds only the exact configurable Sheri signature asset", async () => {
