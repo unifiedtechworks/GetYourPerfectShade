@@ -242,7 +242,10 @@ try {
   });
   await check('New document snapshots reject null, omitted, and invalid states; draft/issued values are accepted', async () => {
     for (const value of [null, 'accepted', 'Draft', '']) {
-      await expectPgError(() => asRuntime(A.subject, c => insertDocument(c, legacyDraft, { generatedAs: value })), value === null ? '23502' : '23514');
+      // BEFORE INSERT rejects null; runtime RLS rejects invalid nonnull values
+      // before CHECK constraints. Also test the table CHECK as administrative owner.
+      await expectPgError(() => asRuntime(A.subject, c => insertDocument(c, legacyDraft, { generatedAs: value })), value === null ? '23502' : '42501');
+      if (value !== null) await expectPgError(() => insertDocument(admin, legacyDraft, { generatedAs: value }), '23514');
     }
     await expectPgError(() => asRuntime(A.subject, c => insertDocument(c, legacyDraft, { includeLifecycle: false })), '23502');
     for (const generatedAs of ['draft', 'issued']) assert(await asRuntime(A.subject, c => insertDocument(c, legacyDraft, { generatedAs })));
