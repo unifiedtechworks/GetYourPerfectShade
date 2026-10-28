@@ -1,0 +1,66 @@
+name: Isolated migration 0010 PostgreSQL 16 rehearsal
+
+on:
+  push:
+    branches: [codex/validate-migration-0010-postgres16]
+    paths:
+      - .github/workflows/migration-0010-postgres16.yml
+      - validation/postgres16/**
+      - infra/database/migrations/**
+      - backend/estimates/**
+
+permissions:
+  contents: read
+
+jobs:
+  postgres16:
+    if: github.repository == 'unifiedtechworks/GetYourPerfectShade' && github.ref == 'refs/heads/codex/validate-migration-0010-postgres16'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: synthetic-ci-only
+          POSTGRES_DB: perfectshade_0010_rehearsal
+        ports: [5432:5432]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: 5432
+      PGDATABASE: perfectshade_0010_rehearsal
+      PGUSER: postgres
+      PGPASSWORD: synthetic-ci-only
+      AWS_EC2_METADATA_DISABLED: 'true'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+      - name: Install locked application and isolated PostgreSQL test driver
+        shell: bash
+        run: |
+          npm install --global pnpm@11.9.0 --ignore-scripts
+          pnpm install --frozen-lockfile --strict-peer-dependencies
+          npm ci --prefix validation/postgres16 --ignore-scripts
+          pnpm exec esbuild backend/estimates/phase4-service.ts --bundle --platform=node --format=cjs --packages=external --outfile=node_modules/.cache/0010-phase4-service.cjs
+      - name: Exercise actual PostgreSQL transactions and application service
+        shell: bash
+        run: node validation/postgres16/rehearsal.mjs
+      - name: Preserve synthetic-only result summary
+        if: always()
+        shell: bash
+        run: |
+          if [ -f validation/postgres16/results.json ]; then
+            printf '### PostgreSQL 16 migration 0010 rehearsal\n\n```json\n' >> "$GITHUB_STEP_SUMMARY"
+            cat validation/postgres16/results.json >> "$GITHUB_STEP_SUMMARY"
+            printf '\n```\n' >> "$GITHUB_STEP_SUMMARY"
+          fi

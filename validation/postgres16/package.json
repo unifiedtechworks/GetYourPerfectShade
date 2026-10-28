@@ -1,0 +1,9 @@
+{
+  "name": "perfect-shade-isolated-postgres16-rehearsal",
+  "private": true,
+  "type": "module",
+  "description": "Validation-branch-only test driver; never an application dependency or deployment step.",
+  "dependencies": {
+    "pg": "8.23.1"
+  }
+}
