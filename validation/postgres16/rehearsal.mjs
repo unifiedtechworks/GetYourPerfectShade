@@ -173,7 +173,7 @@ async function insertDocument(c, estimate, { generatedAs = 'draft', state = 'pen
     (id,organization_id,estimate_id,estimate_revision,document_type,state,object_key,original_filename,content_type,
      byte_size,checksum_sha256,source_row_version,idempotency_key,generator_version,generated_by,rendered_at,
      generated_at,failure_code,created_by,updated_by${fields})
-    values ($1,$2,$3,1,'pdf',$6,'synthetic/'||$1::text,'synthetic.pdf','application/pdf',10,
+    values ($1::uuid,$2::uuid,$3::uuid,1,'pdf',$6,'synthetic/'||($1::uuid)::text,'synthetic.pdf','application/pdf',10,
       repeat('a',64),1,$4,'synthetic/v1',$5,'2026-01-01T12:00:00Z',$7,$8,$5,$5${snapshot})`, values);
   return id;
 }
