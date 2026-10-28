@@ -24,6 +24,9 @@ document bytes are synthetic in-memory test doubles: no S3, presigned live URLs,
 real client documents, or business data are accessed. A concurrent finalization
 loser may return the service's existing retryable `document_finalize_pending`;
 the test verifies the same-key retry recovers the original reservation.
+It also injects an adapter interruption after a real finalization UPDATE but
+before commit, verifies transaction/audit rollback, then issues the estimate and
+recovers the original pending Draft snapshot without rewriting the stored bytes.
 
 This does **not** exercise Aurora, the AWS RDS Data API transport/administrative
 identity, AWS IAM or Secrets Manager, the deployed migration CLI's credentials,

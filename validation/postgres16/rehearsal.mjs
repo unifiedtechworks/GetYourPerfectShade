@@ -86,6 +86,7 @@ const historyDatabase = {
 class PostgresApplicationDatabase {
   sessions = new Map();
   reservationHook = null;
+  interruptFinalizeOnce = false;
   async beginTransaction() {
     const c = await runtime.connect(), id = randomUUID();
     await c.query('begin'); this.sessions.set(id, c); return id;
@@ -101,6 +102,12 @@ class PostgresApplicationDatabase {
     const result = await c.query(text, values);
     if (sql.includes('insert into app.estimate_documents') && result.rows.length && this.reservationHook) {
       await this.reservationHook(c, result.rows);
+    }
+    if (this.interruptFinalizeOnce && sql.includes('update app.estimate_documents') && sql.includes("set state = 'ready'")) {
+      this.interruptFinalizeOnce = false;
+      // The real UPDATE happened, but the service must roll it back because the
+      // adapter failed before audit/commit. The stored synthetic object survives.
+      throw new Error('Synthetic interruption before finalization commit');
     }
     return result.rows.map(row => Object.fromEntries(Object.entries(row).map(([key, value]) =>
       [key, value === null ? null : typeof value === 'object' ? JSON.stringify(value) : String(value)])));
@@ -151,14 +158,16 @@ async function seedTenant(t, label) {
 async function seedEstimate(t = A) {
   const id = randomUUID();
   await admin.query(`insert into app.estimates
-    (id,organization_id,project_id,project_name,prepared_for,lead_time,created_by,updated_by)
-    values ($1,$2,$3,'Synthetic complete proposal','Synthetic architect','8 weeks by prior agreement',$4,$4)`,
+    (id,organization_id,project_id,project_name,prepared_for,lead_time,deposit_percent,
+     subtotal_minor,total_minor,required_deposit_minor,remaining_balance_minor,created_by,updated_by)
+    values ($1,$2,$3,'Synthetic complete proposal','Synthetic architect','8 weeks by prior agreement',50,
+      1234500,1234500,617250,617250,$4,$4)`,
   [id, t.org, t.project, t.subject]);
   await admin.query(`insert into app.estimate_scope_items (organization_id,estimate_id,sort_order,description,created_by,updated_by)
     values ($1,$2,0,'Synthetic installation scope',$3,$3)`, [t.org, id, t.subject]);
   await admin.query(`insert into app.estimate_pricing_lines
     (organization_id,estimate_id,kind,sort_order,description,amount_minor,created_by,updated_by)
-    values ($1,$2,'base',0,'Synthetic line',0,$3,$3)`, [t.org, id, t.subject]);
+    values ($1,$2,'base',0,'Synthetic line',1234500,$3,$3)`, [t.org, id, t.subject]);
   return id;
 }
 async function insertDocument(c, estimate, { generatedAs = 'draft', state = 'pending', includeLifecycle = true,
@@ -348,6 +357,27 @@ try {
     assert.equal(recovered[0].data.id, recovered[1].data.id);
     assert(recovered.every(r => r.data.generatedAs === 'draft' && r.data.state === 'ready'));
     assert.equal((await admin.query('select count(*)::int as n from app.estimate_documents where estimate_id=$1', [simultaneous])).rows[0].n, 1);
+  });
+  await check('A real rolled-back finalization recovers the original pending Draft reservation after issuance', async () => {
+    const id = await seedEstimate(), db = new PostgresApplicationDatabase(), generation = service(db);
+    db.interruptFinalizeOnce = true;
+    await assert.rejects(generation.value.generate(A.subject, id, 'pdf', 'recover-pending', 'recover-pending'),
+      /Synthetic interruption before finalization commit/);
+    const pending = (await admin.query("select * from app.estimate_documents where idempotency_key='recover-pending'")).rows[0];
+    assert.equal(pending.state, 'pending'); assert.equal(pending.generated_as, 'draft');
+    assert.equal((await admin.query("select count(*)::int as n from app.audit_events where entity_id=$1 and action='estimate.document_generated'", [pending.id])).rows[0].n, 0);
+    assert.equal(generation.storage.puts, 1);
+    await service().value.issue(A.subject, id, 'issue-pending', 'issue-pending');
+    const recovered = await generation.value.generate(A.subject, id, 'pdf', 'recover-pending', 'recover-pending');
+    assert.equal(recovered.data.id, pending.id); assert.equal(recovered.data.generatedAs, 'draft');
+    assert.equal(recovered.data.state, 'ready'); assert.equal(recovered.data.replayed, true);
+    assert.equal(generation.storage.puts, 1);
+    const ready = await row(pending.id);
+    for (const key of ['id','organization_id','estimate_id','estimate_revision','document_type','generated_as',
+      'object_key','original_filename','checksum_sha256','source_row_version','idempotency_key',
+      'generator_version','generated_by','rendered_at','created_at','created_by']) assert.deepEqual(ready[key], pending[key], key);
+    assert.equal((await admin.query("select count(*)::int as n from app.audit_events where entity_id=$1 and action='estimate.document_generated'", [pending.id])).rows[0].n, 1);
+    assert.equal(JSON.parse(generation.storage.objects.get(pending.object_key).bytes.toString()).status, 'draft');
   });
   await check('Matching applied history recognizes 0010; changed checksum fails; migration ledger is append-only', async () => {
     const plan = await migrationPlan(historyDatabase, migrations); assert.equal(plan.pending.length, 0); assert.equal(plan.applied.length, 10);
