@@ -12,8 +12,8 @@ frontend:
           git bundle verify release-candidates/compatibility-fa8f343a6758c1802bdefa251b692b5e11442ca7.bundle
           git fetch --no-tags ./release-candidates/compatibility-fa8f343a6758c1802bdefa251b692b5e11442ca7.bundle HEAD
           test "$(git rev-parse FETCH_HEAD)" = fa8f343a6758c1802bdefa251b692b5e11442ca7
-          git checkout --detach fa8f343a6758c1802bdefa251b692b5e11442ca7
-          test "$(git rev-parse HEAD^{tree})" = ea6066ea71537fab32d8828092def268426dc7d5
+          git checkout --detach 3586e950500963be2707bb5da7182949e47b03d7
+          test "$(git rev-parse HEAD^{tree})" = 3680b22bc568367190a1ffbab0a843c2ff6806c8
           git diff --exit-code HEAD
           test ! -e infra/database/migrations/0010_estimate_document_lifecycle_and_policy.sql
           node -e "require('node:fs').rmSync('.next', {recursive:true, force:true})"
@@ -25,12 +25,12 @@ frontend:
           node --input-type=module -e "import { validateAmplifyEnvironment } from './scripts/validate-amplify-environment.mjs'; if(process.env.AWS_BRANCH!=='codex/compatibility-amplify-staging-fa8f343-20261030' || process.env.PERFECT_SHADE_PRODUCTION_RELEASE_APPROVED) throw Error('Invalid staging context'); validateAmplifyEnvironment({...process.env,AWS_BRANCH:'main',PERFECT_SHADE_DEPLOYMENT_ENVIRONMENT:'production',PERFECT_SHADE_PRODUCTION_RELEASE_APPROVED:'true'}); console.log('Production-compatible configuration validated in staging context; no production marker was set.');"
     build:
       commands:
-        - test "$(git rev-parse HEAD)" = fa8f343a6758c1802bdefa251b692b5e11442ca7
+        - test "$(git rev-parse HEAD)" = 3586e950500963be2707bb5da7182949e47b03d7
         - pnpm build
-        - test "$(git rev-parse HEAD^{tree})" = ea6066ea71537fab32d8828092def268426dc7d5
+        - test "$(git rev-parse HEAD^{tree})" = 3680b22bc568367190a1ffbab0a843c2ff6806c8
     postBuild:
       commands:
-        - node -e "require('node:fs').writeFileSync('.next/compatibility-release-provenance.json', JSON.stringify({commit:'fa8f343a6758c1802bdefa251b692b5e11442ca7',tree:'ea6066ea71537fab32d8828092def268426dc7d5',node:process.version,linux:process.platform==='linux',actualBranch:process.env.AWS_BRANCH,bundleSha256:'cc124e7f81418e09720280539e45e862dd9056b13e794d889a0062bafc45bc97',migration0010Absent:!require('node:fs').existsSync('infra/database/migrations/0010_estimate_document_lifecycle_and_policy.sql')}))"
+        - node -e "require('node:fs').writeFileSync('.next/compatibility-release-provenance.json', JSON.stringify({commit:'3586e950500963be2707bb5da7182949e47b03d7',tree:'3680b22bc568367190a1ffbab0a843c2ff6806c8',node:process.version,linux:process.platform==='linux',actualBranch:process.env.AWS_BRANCH,bundleSha256:'cc124e7f81418e09720280539e45e862dd9056b13e794d889a0062bafc45bc97',migration0010Absent:!require('node:fs').existsSync('infra/database/migrations/0010_estimate_document_lifecycle_and_policy.sql')}))"
   artifacts:
     baseDirectory: .next
     files:
